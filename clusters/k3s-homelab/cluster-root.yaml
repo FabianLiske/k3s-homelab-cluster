@@ -16,4 +16,3 @@ spec:
     provider: sops
     secretRef:
       name: sops-age
-  # Optional: Wenn cluster-root alles in apps applyt, dependsOn auf nichts, aber entferne es vielleicht und nutze separate infra/services

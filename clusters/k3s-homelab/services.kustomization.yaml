@@ -13,4 +13,3 @@ spec:
   dependsOn:
     - name: infrastructure
       namespace: flux-system
-      
