@@ -5,3 +5,4 @@ resources:
   - cluster-root.yaml
   - infra.kustomization.yaml
   - services.kustomization.yaml
+  - metallb-config.kustomization.yaml

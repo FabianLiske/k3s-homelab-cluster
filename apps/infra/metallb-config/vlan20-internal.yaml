@@ -1,0 +1,17 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: pool-vlan20-internal
+  namespace: metallb-system
+spec:
+  addresses: ["192.168.20.150-192.168.20.199"]
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: adv-vlan20-internal
+  namespace: metallb-system
+spec:
+  ipAddressPools: ["pool-vlan20-internal"]
+  interfaces: ["vlan20"]
+  
