@@ -200,3 +200,26 @@ kubectl taint nodes cp-X node-role.kubernetes.io/control-plane=:NoSchedule --ove
 
 ```bash
 kubectl label nodes wk-X node-role.kubernetes.io/worker= longhorn=storage --overwrite
+```
+
+# SOPS
+
+Secret auf Cluster:
+
+```bash
+kubectl -n flux-system create secret generic sops-age \
+  --from-file=age.agekey=./age.cluster.key
+```
+
+Decryption Spec:
+
+```bash
+kubectl edit kustomization flux-system -n flux-system
+```1
+
+```yaml
+decryption:
+  provider: sops
+  secretRef:
+    name: sops-age
+```
