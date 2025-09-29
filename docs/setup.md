@@ -128,8 +128,75 @@ api.cluster.rohrbom.be -> 192.168.100.100 in Cloudflare ohne Proxy
 
 ## 3.2) KubeVIP über cp-1 auf Cluster bringen
 
+Auf PC:
 ```bash
-sudo kubectl apply -f manifests/kube-vip.yaml
+scp kube-vip.yaml faba@192.168.100.11:~/
+```
+
+auf cp-1:
+```bash
+sudo kubectl apply -f kube-vip.yaml
 ```
 
 ---
+
+# 4) Vorbereitung auf Admin-PC
+
+## 4.1) Installation
+
+```bash
+sudo pacman -S kubectl
+yay -S helm
+```
+
+## 4.2) Kubeconfig holen & auf VIP/FQDN umstellen
+
+```bash
+scp faba@192.168.100.11:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+chmod 600 ~/.kube/config
+# VIP/FQDN eintragen (eine von beiden Varianten):
+# sed -i 's#server: https://.*:6443#server: https://192.168.100.100:6443#' ~/.kube/config
+sed -i 's#server: https://.*:6443#server: https://api.cluster.rohrbom.be:6443#' ~/.kube/config
+kubectl get nodes
+```
+
+---
+
+# 5) Worker dem Cluster joinen
+
+## 5.1) Token von `cp-1` holen:
+
+```bash
+# auf cp-1:
+sudo cat /var/lib/rancher/k3s/server/node-token
+```
+
+## 5.2) Auf **jedem Worker** (Token einsetzen):
+
+```bash
+curl -sfL https://get.k3s.io | \
+  K3S_TOKEN="<TOKEN>" \
+  INSTALL_K3S_EXEC="agent --server https://192.168.100.100:6443" \
+  sh -
+```
+
+Check:
+
+```bash
+kubectl get nodes -o wide
+```
+
+---
+
+# 6) Longhorn installieren (ab hier wieder alles auf Admin-PC)
+
+## 6.1) Control Plane tainten
+
+```bash
+kubectl taint nodes cp-X node-role.kubernetes.io/control-plane=:NoSchedule --overwrite
+```
+
+## 6.2) Worker tainten
+
+```bash
+kubectl label nodes wk-X node-role.kubernetes.io/worker= longhorn=storage --overwrite
