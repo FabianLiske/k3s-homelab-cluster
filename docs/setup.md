@@ -223,3 +223,9 @@ decryption:
   secretRef:
     name: sops-age
 ```
+
+# MetalLB manuell
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
+```
