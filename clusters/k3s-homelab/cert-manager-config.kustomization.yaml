@@ -15,4 +15,4 @@ spec:
       name: cert-manager
       namespace: flux-system
   validation: none
-  
+  force: true
