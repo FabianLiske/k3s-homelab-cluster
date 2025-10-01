@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflare-ddns
+  namespace: svc-ddns
+  labels: { app: cloudflare-ddns }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: cloudflare-ddns } }
+  template:
+    metadata:
+      labels: { app: cloudflare-ddns }
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: ddns
+          image: favonia/cloudflare-ddns:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          env:
+            - name: CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-ddns-secrets
+                  key: CLOUDFLARE_API_TOKEN
+            - name: DOMAINS
+              value: "vpn.rohrbom.be,vault.rohrbom.be,kochen.mitschen.de"
+            - name: PROXIED
+              value: "false"
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+          resources:
+            requests: { cpu: 15m, memory: 64Mi }
+            limits:   { cpu: 200m, memory: 256Mi }
+      volumes:
+        - name: tmp
+          emptyDir: {}
