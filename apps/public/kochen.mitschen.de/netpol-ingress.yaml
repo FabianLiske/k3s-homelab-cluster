@@ -10,6 +10,6 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ingress-vlan30-public
+              kubernetes.io/metadata.name: ingress-30
       ports:
         - { protocol: TCP, port: 80 }
