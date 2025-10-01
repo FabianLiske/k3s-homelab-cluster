@@ -1,7 +1,7 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: ingress-vlan10-mgmt
+  name: ingress-10
   namespace: flux-system
 spec:
   interval: 5m
@@ -15,7 +15,7 @@ spec:
         namespace: flux-system
   install:
     createNamespace: true
-  targetNamespace: ingress-vlan10-mgmt
+  targetNamespace: ingress-10
   values:
     controller:
       kind: DaemonSet
