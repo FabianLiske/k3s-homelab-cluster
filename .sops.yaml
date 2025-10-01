@@ -1,12 +1,7 @@
 creation_rules:
-  - path_regex: 'apps/.*/(secret|secrets|.*-secret)\.ya?ml'
+  - path_regex: '(apps|infrastructure)/.*/(secret|secrets|.*-secret)\.ya?ml'
     encrypted_regex: '^(data|stringData)$'
     key_groups:
       - age:
           - age18zt3nnfmvqptym5k79vknf9mxzkwwfzcpgct2wkfma02mjpxwpmszrf8q9
-  # Speziell für issuer
-  - path_regex: 'apps/infra/cert-manager-config/issuer\.ya?ml'
-    encrypted_regex: '^email$'
-    key_groups:
-      - age:
-          - age18zt3nnfmvqptym5k79vknf9mxzkwwfzcpgct2wkfma02mjpxwpmszrf8q9
+
