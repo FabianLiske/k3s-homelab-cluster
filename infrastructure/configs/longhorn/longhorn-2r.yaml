@@ -11,4 +11,5 @@ parameters:
   dataLocality: "best-effort"
   replicaAutoBalance: "best-effort"
 #  nodeSelector: "general_storage"
+  dataEngine: "v1"
 volumeBindingMode: WaitForFirstConsumer
