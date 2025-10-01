@@ -10,5 +10,5 @@ parameters:
   numberOfReplicas: "2"
   dataLocality: "best-effort"
   replicaAutoBalance: "best-effort"
-  nodeSelector: "general_storage"
+#  nodeSelector: "general_storage"
 volumeBindingMode: WaitForFirstConsumer
