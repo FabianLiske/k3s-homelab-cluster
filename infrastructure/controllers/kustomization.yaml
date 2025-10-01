@@ -4,3 +4,4 @@ resources:
   - ./metallb/
   - ./cert-manager/
   - ./ingress-nginx/
+  - ./longhorn/
