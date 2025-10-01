@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kochen
+  namespace: svc-kochen
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "2592000"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kochen.mitschen.de
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kochen
+                port: { number: 80 }
+  tls:
+    - hosts: [kochen.mitschen.de]
+      secretName: kochen-tls

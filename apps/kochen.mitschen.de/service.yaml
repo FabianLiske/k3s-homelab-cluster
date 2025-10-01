@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kochen
+  namespace: svc-kochen
+spec:
+  type: ClusterIP
+  selector: { app: kochen }
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

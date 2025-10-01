@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: svc-kochen
+labels:
+  - pairs: { app: kochen, gitops: flux }
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - netpol-ingress.yaml
+  - netpol-egress-deny.yaml
+  - ghcr-cred-secret.yaml
