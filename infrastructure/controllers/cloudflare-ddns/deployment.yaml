@@ -29,8 +29,8 @@ spec:
             - name: CLOUDFLARE_API_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: cloudflare-ddns-secrets
-                  key: CLOUDFLARE_API_TOKEN
+                  name: cloudflare-api-token
+                  key: api-token
             - name: DOMAINS
               value: "vpn.rohrbom.be,vault.rohrbom.be,kochen.mitschen.de"
             - name: PROXIED
