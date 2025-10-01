@@ -1,0 +1,48 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ingress-100
+  namespace: flux-system
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ingress-nginx
+      version: "*"
+      sourceRef:
+        kind: HelmRepository
+        name: ingress-nginx
+        namespace: flux-system
+  install:
+    createNamespace: true
+  targetNamespace: ingress-100
+  values:
+    controller:
+      kind: DaemonSet
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      ingressClassResource:
+        name: nginx-admin
+        controllerValue: "k8s.io/ingress-nginx-admin"
+      ingressClass: nginx-admin
+      ingressClassByName: true
+      watchIngressWithoutClass: false
+      service:
+        type: LoadBalancer
+        externalTrafficPolicy: Local
+        loadBalancerIP: 192.168.100.151
+        annotations:
+          metallb.universe.tf/address-pool: pool-vlan100-admin
+      publishService:
+        enabled: true
+      config:
+        use-forwarded-headers: "false"
+      metrics:
+        enabled: true
+      extraArgs:
+        metrics-per-host: "false"

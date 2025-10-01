@@ -3,6 +3,6 @@ kind: Kustomization
 resources:
   - helmrepository.yaml
   - ./vlan10/helmrelease.yaml
-#  - vlan20/helmrelease.yaml
-#  - vlan30/helmrelease.yaml
-#  - vlan100/helmrelease.yaml
+  - ./vlan20/helmrelease.yaml
+  - ./vlan30/helmrelease.yaml
+  - ./vlan100/helmrelease.yaml
