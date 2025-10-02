@@ -4,9 +4,8 @@
 # Vaultwarden Deployment runterskalieren
 kubectl -n svc-vaultwarden scale deploy/vaultwarden --replicas=0
 kubectl -n svc-vaultwarden wait --for=delete pod -l app=vaultwarden --timeout=120s
-# Hängenden Loader löschen und neu starten
-kubectl -n svc-vaultwarden delete pod vw-loader --force --grace-period=0
-kubectl -n svc-vaultwarden apply -f vault.rohrbom.be/vw-loader.yaml
+# Loader starten
+kubectl -n svc-vaultwarden apply -f manifests/vw-loader.yaml
 kubectl -n svc-vaultwarden wait --for=condition=Ready pod/vw-loader --timeout=120s
 # Daten ziehen
 mkdir -p ~/migrate/vaultwarden-data
