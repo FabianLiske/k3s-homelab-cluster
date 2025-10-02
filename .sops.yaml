@@ -1,5 +1,5 @@
 creation_rules:
-  - path_regex: '(apps|infrastructure)/.*/(secret|secrets|.*-secret)\.ya?ml'
+  - path_regex: '(apps|infrastructure|monitoring)/.*/(secret|secrets|.*-secret)\.ya?ml'
     encrypted_regex: '^(data|stringData)$'
     key_groups:
       - age:

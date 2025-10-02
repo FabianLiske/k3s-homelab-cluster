@@ -17,6 +17,10 @@ spec:
   wait: true
   commonMetadata:
     labels: { gitops: flux }
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
 #---
 #apiVersion: kustomize.toolkit.fluxcd.io/v1
 #kind: Kustomization

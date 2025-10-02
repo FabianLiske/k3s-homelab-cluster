@@ -5,3 +5,4 @@ resources:
   - ./kube-state-metrics/
   - ./node-exporter/
   - ./prometheus/
+  - ./grafana/
