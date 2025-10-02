@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: ops-monitoring
+  labels: { app: prometheus }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: prometheus } }
+  template:
+    metadata:
+      labels: { app: prometheus }
+    spec:
+      serviceAccountName: prometheus
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=10y
+            # - --web.enable-lifecycle # optional: POST /-/reload
+          ports:
+            - name: http
+              containerPort: 9090
+          env:
+            - { name: TZ, value: Europe/Berlin }
+          volumeMounts:
+            - { name: data, mountPath: /prometheus }
+            - { name: config, mountPath: /etc/prometheus/prometheus.yml, subPath: prometheus.yml }
+          readinessProbe:
+            httpGet: { path: /-/ready, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /-/healthy, port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 200m, memory: 1Gi }
+            limits: { cpu: "2", memory: 4Gi }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: prometheus-data }
+        - name: config
+          configMap: { name: prometheus-config }

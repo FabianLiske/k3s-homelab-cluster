@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: ops-monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      # Prometheus selbst (UI) - Programm-/Handler-Metriken droppen
+      - job_name: prometheus
+        static_configs:
+          - targets: ['localhost:9090']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === NODES: Node Exporter auf jeder Node ===
+      - job_name: node-exporter
+        static_configs:
+          - targets:
+              # Hinweis: Falls Hostnames im Pod nicht resolvbar sind, lieber IPs eintragen.
+              - 'cp-1:9100'
+              - 'cp-2:9100'
+              - 'cp-3:9100'
+              - 'wk-1:9100'
+              - 'wk-2:9100'
+              - 'wk-3:9100'
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === INGRESS: NGINX Controller Metrics ===
+      #- job_name: nginx-ingress
+      #  static_configs:
+      #    - targets:
+      #        - 'ingress-vlan10-mgmt-ingress-nginx-controller-metrics.ingress-vlan10-mgmt.svc:10254'
+      #        - 'ingress-vlan20-internal-ingress-nginx-controller-metrics.ingress-vlan20-internal.svc:10254'
+      #        - 'ingress-vlan30-public-ingress-nginx-controller-metrics.ingress-vlan30-public.svc:10254'
+      #        - 'ingress-vlan100-admin-ingress-nginx-controller-metrics.ingress-vlan100-admin.svc:10254'
+      #  metric_relabel_configs:
+      #    - source_labels: [__name__]
+      #      regex: '^(go_.*|process_.*|promhttp_.*)$'
+      #      action: drop
+      # === CLUSTER HEALTH: API-Server (/metrics) ===
+      - job_name: kubernetes-apiserver
+        scheme: https
+        static_configs:
+          - targets: ['kubernetes.default.svc:443']
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === CLUSTER HEALTH: CoreDNS ===
+      - job_name: coredns
+        static_configs:
+          - targets: ['kube-dns.kube-system.svc:9153']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === CLUSTER HEALTH: kube-state-metrics (Zustand/Verfügbarkeit) ===
+      - job_name: kube-state-metrics
+        static_configs:
+          - targets: ['kube-state-metrics.ops-monitoring.svc:8080']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === STORAGE: Longhorn ===
+      - job_name: longhorn
+        dns_sd_configs:
+          - names: ['_metrics._tcp.longhorn-manager-metrics.longhorn-system.svc']
+            type: SRV
+            refresh_interval: 1m
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
