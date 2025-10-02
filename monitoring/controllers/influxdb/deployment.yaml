@@ -43,11 +43,9 @@ spec:
             - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
               valueFrom:
                 secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN }
-            - name: INFLUXD_CONFIG_PATH
-              value: /etc/influxdb2/influxdb.conf
+            - { name: INFLUXD_REPORTING_DISABLED, value: "true" }
           volumeMounts:
             - { name: data, mountPath: /var/lib/influxdb2 }
-            - { name: config, mountPath: /etc/influxdb2/influxdb.conf, subPath: influxdb.conf }
           readinessProbe:
             httpGet: { path: /health, port: http }
             initialDelaySeconds: 10
@@ -62,5 +60,3 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: influxdb-data }
-        - name: config
-          configMap: { name: influxdb-config }

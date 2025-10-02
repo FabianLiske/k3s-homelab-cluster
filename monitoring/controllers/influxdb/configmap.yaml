@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: influxdb-config
-  namespace: ops-monitoring
-data:
-  influxdb.conf: |
-    # InfluxDB configuration
-    reporting-disabled = true
