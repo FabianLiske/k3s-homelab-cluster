@@ -6,3 +6,4 @@ resources:
   - longhorn-2r.yaml
   - backup-vaultwarden-hourly.yaml
   - ingress.yaml
+  - metrics.yaml

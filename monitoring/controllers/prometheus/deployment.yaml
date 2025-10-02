@@ -23,8 +23,7 @@ spec:
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
-            - --storage.tsdb.retention.time=10y
-            # - --web.enable-lifecycle # optional: POST /-/reload
+            - --storage.tsdb.retention.time=100d
           ports:
             - name: http
               containerPort: 9090
