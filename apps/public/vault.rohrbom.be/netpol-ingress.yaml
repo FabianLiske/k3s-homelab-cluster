@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-only-from-vlan30-ingress
+  namespace: svc-vaultwarden
+spec:
+  podSelector: { matchLabels: { app: vaultwarden } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-30
+      ports:
+        - protocol: TCP
+          port: 80

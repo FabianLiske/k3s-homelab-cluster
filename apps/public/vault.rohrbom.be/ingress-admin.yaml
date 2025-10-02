@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden-admin
+  namespace: svc-vaultwarden
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "192.168.1.156,192.168.60.10"
+spec:
+  ingressClassName: nginx-public
+  rules:
+    - host: vault.rohrbom.be
+      http:
+        paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service: { name: vaultwarden, port: { number: 80 } }
+  tls:
+    - hosts: [vault.rohrbom.be]
+      secretName: vaultwarden-tls

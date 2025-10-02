@@ -1,0 +1,10 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vaultwarden-egress-deny
+  namespace: svc-vaultwarden
+spec:
+  podSelector:
+    matchLabels: { app: vaultwarden }
+  policyTypes: [Egress]
+  egress: []
