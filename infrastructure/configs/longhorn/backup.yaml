@@ -1,9 +1,10 @@
-apiVersion: longhorn.io/v1beta2
-kind: BackupTarget
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: default
+  name: longhorn-default-resource
   namespace: longhorn-system
-spec:
-  backupTargetURL: "s3.eu-central-003.backblazeb2.com"
-  credentialSecret: longhorn-b2-backup
-  pollInterval: 5m0s
+data:
+  default-resource.yaml: |
+    "backup-target": "s3.eu-central-003.backblazeb2.com"
+    "backup-target-credential-secret": "longhorn-b2-backup"
+    "backupstore-poll-interval": "300"
