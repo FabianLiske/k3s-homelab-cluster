@@ -33,17 +33,17 @@ data:
             regex: '^(go_.*|process_.*|promhttp_.*)$'
             action: drop
       # === INGRESS: NGINX Controller Metrics ===
-      #- job_name: nginx-ingress
-      #  static_configs:
-      #    - targets:
-      #        - 'ingress-vlan10-mgmt-ingress-nginx-controller-metrics.ingress-vlan10-mgmt.svc:10254'
-      #        - 'ingress-vlan20-internal-ingress-nginx-controller-metrics.ingress-vlan20-internal.svc:10254'
-      #        - 'ingress-vlan30-public-ingress-nginx-controller-metrics.ingress-vlan30-public.svc:10254'
-      #        - 'ingress-vlan100-admin-ingress-nginx-controller-metrics.ingress-vlan100-admin.svc:10254'
-      #  metric_relabel_configs:
-      #    - source_labels: [__name__]
-      #      regex: '^(go_.*|process_.*|promhttp_.*)$'
-      #      action: drop
+      - job_name: nginx-ingress
+        static_configs:
+          - targets:
+              - 'ingress-10-ingress-10-ingress-nginx-controller-metrics.ingress-10.svc:10254'
+              - 'ingress-20-ingress-20-ingress-nginx-controller-metrics.ingress-20.svc:10254'
+              - 'ingress-30-ingress-30-ingress-nginx-controller-metrics.ingress-30.svc:10254'
+              - 'ingress-100-ingress-100-ingress-nginx-controller-metrics.ingress-100.svc:10254'
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
       # === CLUSTER HEALTH: API-Server (/metrics) ===
       - job_name: kubernetes-apiserver
         scheme: https
