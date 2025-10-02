@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: svc-trilium
+  labels:
+    gitops: flux
+    

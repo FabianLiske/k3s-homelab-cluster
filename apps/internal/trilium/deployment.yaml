@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trilium
+  namespace: svc-trilium
+  labels: { app: trilium }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: trilium } }
+  template:
+    metadata: { labels: { app: trilium } }
+    spec:
+      containers:
+        - name: trilium
+          image: zadam/trilium:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: true
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TRILIUM_PORT
+              value: "8080"
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/trilium-data
+          readinessProbe:
+            httpGet: { path: "/", port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet: { path: "/", port: http }
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { cpu: "1",   memory: 1Gi }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: trilium-data
+            
