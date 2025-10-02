@@ -4,4 +4,5 @@ resources:
   - backblaze-secret.yaml
   - backup.yaml
   - longhorn-2r.yaml
+  - backup-hourly.yaml
   - ingress.yaml

@@ -10,7 +10,6 @@ resources:
   - vault-secret.yaml
   - configmap.yaml
   - pvc.yaml
-  - backup.yaml
   - deployment.yaml
   - service.yaml
   - ingress-admin.yaml
