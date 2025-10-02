@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+  namespace: ops-monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8086"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector: { app: influxdb }
+  ports:
+    - { name: http, port: 8086, targetPort: http }

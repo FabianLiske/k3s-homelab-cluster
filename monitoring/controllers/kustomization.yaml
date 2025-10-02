@@ -5,4 +5,5 @@ resources:
   - ./kube-state-metrics/
   - ./node-exporter/
   - ./prometheus/
+  - ./influxdb/
   - ./grafana/

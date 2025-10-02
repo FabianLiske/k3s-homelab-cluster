@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  namespace: ops-monitoring
+  labels: { app: influxdb }
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector: { matchLabels: { app: influxdb } }
+  template:
+    metadata: { labels: { app: influxdb } }
+    spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: influxdb
+          image: influxdb:2.7
+          imagePullPolicy: IfNotPresent
+          ports: [{ name: http, containerPort: 8086 }]
+          env:
+            - { name: TZ, value: Europe/Berlin }
+            - name: DOCKER_INFLUXDB_INIT_MODE
+              valueFrom:
+                secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_MODE }
+            - name: DOCKER_INFLUXDB_INIT_USERNAME
+              valueFrom:
+                secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_USERNAME }
+            - name: DOCKER_INFLUXDB_INIT_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_PASSWORD }
+            - name: DOCKER_INFLUXDB_INIT_ORG
+              valueFrom:
+                secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_ORG }
+            - name: DOCKER_INFLUXDB_INIT_BUCKET
+              valueFrom:
+                secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_BUCKET }
+            - name: DOCKER_INFLUXDB_INIT_RETENTION
+              valueFrom:
+                secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_RETENTION }
+            - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef: { name: influxdb-init, key: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN }
+            - name: INFLUXD_CONFIG_PATH
+              value: /etc/influxdb2/influxdb.conf
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/influxdb2 }
+            - { name: config, mountPath: /etc/influxdb2/influxdb.conf, subPath: influxdb.conf }
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 200m, memory: 1Gi }
+            limits: { cpu: "2", memory: 4Gi }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: influxdb-data }
+        - name: config
+          configMap: { name: influxdb-config }
