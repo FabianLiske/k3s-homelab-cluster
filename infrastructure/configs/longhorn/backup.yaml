@@ -5,6 +5,6 @@ metadata:
   namespace: longhorn-system
 data:
   default-resource.yaml: |
-    "backup-target": "s3://s3.eu-central-003.backblazeb2.com/"
+    "backup-target": "s3://k3s-homelab-longhorn@eu-central-003/"
     "backup-target-credential-secret": "longhorn-b2-backup"
     "backupstore-poll-interval": "300"
