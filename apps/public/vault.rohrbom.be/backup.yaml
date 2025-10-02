@@ -12,4 +12,3 @@ spec:
   labels:
     app: vaultwarden
     type: hourly
-  full-backup-interval: 12
