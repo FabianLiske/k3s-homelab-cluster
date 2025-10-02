@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - backblaze-secret.yaml
-  - backup.yaml
+  - backup-target-b2.yaml
   - longhorn-2r.yaml
-  - backup-hourly.yaml
+  - backup-vaultwarden-hourly.yaml
   - ingress.yaml
