@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - grafana-secret.yaml
   - pvc.yaml
+  - datasources.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

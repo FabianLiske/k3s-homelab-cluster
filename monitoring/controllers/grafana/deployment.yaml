@@ -47,3 +47,6 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: grafana-data }
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
