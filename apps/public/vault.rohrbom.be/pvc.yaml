@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: vaultwarden-data
   namespace: svc-vaultwarden
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-vaultwarden-hourly: enabled
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-2r
