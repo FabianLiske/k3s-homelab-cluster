@@ -4,13 +4,13 @@ metadata:
   name: unifi-ingress
   namespace: unifi-network
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-dns"
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
 spec:
-  tls:
-    - hosts:
-        - unifi.intern.rohrbom.be
-      secretName: unifi-tls
+  ingressClassName: nginx-mgmt
   rules:
     - host: unifi.intern.rohrbom.be
       http:
@@ -18,7 +18,7 @@ spec:
           - path: /
             pathType: Prefix
             backend:
-              service:
-                name: unifi-network
-                port:
-                  number: 8443
+              service: { name: unifi-network, port: { number: 8443 } }
+  tls:
+    - hosts: [unifi.intern.rohrbom.be]
+      secretName: unifi-tls
