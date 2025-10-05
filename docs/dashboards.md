@@ -54,6 +54,14 @@ sum(kube_deployment_status_replicas_available + kube_deployment_status_replicas_
 
 - `coredns_dns_request_duration_seconds`: DNS query latency.
 - `coredns_dns_responses_total`: Number of DNS responses.
+```promql
+histogram_quantile(
+  0.95,
+  sum by (le) (
+    rate(coredns_dns_request_duration_seconds_bucket[1m])
+  )
+)
+```
 
 ## Ingress Health (from nginx-ingress)
 

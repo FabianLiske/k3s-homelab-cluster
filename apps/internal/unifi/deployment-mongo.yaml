@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unifi-mongo
+  namespace: unifi-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: unifi-mongo
+  template:
+    metadata:
+      labels:
+        app: unifi-mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:latest
+          envFrom:
+            - secretRef:
+                name: unifi-secrets
+          env:
+            - name: MONGO_DBNAME
+              value: unifi
+            - name: MONGO_AUTHSOURCE
+              value: admin
+          volumeMounts:
+            - mountPath: /data/db
+              name: mongo-data
+            - mountPath: /docker-entrypoint-initdb.d
+              name: mongo-init
+          ports:
+            - containerPort: 27017
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: mongo-data
+        - name: mongo-init
+          configMap:
+            name: mongo-init
