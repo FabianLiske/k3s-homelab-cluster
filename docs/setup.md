@@ -46,19 +46,28 @@ sudo nano /etc/netplan/50-cloud-init.yaml
 Hinzufügen:
 
 ```yaml
+network:
+  version: 2
+  ethernets:
+    eth0:
+      optional: true
+      dhcp4: true
   vlans:
     vlan10:
       id: 10
       link: eth0
       dhcp4: true
+      nameservers: {}
     vlan20:
       id: 20
       link: eth0
       dhcp4: true
+      nameservers: {}
     vlan30:
       id: 30
       link: eth0
       dhcp4: true
+      nameservers: {}
 ```
 
 ```bash

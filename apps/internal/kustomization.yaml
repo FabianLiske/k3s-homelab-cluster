@@ -4,3 +4,4 @@ resources:
   - ./stirling-pdf/
   - ./trilium/
   - ./linkding/
+  - ./unifi/
