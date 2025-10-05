@@ -46,7 +46,7 @@ sudo nano /etc/netplan/50-cloud-init.yaml
 Hinzufügen:
 
 ```yaml
-vlans:
+  vlans:
     vlan10:
       id: 10
       link: eth0
