@@ -40,7 +40,31 @@ net.ipv4.conf.eth0.rp_filter=0
 ```
 
 ```bash
+sudo nano /etc/netplan/50-cloud-init.yaml
+```
+
+Hinzufügen:
+
+```yaml
+vlans:
+    vlan10:
+      id: 10
+      link: eth0
+      dhcp4: true
+    vlan20:
+      id: 20
+      link: eth0
+      dhcp4: true
+    vlan30:
+      id: 30
+      link: eth0
+      dhcp4: true
+```
+
+```bash
 sudo sysctl --system
+sudo netplan try
+sudo netplan apply
 ```
 
 ## 1.4) Longhorn Vorbereitung
