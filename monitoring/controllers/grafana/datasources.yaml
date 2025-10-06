@@ -22,7 +22,7 @@ data:
         jsonData:
           organization: ${INFLUXDB_ORG}
           defaultBucket: default
-          version: Flux  # Oder InfluxQL, wie zuvor
+          version: Flux
           httpMode: GET
         secureJsonData:
           token: ${INFLUXDB_ADMIN_TOKEN}
