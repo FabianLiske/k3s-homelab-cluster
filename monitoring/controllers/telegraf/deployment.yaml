@@ -66,11 +66,11 @@ spec:
                 secretKeyRef:
                   name: telegraf-secret
                   key: INFLUXDB_SERVER
-            - name: INFLUXDB_SERVICE
+            - name: INFLUXDB_CLUSTER
               valueFrom:
                 secretKeyRef:
                   name: telegraf-secret
-                  key: INFLUXDB_SERVICE
+                  key: INFLUXDB_CLUSTER
           volumeMounts:
             - name: telegraf-main
               mountPath: /etc/telegraf/telegraf.conf
