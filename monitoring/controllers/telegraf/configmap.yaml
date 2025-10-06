@@ -17,7 +17,7 @@ data:
     [[outputs.influxdb_v2]]
       urls = ["http://influxdb:8086"]
       token = "${INFLUXDB_NETWORK}"
-      organization = "heimnetz-monitor"
+      organization = "homelab"
       bucket = "network"
       # Nur Punkte mit domain=network schreiben:
       tagpass = { domain = ["network"] }
@@ -25,13 +25,13 @@ data:
     [[outputs.influxdb_v2]]
       urls = ["http://influxdb:8086"]
       token = "${INFLUXDB_SERVER}"
-      organization = "heimnetz-monitor"
+      organization = "homelab"
       bucket = "server"
       tagpass = { domain = ["server"] }
-    # --- Output: InfluxDB v2 (Bucket: service) ---
+    # --- Output: InfluxDB v2 (Bucket: cluster) ---
     [[outputs.influxdb_v2]]
       urls = ["http://influxdb:8086"]
-      token = "${INFLUXDB_SERVICE}"
-      organization = "heimnetz-monitor"
-      bucket = "service"
-      tagpass = { domain = ["service"] }
+      token = "${INFLUXDB_CLUSTER}"
+      organization = "homelab"
+      bucket = "cluster"
+      tagpass = { domain = ["cluster"] }

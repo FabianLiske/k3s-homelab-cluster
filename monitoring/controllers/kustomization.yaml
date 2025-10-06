@@ -6,5 +6,5 @@ resources:
   - ./node-exporter/
   - ./prometheus/
   - ./influxdb/
-#  - ./telegraf/
+  - ./telegraf/
   - ./grafana/
