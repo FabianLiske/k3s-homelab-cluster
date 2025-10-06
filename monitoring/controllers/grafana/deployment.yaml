@@ -31,6 +31,16 @@ spec:
               secretKeyRef: { name: grafana-admin, key: admin-password }
           - name: GF_METRICS_ENABLED
             value: "true"
+          - name: INFLUXDB_ADMIN_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: influxdb-init
+                key: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+          - name: INFLUXDB_ORG 
+            valueFrom:
+              secretKeyRef:
+                name: influxdb-init
+                key: DOCKER_INFLUXDB_INIT_ORG
           volumeMounts:
             - { name: data, mountPath: /var/lib/grafana }
             - name: grafana-datasources

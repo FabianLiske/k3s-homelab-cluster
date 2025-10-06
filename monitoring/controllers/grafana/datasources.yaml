@@ -13,3 +13,16 @@ data:
         access: proxy
         isDefault: true
         editable: false
+      - name: InfluxDB
+        type: influxdb
+        url: http://influxdb.ops-monitoring.svc:8086
+        access: proxy
+        isDefault: false
+        editable: false
+        jsonData:
+          organization: ${INFLUXDB_ORG}
+          defaultBucket: default
+          version: Flux  # Oder InfluxQL, wie zuvor
+          httpMode: GET
+        secureJsonData:
+          token: ${INFLUXDB_ADMIN_TOKEN}
