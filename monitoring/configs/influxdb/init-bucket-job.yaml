@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: influxdb-init-buckets
+  namespace: ops-monitoring
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init-buckets
+          image: influxdb:2.7-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              influx config create --config-name default \
+                --host "http://influxdb:8086" \
+                --org "${DOCKER_INFLUXDB_INIT_ORG}" \
+                --token "${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}" \
+                --active
+
+              create_bucket() {
+                bucket_name=$1
+                retention="0"
+                if ! influx bucket ls | grep -q "${bucket_name}"; then
+                  influx bucket create -n "${bucket_name}" -r "${retention}"
+                  echo "Bucket ${bucket_name} created with retention ${retention}."
+                else
+                  echo "Bucket ${bucket_name} already exists."
+                fi
+              }
+
+              create_bucket "network"
+              create_bucket "server"
+              create_bucket "cluster"
+          envFrom:
+            - secretRef:
+                name: influxdb-init
+      initContainers:
+        - name: wait-for-influxdb
+          image: busybox:1.28
+          command: ['sh', '-c', 'until nslookup influxdb.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting; sleep 2; done;']
+  backoffLimit: 4
