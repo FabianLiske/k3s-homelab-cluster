@@ -7,4 +7,4 @@ resources:
   - configmap-ipmi-h11.yaml
   - configmap-snmp-edgerouter.yaml
   - configmap-snmp-brocade.yaml
-  - secret.yaml
+  - teöegraf-secret.yaml
