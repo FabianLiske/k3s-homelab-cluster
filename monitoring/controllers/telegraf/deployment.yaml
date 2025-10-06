@@ -18,7 +18,7 @@ spec:
         runAsGroup: 0
       containers:
         - name: telegraf
-          image: ghcr.io/dein-user/telegraf-custom:latest
+          image: ghcr.io/fabianliske/k3s-homelab-cluster/telegraf-custom:latest
           command:
             - telegraf
             - --config
