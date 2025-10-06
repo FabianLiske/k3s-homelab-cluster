@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: telegraf-snmp-edgerouter
-  namespace: monitoring
+  namespace: ops-monitoring
 data:
   30-snmp-edgerouter.conf: |
     [[inputs.snmp]]

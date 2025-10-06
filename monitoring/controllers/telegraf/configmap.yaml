@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: telegraf-main
-  namespace: monitoring
+  namespace: ops-monitoring
 data:
   telegraf.conf: |
     # --- Agent ---

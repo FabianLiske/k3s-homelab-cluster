@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: telegraf-ipmi-h12
-  namespace: monitoring
+  namespace: ops-monitoring
 data:
   20-ipmi-h12.conf: |
     [[inputs.ipmi_sensor]]

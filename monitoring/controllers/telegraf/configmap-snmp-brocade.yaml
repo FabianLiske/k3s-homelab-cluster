@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: telegraf-snmp-brocade
-  namespace: monitoring
+  namespace: ops-monitoring
 data:
   31-snmp-brocade.conf: |
     [[inputs.snmp]]
