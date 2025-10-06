@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegraf
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegraf
+  template:
+    metadata:
+      labels:
+        app: telegraf
+    spec:
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      containers:
+        - name: telegraf
+          image: ghcr.io/dein-user/telegraf-custom:latest
+          command:
+            - telegraf
+            - --config
+            - /etc/telegraf/telegraf.conf
+            - --config-directory
+            - /etc/telegraf/telegraf.d
+          env:
+            - name: IPMI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: IPMI_USERNAME
+            - name: IPMI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: IPMI_PASSWORD
+            - name: BROCADE_AUTH_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: BROCADE_AUTH_PASS
+            - name: BROCADE_PRIV_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: BROCADE_PRIV_PASS
+            - name: EDGEROUTER_AUTH_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: EDGEROUTER_AUTH_PASS
+            - name: EDGEROUTER_PRIV_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: EDGEROUTER_PRIV_PASS
+            - name: INFLUXDB_NETWORK
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: INFLUXDB_NETWORK
+            - name: INFLUXDB_SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: INFLUXDB_SERVER
+            - name: INFLUXDB_SERVICE
+              valueFrom:
+                secretKeyRef:
+                  name: telegraf-secret
+                  key: INFLUXDB_SERVICE
+          volumeMounts:
+            - name: telegraf-main
+              mountPath: /etc/telegraf/telegraf.conf
+              subPath: telegraf.conf
+              readOnly: true
+            - name: telegraf-ipmi-h12
+              mountPath: /etc/telegraf/telegraf.d/20-ipmi-h12.conf
+              subPath: 20-ipmi-h12.conf
+              readOnly: true
+            - name: telegraf-ipmi-h11
+              mountPath: /etc/telegraf/telegraf.d/21-ipmi-h11.conf
+              subPath: 21-ipmi-h11.conf
+              readOnly: true
+            - name: telegraf-snmp-edgerouter
+              mountPath: /etc/telegraf/telegraf.d/30-snmp-edgerouter.conf
+              subPath: 30-snmp-edgerouter.conf
+              readOnly: true
+            - name: telegraf-snmp-brocade
+              mountPath: /etc/telegraf/telegraf.d/31-snmp-brocade.conf
+              subPath: 31-snmp-brocade.conf
+              readOnly: true
+      volumes:
+        - name: telegraf-main
+          configMap:
+            name: telegraf-main
+        - name: telegraf-ipmi-h12
+          configMap:
+            name: telegraf-ipmi-h12
+        - name: telegraf-ipmi-h11
+          configMap:
+            name: telegraf-ipmi-h11
+        - name: telegraf-snmp-edgerouter
+          configMap:
+            name: telegraf-snmp-edgerouter
+        - name: telegraf-snmp-brocade
+          configMap:
+            name: telegraf-snmp-brocade

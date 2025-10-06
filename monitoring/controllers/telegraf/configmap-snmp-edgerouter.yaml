@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-snmp-edgerouter
+  namespace: monitoring
+data:
+  30-snmp-edgerouter.conf: |
+    [[inputs.snmp]]
+      name = "edgerouter"
+      agents = [ "udp://192.168.10.1:161" ]
+      timeout = "5s"
+      retries = 3
+      version = 3
+      sec_name = "telegraf"
+      sec_level = "authPriv"
+      auth_protocol = "SHA"
+      auth_password = "${EDGEROUTER_AUTH_PASS}"
+      priv_protocol = "AES"
+      priv_password = "${EDGEROUTER_PRIV_PASS}"
+      path = ["/usr/share/snmp/mibs"]
+      [inputs.snmp.tags]
+        domain = "network"
+      [[inputs.snmp.field]]
+        oid = "SNMPv2-MIB::sysUpTime.0"
+        name = "sysUpTime"
+      # --- Interfaces (64-bit Counter + Status) ---
+      [[inputs.snmp.table]]
+        name = "interface"
+        oid = "IF-MIB::ifXTable"
+        index_as_tag = true # stabiler Schlüssel (auch wenn ifName/ifAlias sich ändern)
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifName"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifAlias"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHighSpeed"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCInOctets"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCOutOctets"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifInErrors"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifOutErrors"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifOperStatus"
+        # Ergänzungen: Admin/LastChange/MTU, Discards, Packet-Counter (Uni/Multi/Bcast)
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifAdminStatus"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifLastChange"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifMtu"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifInDiscards"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifOutDiscards"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCInUcastPkts"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCOutUcastPkts"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCInMulticastPkts"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCOutMulticastPkts"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCInBroadcastPkts"
+        [[inputs.snmp.table.field]]
+          oid = "IF-MIB::ifHCOutBroadcastPkts"
+      # --- CPU-Last ---
+      [[inputs.snmp.table]]
+        name = "cpu"
+        oid = "HOST-RESOURCES-MIB::hrProcessorTable"
+        [[inputs.snmp.table.field]]
+          oid = "HOST-RESOURCES-MIB::hrProcessorLoad"
+          name = "cpu_load"
+      # --- Mem ---
+      [[inputs.snmp.table]]
+        name = "memory"
+        oid = "UCD-SNMP-MIB::memory"
+        [[inputs.snmp.table.field]]
+          oid = "UCD-SNMP-MIB::memTotalReal"
+        [[inputs.snmp.table.field]]
+          oid = "UCD-SNMP-MIB::memAvailReal"
+        [[inputs.snmp.table.field]]
+          oid = "UCD-SNMP-MIB::memBuffer"
+        [[inputs.snmp.table.field]]
+          oid = "UCD-SNMP-MIB::memCached"
+      # --- L2-Qualität (Ethernet-Fehler) ---
+      [[inputs.snmp.table]]
+        name = "etherlike"
+        oid = "EtherLike-MIB::dot3StatsTable"
+        index_as_tag = true
+        [[inputs.snmp.table.field]]
+          oid = "EtherLike-MIB::dot3StatsAlignmentErrors"
+        [[inputs.snmp.table.field]]
+          oid = "EtherLike-MIB::dot3StatsFCSErrors"
+        [[inputs.snmp.table.field]]
+          oid = "EtherLike-MIB::dot3StatsLateCollisions"
+        [[inputs.snmp.table.field]]
+          oid = "EtherLike-MIB::dot3StatsExcessiveCollisions"
+        [[inputs.snmp.table.field]]
+          oid = "EtherLike-MIB::dot3StatsInternalMacTransmitErrors"
+        [[inputs.snmp.table.field]]
+          oid = "EtherLike-MIB::dot3StatsInternalMacReceiveErrors"
+        [[inputs.snmp.table.field]]
+          oid = "EtherLike-MIB::dot3StatsSymbolErrors"
+      # --- IP-Stack (v4/v6) ---
+      [[inputs.snmp.table]]
+        name = "ip_system"
+        oid = "IP-MIB::ipSystemStatsTable"
+        index_as_tag = true # 1=IPv4, 2=IPv6
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsInReceives"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsInHdrErrors"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsInNoRoutes"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsInDiscards"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsInDelivers"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsOutRequests"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsOutNoRoutes"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsOutDiscards"
+        [[inputs.snmp.table.field]]
+          oid = "IP-MIB::ipSystemStatsReasmFails"
+      # --- Load Averages (glatter als per-Core) ---
+      [[inputs.snmp.table]]
+        name = "loadavg"
+        oid = "UCD-SNMP-MIB::laTable"
+        [[inputs.snmp.table.field]]
+          oid = "UCD-SNMP-MIB::laLoad.1" # 1-min
+          name = "load1"
+        [[inputs.snmp.table.field]]
+          oid = "UCD-SNMP-MIB::laLoad.2" # 5-min
+          name = "load5"
+        [[inputs.snmp.table.field]]
+          oid = "UCD-SNMP-MIB::laLoad.3" # 15-min
+          name = "load15"
