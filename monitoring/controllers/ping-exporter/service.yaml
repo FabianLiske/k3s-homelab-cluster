@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ping-exporter
+  namespace: ops-monitoring
+  labels:
+    app: ping-exporter
+spec:
+  clusterIP: None
+  selector:
+    app: ping-exporter
+  ports:
+    - name: metrics
+      port: 9427
+      targetPort: 9427

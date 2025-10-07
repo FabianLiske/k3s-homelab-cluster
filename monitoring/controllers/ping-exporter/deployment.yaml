@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ping-exporter
+  namespace: ops-monitoring
+  labels:
+    app: ping-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ping-exporter
+  template:
+    metadata:
+      labels:
+        app: ping-exporter
+    spec:
+      containers:
+        - name: ping-exporter
+          image: czerwonk/ping_exporter
+          args:
+            - --config.path=/config/ping.yml
+          ports:
+            - containerPort: 9427
+              name: metrics
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+          securityContext:
+            capabilities:
+              add: ["CAP_NET_RAW"]
+      volumes:
+        - name: config
+          configMap:
+            name: ping-exporter-config

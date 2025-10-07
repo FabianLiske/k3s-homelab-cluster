@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - ./kube-state-metrics/
   - ./node-exporter/
+  - ./ping-exporter/
   - ./prometheus/
   - ./influxdb/
   - ./telegraf/
