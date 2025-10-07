@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: coredns
   namespace: kube-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+    kustomize.toolkit.fluxcd.io/ssa: merge
 spec:
   template:
     spec:
@@ -15,3 +18,4 @@ spec:
         options:
         - name: ndots
           value: "5"
+      containers: []
