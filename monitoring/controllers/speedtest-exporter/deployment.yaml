@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speedtest-exporter
+  namespace: ops-monitoring
+  labels:
+    app: speedtest-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speedtest-exporter
+  template:
+    metadata:
+      labels:
+        app: speedtest-exporter
+    spec:
+      containers:
+        - name: speedtest-exporter
+          image: ghcr.io/miguelndecarvalho/speedtest-exporter:latest
+          ports:
+            - containerPort: 9798
+              name: metrics

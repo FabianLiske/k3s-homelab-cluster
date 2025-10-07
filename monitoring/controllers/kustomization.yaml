@@ -5,6 +5,7 @@ resources:
   - ./kube-state-metrics/
   - ./node-exporter/
   - ./ping-exporter/
+  - ./speedtest-exporter/
   - ./prometheus/
   - ./influxdb/
   - ./telegraf/
