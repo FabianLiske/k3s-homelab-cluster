@@ -19,6 +19,15 @@ spec:
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+        - name: init-volume
+          image: busybox:1.28
+          command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/pgdata/lost+found && chown -R 1000:1000 /var/lib/postgresql/data/pgdata']
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data/pgdata
       containers:
         - name: db
           image: docker.io/library/postgres:17
