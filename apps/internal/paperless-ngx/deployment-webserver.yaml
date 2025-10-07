@@ -69,14 +69,25 @@ spec:
               mountPath: /usr/src/paperless/export
             - name: consume
               mountPath: /usr/src/paperless/consume
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+            successThreshold: 1
           readinessProbe:
             httpGet: { path: /, port: http }
-            initialDelaySeconds: 10
+            initialDelaySeconds: 60
             periodSeconds: 10
+            failureThreshold: 5
           livenessProbe:
             httpGet: { path: /, port: http }
-            initialDelaySeconds: 20
+            initialDelaySeconds: 120
             periodSeconds: 20
+            failureThreshold: 5
           resources:
             requests: { cpu: 50m, memory: 128Mi }
             limits: { cpu: 500m, memory: 512Mi }
