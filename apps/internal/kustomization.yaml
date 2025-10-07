@@ -5,3 +5,4 @@ resources:
   - ./trilium/
   - ./linkding/
   - ./unifi/
+  - ./paperless-ngx/

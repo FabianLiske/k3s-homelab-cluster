@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-tika
+  namespace: svc-paperless-ngx
+  labels:
+    app: paperless-ngx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: tika
+  template:
+    metadata:
+      labels:
+        app: paperless-ngx
+        component: tika
+    spec:
+      containers:
+        - name: tika
+          image: docker.io/apache/tika:latest
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }

@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paperless-ngx
+  namespace: svc-paperless-ngx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+spec:
+  ingressClassName: nginx-internal
+  rules:
+    - host: paperless.intern.rohrbom.be
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paperless-webserver
+                port: { number: 80 }
+  tls:
+    - hosts: [paperless.intern.rohrbom.be]
+      secretName: paperless-ngx-tls

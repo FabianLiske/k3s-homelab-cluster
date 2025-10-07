@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: svc-paperless-ngx
+labels:
+  - pairs:
+      app: paperless-ngx
+      gitops: flux
+resources:
+  - namespace.yaml
+  - paperless-secret.yaml
+  - pvc-data.yaml
+  - pvc-media.yaml
+  - pvc-pgdata.yaml
+  - pvc-redisdata.yaml
+  - pvc-consume.yaml
+  - pvc-export.yaml
+  - deployment-db.yaml
+  - deployment-broker.yaml
+  - deployment-gotenberg.yaml
+  - deployment-tika.yaml
+  - deployment-webserver.yaml
+  - service-db.yaml
+  - service-broker.yaml
+  - service-gotenberg.yaml
+  - service-tika.yaml
+  - service-webserver.yaml
+  - ingress.yaml
