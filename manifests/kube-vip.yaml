@@ -61,6 +61,15 @@ spec:
               - matchExpressions:
                   - key: node-role.kubernetes.io/master
                     operator: Exists
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+        - "1.1.1.1"
+        - "1.0.0.1"
+        searches: []
+        options:
+        - name: ndots
+          value: "5"
       containers:
         - name: kube-vip
           image: ghcr.io/kube-vip/kube-vip:v1.0.0

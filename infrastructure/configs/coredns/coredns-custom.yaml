@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  Corefile.override: |
+    .:53 {
+        forward . 1.1.1.1 1.0.0.1
+    }
