@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      dnsPolicy: Default
+      dnsConfig:
+        nameservers:
+        - "1.1.1.1"
+        - "1.0.0.1"
+        searches: []
+        options:
+        - name: ndots
+          value: "5"
