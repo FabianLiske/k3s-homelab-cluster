@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: speaker
+  namespace: metallb-system
+spec:
+  template:
+    spec:
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+        - "1.1.1.1"
+        - "1.0.0.1"
+        searches: []
+        options:
+        - name: ndots
+          value: "5"
