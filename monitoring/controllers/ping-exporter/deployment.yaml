@@ -19,7 +19,7 @@ spec:
         - name: ping-exporter
           image: czerwonk/ping_exporter
           args:
-            - --config.path=/config/ping.yml
+            - --config.path=/config/config.yml
           ports:
             - containerPort: 9427
               name: metrics

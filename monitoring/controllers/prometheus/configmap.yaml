@@ -82,3 +82,11 @@ data:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
             action: drop
+      # === PING EXPORTER: Metrics ===
+      - job_name: ping-exporter
+        static_configs:
+          - targets: ['ping-exporter.ops-monitoring.svc:9427']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
