@@ -32,6 +32,8 @@ spec:
             items:
               - key: web_password
                 path: web_password
+        - name: run-volume
+          emptyDir: {}
       containers:
         - name: pihole
           image: pihole/pihole:latest
@@ -61,6 +63,8 @@ spec:
             - name: password-secret
               mountPath: /run/secrets
               readOnly: true
+            - name: run-volume
+              mountPath: /run
           readinessProbe:
             httpGet: { path: /admin, port: http }
             initialDelaySeconds: 10
