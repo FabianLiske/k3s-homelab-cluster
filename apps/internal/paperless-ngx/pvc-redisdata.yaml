@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: paperless-redisdata
   namespace: svc-paperless-ngx
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-vaultwarden-hourly: enabled
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-2r

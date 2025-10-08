@@ -5,5 +5,6 @@ resources:
   - backup-target-b2.yaml
   - longhorn-2r.yaml
   - backup-vaultwarden-hourly.yaml
+  - backup-paperless-hourly.yaml
   - ingress.yaml
   - metrics.yaml
