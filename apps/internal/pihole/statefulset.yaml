@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pihole
+  namespace: svc-pihole
+  labels: { app: pihole }
+spec:
+  serviceName: pihole-headless
+  replicas: 3
+  selector:
+    matchLabels: { app: pihole }
+  template:
+    metadata:
+      labels: { app: pihole }
+    spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: [pihole]
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: pihole
+          image: pihole/pihole:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+          env:
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: WEBPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pihole-secret
+                  key: web_password
+          securityContext:
+            capabilities:
+              add: ["SYS_NICE", "SYS_TIME"]
+          volumeMounts:
+            - name: etc-pihole
+              mountPath: /etc/pihole
+            - name: etc-dnsmasq-d
+              mountPath: /etc/dnsmasq.d
+          readinessProbe:
+            httpGet: { path: /admin, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /admin, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+  volumeClaimTemplates:
+    - metadata:
+        name: etc-pihole
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: longhorn-2r
+        resources:
+          requests:
+            storage: 2Gi
+    - metadata:
+        name: etc-dnsmasq-d
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: longhorn-2r
+        resources:
+          requests:
+            storage: 1Gi

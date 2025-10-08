@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebula-sync
+  namespace: svc-pihole
+  labels: { app: nebula-sync }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: nebula-sync }
+  template:
+    metadata:
+      labels: { app: nebula-sync }
+    spec:
+      containers:
+        - name: nebula-sync
+          image: ghcr.io/lovelaze/nebula-sync:latest
+          env:
+            - name: PRIMARY
+              value: "http://pihole-0.pihole-headless.svc.cluster.local|$(WEB_PASSWORD)"
+            - name: REPLICAS
+              value: "http://pihole-1.pihole-headless.svc.cluster.local|$(WEB_PASSWORD),http://pihole-2.pihole-headless.svc.cluster.local|$(WEB_PASSWORD)"
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: FULL_SYNC
+              value: "true"
+            - name: RUN_GRAVITY
+              value: "true"
+            - name: CRON
+              value: "*/5 * * * *"
+            - name: WEB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pihole-secret
+                  key: web_password
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 128Mi }
