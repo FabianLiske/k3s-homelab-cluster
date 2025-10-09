@@ -13,7 +13,7 @@ verschlüsseln. Am besten nicht im Repo entschlüsseln, lieber das verschlüssel
 Key mit
 
 ```bash
-export SOPS_AGE_KEY_FILE=./age.XXX.key
+export SOPS_AGE_KEY_FILE=./age.cluster.key
 ```
 
 laden und dann mit

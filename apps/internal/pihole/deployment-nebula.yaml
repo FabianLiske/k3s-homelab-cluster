@@ -17,9 +17,15 @@ spec:
           image: ghcr.io/lovelaze/nebula-sync:latest
           env:
             - name: PRIMARY
-              value: "http://pihole-0.pihole-headless.svc-pihole:80|$(WEB_PASSWORD)"
+              valueFrom:
+                secretKeyRef:
+                  name: pihole-secret
+                  key: primary_string
             - name: REPLICAS
-              value: "http://pihole-1.pihole-headless.svc-pihole:80|$(WEB_PASSWORD),http://pihole-2.pihole-headless.svc-pihole:80|$(WEB_PASSWORD)"
+              valueFrom:
+                secretKeyRef:
+                  name: pihole-secret
+                  key: replicas_string
             - name: TZ
               value: "Europe/Berlin"
             - name: FULL_SYNC
@@ -36,11 +42,6 @@ spec:
               value: "true"
             - name: CLIENT_TIMEOUT_SECONDS
               value: "30"
-            - name: WEB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: pihole-secret
-                  key: web_password
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 200m, memory: 128Mi }
