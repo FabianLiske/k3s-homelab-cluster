@@ -17,7 +17,7 @@ spec:
           image: ghcr.io/lovelaze/nebula-sync:latest
           env:
             - name: PRIMARY
-              value: "http://pihole-0.pihole-headless.svc-pihole:80|$(APP_PASSWORD_0"
+              value: "http://pihole-0.pihole-headless.svc-pihole:80|$(APP_PASSWORD_0)"
             - name: REPLICAS
               value: "http://pihole-1.pihole-headless.svc-pihole:80|$(APP_PASSWORD_1),http://pihole-2.pihole-headless.svc-pihole:80|$(APP_PASSWORD_2)"
             - name: TZ
