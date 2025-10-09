@@ -28,6 +28,8 @@ spec:
               value: "true"
             - name: CRON
               value: "*/5 * * * *"
+            - name: NS_DEBUG
+              value: "true"
             - name: LOG_LEVEL
               value: "debug"
             - name: CLIENT_SKIP_INVALID_SESSION
