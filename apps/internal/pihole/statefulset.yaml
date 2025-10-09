@@ -58,12 +58,12 @@ spec:
               mountPath: /etc/dnsmasq.d
           readinessProbe:
             httpGet: { path: /admin, port: http }
-            initialDelaySeconds: 60
+            initialDelaySeconds: 180
             periodSeconds: 10
             failureThreshold: 5
           livenessProbe:
             httpGet: { path: /admin, port: http }
-            initialDelaySeconds: 90
+            initialDelaySeconds: 300
             periodSeconds: 20
             failureThreshold: 5
           resources:
