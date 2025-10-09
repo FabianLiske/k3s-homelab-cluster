@@ -77,7 +77,7 @@ spec:
         storageClassName: longhorn-2r
         resources:
           requests:
-            storage: 2Gi
+            storage: 4Gi
     - metadata:
         name: etc-dnsmasq-d
       spec:
