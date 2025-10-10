@@ -4,7 +4,6 @@ resources:
   - backblaze-secret.yaml
   - backup-target-b2.yaml
   - longhorn-2r.yaml
-  - backup-vaultwarden-hourly.yaml
-  - backup-paperless-hourly.yaml
+  - ./recurring-jobs/
   - ingress.yaml
   - metrics.yaml

@@ -1,7 +1,7 @@
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
-  name: backup-paperless-hourly
+  name: backup-hourly
   namespace: longhorn-system
 spec:
   cron: "0 * * * *"
@@ -10,5 +10,4 @@ spec:
   retain: 72
   concurrency: 1
   labels:
-    app: paperless-ngx
     type: hourly

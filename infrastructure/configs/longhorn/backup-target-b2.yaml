@@ -7,4 +7,4 @@ data:
   default-resource.yaml: |
     "backup-target": "s3://k3s-homelab-longhorn@eu-central-003/"
     "backup-target-credential-secret": "longhorn-b2-backup"
-    "backupstore-poll-interval": "300"
+    "backupstore-poll-interval": "900"

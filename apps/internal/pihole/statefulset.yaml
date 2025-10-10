@@ -72,6 +72,9 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: etc-pihole
+        labels:
+          recurring-job.longhorn.io/source: enabled
+          recurring-job.longhorn.io/trim-daily: enabled
       spec:
         accessModes: [ReadWriteOnce]
         storageClassName: longhorn-2r
