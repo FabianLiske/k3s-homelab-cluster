@@ -10,12 +10,8 @@ spec:
   template:
     metadata: { labels: { app: qbittorrent } }
     spec:
-#      securityContext:
-#        sysctls:
-#          - name: net.ipv4.conf.all.src_valid_mark
-#            value: "1"
-#          - name: net.ipv6.conf.all.disable_ipv6
-#            value: "1"
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: qbittorrent
           image: ghcr.io/hotio/qbittorrent:latest
@@ -75,6 +71,8 @@ spec:
               mountPath: /data
             - name: wireguard
               mountPath: /config/wireguard
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
           readinessProbe:
             httpGet: { path: "/", port: http }
             initialDelaySeconds: 60
@@ -103,3 +101,7 @@ spec:
             items:
               - key: wg0.conf
                 path: wg0.conf
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
