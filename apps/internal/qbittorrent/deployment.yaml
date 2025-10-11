@@ -35,7 +35,7 @@ spec:
             - name: TZ
               value: "Europe/Berlin"
             - name: WEBUI_PORTS
-              value: "8080/tcp:8080/udp"
+              value: "8080/tcp,8080/udp"
             - name: VPN_ENABLED
               value: "true"
             - name: VPN_CONF
@@ -43,7 +43,7 @@ spec:
             - name: VPN_PROVIDER
               value: "generic"
             - name: VPN_LAN_NETWORK
-              value: "192.168.0.0/16"
+              value: "192.168.0.0/16,10.42.0.0/16,10.43.0.0/16"
             - name: VPN_LAN_LEAK_ENABLED
               value: "false"
             - name: VPN_EXPOSE_PORTS_ON_LAN
