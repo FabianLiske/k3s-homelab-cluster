@@ -4,3 +4,4 @@ resources:
   - backup-hourly.yaml
   - backup-daily.yaml
   - trim-daily.yaml
+  - trim-weekly.yaml

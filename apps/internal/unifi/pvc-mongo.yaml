@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: mongo-data
   namespace: unifi-network
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/trim-weekly: enabled
 spec:
   accessModes:
     - ReadWriteOnce
