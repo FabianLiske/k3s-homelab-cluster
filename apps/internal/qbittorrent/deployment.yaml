@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: svc-qbittorrent
+  labels: { app: qbittorrent }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: qbittorrent } }
+  template:
+    metadata: { labels: { app: qbittorrent } }
+    spec:
+      securityContext:
+        sysctls:
+          - name: net.ipv4.conf.all.src_valid_mark
+            value: "1"
+          - name: net.ipv6.conf.all.disable_ipv6
+            value: "1"
+      containers:
+        - name: qbittorrent
+          image: ghcr.io/hotio/qbittorrent:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: true
+            capabilities:
+              add: ["NET_ADMIN"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: UMASK
+              value: "002"
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: WEBUI_PORTS
+              value: "8080/tcp:8080/udp"
+            - name: VPN_ENABLED
+              value: "true"
+            - name: VPN_CONF
+              value: "wg0"
+            - name: VPN_PROVIDER
+              value: "generic"
+            - name: VPN_LAN_NETWORK
+              value: "192.168.0.0/16"
+            - name: VPN_LAN_LEAK_ENABLED
+              value: "false"
+            - name: VPN_EXPOSE_PORTS_ON_LAN
+              value: ""
+            - name: VPN_AUTO_PORT_FORWARD
+              value: "false"
+            - name: VPN_AUTO_PORT_FORWARD_TO_PORTS
+              value: ""
+            - name: VPN_FIREWALL_TYPE
+              value: "auto"
+            - name: VPN_HEALTHCHECK_ENABLED
+              value: "false"
+            - name: VPN_NAMESERVERS
+              value: "wg"
+            - name: PRIVOXY_ENABLED
+              value: "false"
+            - name: UNBOUND_ENABLED
+              value: "false"
+            - name: UNBOUND_NAMESERVERS
+              value: ""
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: /data
+            - name: wireguard
+              mountPath: /config/wireguard
+          readinessProbe:
+            httpGet: { path: "/", port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet: { path: "/", port: http }
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { cpu: "1",   memory: 2Gi }
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: qbittorrent-data
+        - name: wireguard
+          secret:
+            secretName: qbittorrent-wireguard
+            items:
+              - key: wg0.conf
+                path: wg0.conf

@@ -7,3 +7,4 @@ resources:
   - ./linkding/
   - ./unifi/
   - ./paperless-ngx/
+  - ./qbittorrent/
