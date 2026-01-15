@@ -77,7 +77,7 @@ spec:
           args:
             - manager
             - --controlplane
-            - --address=192.168.100.100
+            - --address=172.26.100.100
             - --interface=eth0
             - --arp
             - --leaderElection

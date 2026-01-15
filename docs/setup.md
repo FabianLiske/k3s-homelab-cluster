@@ -130,7 +130,7 @@ curl -sfL https://get.k3s.io | \
     --cluster-init \
     --disable traefik \
     --disable servicelb \
-    --tls-san 192.168.100.100 \
+    --tls-san 172.26.100.100 \
     --tls-san api.cluster.rohrbom.be" \
   sh -
 
@@ -143,10 +143,10 @@ sudo cat /var/lib/rancher/k3s/server/node-token
 curl -sfL https://get.k3s.io | \
   K3S_TOKEN="<TOKEN>" \
   INSTALL_K3S_EXEC="server \
-    --server https://192.168.100.11:6443 \
+    --server https://172.26.100.11:6443 \
     --disable traefik \
     --disable servicelb \
-    --tls-san 192.168.100.100 \
+    --tls-san 172.26.100.100 \
     --tls-san api.cluster.rohrbom.be" \
   sh -
 ```
@@ -157,13 +157,13 @@ curl -sfL https://get.k3s.io | \
 
 ## 3.1) DNS für API
 
-api.cluster.rohrbom.be -> 192.168.100.100 in Cloudflare ohne Proxy
+api.cluster.rohrbom.be -> 172.26.100.100 in Cloudflare ohne Proxy
 
 ## 3.2) KubeVIP über cp-1 auf Cluster bringen
 
 Auf PC:
 ```bash
-scp kube-vip.yaml faba@192.168.100.11:~/
+scp kube-vip.yaml faba@172.26.100.11:~/
 ```
 
 auf cp-1:
@@ -185,10 +185,10 @@ yay -S helm
 ## 4.2) Kubeconfig holen & auf VIP/FQDN umstellen
 
 ```bash
-scp faba@192.168.100.11:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+scp faba@172.26.100.11:/etc/rancher/k3s/k3s.yaml ~/.kube/config
 chmod 600 ~/.kube/config
 # VIP/FQDN eintragen (eine von beiden Varianten):
-# sed -i 's#server: https://.*:6443#server: https://192.168.100.100:6443#' ~/.kube/config
+# sed -i 's#server: https://.*:6443#server: https://172.26.100.100:6443#' ~/.kube/config
 sed -i 's#server: https://.*:6443#server: https://api.cluster.rohrbom.be:6443#' ~/.kube/config
 kubectl get nodes
 ```
@@ -209,7 +209,7 @@ sudo cat /var/lib/rancher/k3s/server/node-token
 ```bash
 curl -sfL https://get.k3s.io | \
   K3S_TOKEN="<TOKEN>" \
-  INSTALL_K3S_EXEC="agent --server https://192.168.100.100:6443" \
+  INSTALL_K3S_EXEC="agent --server https://172.26.100.100:6443" \
   sh -
 ```
 
