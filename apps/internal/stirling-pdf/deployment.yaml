@@ -20,8 +20,11 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            - name: DOCKER_ENABLE_SECURITY
+            - name: SECURITY_ENABLELOGIN
               value: "false"
+            - name: DISABLE_ADDITIONAL_FEATURES
+              value: "true"
+
           volumeMounts:
             - name: configs
               mountPath: /configs
@@ -31,17 +34,17 @@ spec:
             requests: { cpu: 200m, memory: 512Mi }
             limits:   { cpu: "2",   memory: 2Gi }
           startupProbe:
-            httpGet: { path: "/", port: http }
+            tcpSocket: { port: 8080 }
             periodSeconds: 10
             timeoutSeconds: 2
             failureThreshold: 60
           readinessProbe:
-            httpGet: { path: "/", port: http }
+            tcpSocket: { port: 8080 }
             periodSeconds: 10
             timeoutSeconds: 2
             failureThreshold: 6
           livenessProbe:
-            httpGet: { path: "/", port: http }
+            tcpSocket: { port: 8080 }
             periodSeconds: 20
             timeoutSeconds: 2
             failureThreshold: 6
