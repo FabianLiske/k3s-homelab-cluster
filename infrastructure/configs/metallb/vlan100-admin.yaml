@@ -4,7 +4,7 @@ metadata:
   name: pool-vlan100-admin
   namespace: metallb-system
 spec:
-  addresses: ["192.168.100.150-192.168.100.199"]
+  addresses: ["172.26.100.150-172.26.100.199"]
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
