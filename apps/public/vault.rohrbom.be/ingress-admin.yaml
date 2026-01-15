@@ -6,7 +6,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-dns
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "192.168.1.156,192.168.60.10"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.40.104"
 spec:
   ingressClassName: nginx-public
   rules:
