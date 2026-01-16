@@ -26,12 +26,20 @@ spec:
           args:
             - |
               set -eu
+              echo "[prestart] disabling ipv6 (best-effort)"
+              sysctl -w net.ipv6.conf.all.disable_ipv6=1 \
+                      net.ipv6.conf.default.disable_ipv6=1 \
+                      net.ipv6.conf.lo.disable_ipv6=1 \
+                      net.ipv6.conf.eth0.disable_ipv6=1 >/dev/null 2>&1 || true
+
               echo "[prestart] checking stale wg0..."
               if ip link show wg0 >/dev/null 2>&1; then
                 echo "[prestart] deleting stale wg0"
-                ip link del wg0
+                ip link del wg0 || true
               fi
+
               exec /init
+
           securityContext:
             runAsUser: 0
             runAsGroup: 0
