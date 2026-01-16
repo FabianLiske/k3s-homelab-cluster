@@ -69,13 +69,6 @@ network:
       nameservers:
         addresses: [1.1.1.1, 1.0.0.1]
         search: []
-      routes:
-        - to: default
-          via: 172.26.10.1
-          table: 10
-      routing-policy:
-        - from: 172.26.10.0/24
-          table: 10
 
     vlan20:
       id: 20
@@ -88,13 +81,6 @@ network:
       nameservers:
         addresses: [1.1.1.1, 1.0.0.1]
         search: []
-      routes:
-        - to: default
-          via: 172.26.20.1
-          table: 20
-      routing-policy:
-        - from: 172.26.20.0/24
-          table: 20
 
     vlan30:
       id: 30
@@ -107,13 +93,6 @@ network:
       nameservers:
         addresses: [1.1.1.1, 1.0.0.1]
         search: []
-      routes:
-        - to: default
-          via: 172.26.30.1
-          table: 30
-      routing-policy:
-        - from: 172.26.30.0/24
-          table: 30
 ```
 
 ```bash
