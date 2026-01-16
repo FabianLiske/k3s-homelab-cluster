@@ -21,7 +21,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: vaultwarden-admin-deny
+                name: vaultwarden
                 port:
                   number: 80
           - path: /
