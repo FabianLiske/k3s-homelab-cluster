@@ -43,7 +43,7 @@ spec:
             - name: VPN_PROVIDER
               value: "generic"
             - name: VPN_LAN_NETWORK
-              value: "192.168.0.0/16"
+              value: "172.26.0.0/16"
             - name: VPN_LAN_LEAK_ENABLED
               value: "true"
             - name: VPN_EXPOSE_PORTS_ON_LAN
