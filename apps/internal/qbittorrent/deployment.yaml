@@ -17,6 +17,14 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      initContainers:
+        - name: wg-cleanup
+          image: nicolaka/netshoot:latest
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              add: ["NET_ADMIN"]
+          command: ["sh","-lc","ip link show wg0 >/dev/null 2>&1 && ip link del wg0 || true"]
       containers:
         - name: qbittorrent
           image: ghcr.io/hotio/qbittorrent:latest
