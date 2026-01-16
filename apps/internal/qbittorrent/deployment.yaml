@@ -18,24 +18,10 @@ spec:
       securityContext:
         fsGroup: 1000
 
-      initContainers:
-        - name: wg-cleanup
-          image: nicolaka/netshoot:latest
-          securityContext:
-            runAsUser: 0
-            capabilities:
-              add: ["NET_ADMIN"]
-          command: ["sh","-lc","ip link show wg0 >/dev/null 2>&1 && ip link del wg0 || true"]
-
       containers:
         - name: qbittorrent
           image: ghcr.io/hotio/qbittorrent:latest
           imagePullPolicy: IfNotPresent
-          command: ["/bin/sh","-lc"]
-          args:
-            - |
-              ip link del wg0 2>/dev/null || true
-              exec /init
 
           securityContext:
             runAsUser: 0
@@ -43,9 +29,11 @@ spec:
             allowPrivilegeEscalation: true
             capabilities:
               add: ["NET_ADMIN"]
+
           ports:
             - name: http
               containerPort: 8080
+
           env:
             - name: PUID
               value: "1000"
@@ -57,6 +45,7 @@ spec:
               value: "Europe/Berlin"
             - name: WEBUI_PORTS
               value: "8080/tcp,8080/udp"
+
             - name: VPN_ENABLED
               value: "true"
             - name: VPN_CONF
@@ -85,6 +74,7 @@ spec:
               value: "false"
             - name: UNBOUND_NAMESERVERS
               value: ""
+
           volumeMounts:
             - name: config
               mountPath: /config
@@ -94,6 +84,7 @@ spec:
               mountPath: /config/wireguard
             - name: dev-net-tun
               mountPath: /dev/net/tun
+
           readinessProbe:
             httpGet: { path: "/", port: http }
             initialDelaySeconds: 60
@@ -106,6 +97,7 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 6
+
           resources:
             requests: { cpu: 100m, memory: 256Mi }
             limits:   { cpu: "1",   memory: 2Gi }
