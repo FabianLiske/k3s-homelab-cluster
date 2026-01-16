@@ -22,7 +22,16 @@ spec:
         - name: qbittorrent
           image: ghcr.io/hotio/qbittorrent:latest
           imagePullPolicy: IfNotPresent
-
+          command: ["/bin/sh","-lc"]
+          args:
+            - |
+              set -eu
+              echo "[prestart] checking stale wg0..."
+              if ip link show wg0 >/dev/null 2>&1; then
+                echo "[prestart] deleting stale wg0"
+                ip link del wg0
+              fi
+              exec /init
           securityContext:
             runAsUser: 0
             runAsGroup: 0
