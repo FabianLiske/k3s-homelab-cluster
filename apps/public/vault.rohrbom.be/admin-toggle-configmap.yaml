@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vaultwarden-admin-toggle
+  namespace: svc-vaultwarden
+data:
+  # Toggle:
+  # - "vaultwarden"              => Admin ENABLED
+  # - "vaultwarden-admin-deny"   => Admin DISABLED (403)
+  ADMIN_BACKEND_SERVICE: "vaultwarden-admin-deny"
