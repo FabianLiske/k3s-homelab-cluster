@@ -17,6 +17,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+
       initContainers:
         - name: wg-cleanup
           image: nicolaka/netshoot:latest
@@ -25,10 +26,17 @@ spec:
             capabilities:
               add: ["NET_ADMIN"]
           command: ["sh","-lc","ip link show wg0 >/dev/null 2>&1 && ip link del wg0 || true"]
+
       containers:
         - name: qbittorrent
           image: ghcr.io/hotio/qbittorrent:latest
           imagePullPolicy: IfNotPresent
+          command: ["/bin/sh","-lc"]
+          args:
+            - |
+              ip link del wg0 2>/dev/null || true
+              exec /init
+
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -101,6 +109,7 @@ spec:
           resources:
             requests: { cpu: 100m, memory: 256Mi }
             limits:   { cpu: "1",   memory: 2Gi }
+
       volumes:
         - name: config
           persistentVolumeClaim:
