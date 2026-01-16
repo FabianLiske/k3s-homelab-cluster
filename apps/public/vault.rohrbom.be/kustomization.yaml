@@ -12,6 +12,9 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+  - admin-deny-configmap.yaml
+  - admin-deny-deployment.yaml
+  - admin-deny-service.yaml
   - ingress-admin.yaml
   - ingress-public.yaml
   - netpol-ingress.yaml

@@ -6,17 +6,20 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-dns
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.40.104"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.40.0/24"
 spec:
   ingressClassName: nginx-public
   rules:
-    - host: vault.rohrbom.be
+    - host: vault-admin.rohrbom.be
       http:
         paths:
           - path: /admin
             pathType: Prefix
             backend:
-              service: { name: vaultwarden, port: { number: 80 } }
+              service:
+                name: vaultwarden
+                port:
+                  number: 80
   tls:
-    - hosts: [vault.rohrbom.be]
-      secretName: vaultwarden-tls
+    - hosts: [vault-admin.rohrbom.be]
+      secretName: vaultwarden-admin-tls

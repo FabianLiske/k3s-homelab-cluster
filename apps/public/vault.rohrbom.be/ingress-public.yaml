@@ -17,10 +17,20 @@ spec:
     - host: vault.rohrbom.be
       http:
         paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: vaultwarden-admin-deny
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
-              service: { name: vaultwarden, port: { number: 80 } }
+              service:
+                name: vaultwarden
+                port:
+                  number: 80
   tls:
     - hosts: [vault.rohrbom.be]
       secretName: vaultwarden-tls
