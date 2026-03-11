@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: svc-media
+  labels:
+    app: qbittorrent
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: qbittorrent
+          image: ghcr.io/hotio/qbittorrent:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+                - NET_ADMIN
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: UMASK
+              value: "002"
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: WEBUI_PORTS
+              value: "8080/tcp,8080/udp"
+
+            - name: VPN_ENABLED
+              value: "true"
+            - name: VPN_CONF
+              value: "wg0"
+            - name: VPN_PROVIDER
+              value: "generic"
+
+            # Pod-Netz + dein internes Admin/LAN-Netz.
+            # Wenn du später wirklich nur noch cluster-intern willst,
+            # kannst du das enger ziehen.
+            - name: VPN_LAN_NETWORK
+              value: "10.42.0.0/15,172.26.0.0/16"
+            - name: VPN_LAN_LEAK_ENABLED
+              value: "true"
+
+            - name: VPN_EXPOSE_PORTS_ON_LAN
+              value: ""
+            - name: VPN_AUTO_PORT_FORWARD
+              value: "false"
+            - name: VPN_AUTO_PORT_FORWARD_TO_PORTS
+              value: ""
+            - name: VPN_FIREWALL_TYPE
+              value: "auto"
+            - name: VPN_HEALTHCHECK_ENABLED
+              value: "false"
+            - name: VPN_NAMESERVERS
+              value: "wg"
+            - name: PRIVOXY_ENABLED
+              value: "false"
+            - name: UNBOUND_ENABLED
+              value: "false"
+            - name: UNBOUND_NAMESERVERS
+              value: ""
+
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: /data
+            - name: wireguard
+              mountPath: /config/wireguard
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: media-shared-data
+        - name: wireguard
+          secret:
+            secretName: qbittorrent-wireguard
+            items:
+              - key: wg0.conf
+                path: wg0.conf
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice

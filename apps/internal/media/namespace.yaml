@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: svc-media
+  labels:
+    gitops: flux
+    stack: media
