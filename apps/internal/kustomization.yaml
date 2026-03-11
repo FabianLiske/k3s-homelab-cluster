@@ -5,4 +5,4 @@ resources:
   - ./trilium/
   - ./linkding/
   - ./paperless-ngx/
-  - ./qbittorrent/
+#  - ./qbittorrent/
