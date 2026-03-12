@@ -10,3 +10,4 @@ resources:
   - storage
   - qbittorrent
   - prowlarr
+  - sonarr
