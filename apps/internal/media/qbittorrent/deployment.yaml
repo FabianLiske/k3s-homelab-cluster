@@ -54,15 +54,10 @@ spec:
               value: "wg0"
             - name: VPN_PROVIDER
               value: "generic"
-
-            # Pod-Netz + dein internes Admin/LAN-Netz.
-            # Wenn du später wirklich nur noch cluster-intern willst,
-            # kannst du das enger ziehen.
             - name: VPN_LAN_NETWORK
               value: "10.42.0.0/15,172.26.0.0/16"
             - name: VPN_LAN_LEAK_ENABLED
               value: "true"
-
             - name: VPN_EXPOSE_PORTS_ON_LAN
               value: ""
             - name: VPN_AUTO_PORT_FORWARD
@@ -131,6 +126,9 @@ spec:
             items:
               - key: wg0.conf
                 path: wg0.conf
+              - key: wg0-pre.sh
+                path: wg0-pre.sh
+                mode: 0555
         - name: dev-net-tun
           hostPath:
             path: /dev/net/tun
