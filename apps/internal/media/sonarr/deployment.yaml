@@ -20,6 +20,8 @@ spec:
       labels:
         app: sonarr
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: wk-3
       securityContext:
         fsGroup: 1000
       containers:

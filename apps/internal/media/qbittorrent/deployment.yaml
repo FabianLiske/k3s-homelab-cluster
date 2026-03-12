@@ -20,6 +20,8 @@ spec:
       labels:
         app: qbittorrent
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: wk-3
       securityContext:
         fsGroup: 1000
       containers:
