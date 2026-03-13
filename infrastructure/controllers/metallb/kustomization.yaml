@@ -5,3 +5,4 @@ resources:
   - github.com/metallb/metallb/config/native?ref=v0.15.2
 patchesStrategicMerge:
   - patches/speaker-dns-patch.yaml
+  - patches/speaker-toleration-patch.yaml
