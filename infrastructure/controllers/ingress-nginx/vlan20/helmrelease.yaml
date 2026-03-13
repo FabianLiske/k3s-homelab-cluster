@@ -26,6 +26,10 @@ spec:
         - key: "node-role.kubernetes.io/master"
           operator: "Exists"
           effect: "NoSchedule"
+        - key: "dedicated"
+          operator: "Equal"
+          value: "media"
+          effect: "NoSchedule"
       ingressClassResource:
         name: nginx-internal
         controllerValue: "k8s.io/ingress-nginx-internal"
