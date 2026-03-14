@@ -23,7 +23,6 @@ spec:
           operator: "Equal"
           value: "media"
           effect: "NoSchedule"
-
-    defaultSetting:
+    defaultSettings:
       createDefaultDiskLabeledNodes: true
       taintToleration: "dedicated=media:NoSchedule"

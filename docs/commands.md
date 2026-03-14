@@ -4,6 +4,14 @@
 for file in *; do if [ -f "$file" ]; then echo "Datei: $file"; cat "$file"; echo ""; fi; done
 ```
 
+```bash
+find . -type f | sort | while IFS= read -r file; do
+  echo "Datei: ${file#./}"
+  cat "$file"
+  echo
+done
+```
+
 # Zeilenzähler
 
 ```bash

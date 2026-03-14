@@ -11,4 +11,4 @@ parameters:
   dataLocality: "best-effort"
   replicaAutoBalance: "best-effort"
   dataEngine: "v1"
-volumeBindingMode: WaitForFirstConsumer
+volumeBindingMode: Immediate
