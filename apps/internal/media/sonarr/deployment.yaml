@@ -21,7 +21,13 @@ spec:
         app: sonarr
     spec:
       nodeSelector:
-        kubernetes.io/hostname: wk-3
+        dedicated: media
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media
+          effect: NoSchedule
       securityContext:
         fsGroup: 1000
       containers:
@@ -52,7 +58,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 12
-
           livenessProbe:
             tcpSocket:
               port: http
@@ -73,4 +78,4 @@ spec:
             claimName: sonarr-config
         - name: data
           persistentVolumeClaim:
-            claimName: media-shared-data
+            claimName: media-local-data

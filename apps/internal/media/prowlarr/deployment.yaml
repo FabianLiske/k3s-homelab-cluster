@@ -21,7 +21,13 @@ spec:
         app: prowlarr
     spec:
       nodeSelector:
-        kubernetes.io/hostname: wk-3
+        dedicated: media
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media
+          effect: NoSchedule
       securityContext:
         fsGroup: 1000
       containers:

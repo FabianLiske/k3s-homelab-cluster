@@ -21,7 +21,13 @@ spec:
         app: qbittorrent
     spec:
       nodeSelector:
-        kubernetes.io/hostname: wk-3
+        dedicated: media
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media
+          effect: NoSchedule
       securityContext:
         fsGroup: 1000
       containers:
@@ -49,7 +55,6 @@ spec:
               value: "Europe/Berlin"
             - name: WEBUI_PORTS
               value: "8080/tcp,8080/udp"
-
             - name: VPN_ENABLED
               value: "true"
             - name: VPN_CONF
@@ -78,7 +83,6 @@ spec:
               value: "false"
             - name: UNBOUND_NAMESERVERS
               value: ""
-
           volumeMounts:
             - name: config
               mountPath: /config
@@ -88,7 +92,6 @@ spec:
               mountPath: /config/wireguard
             - name: dev-net-tun
               mountPath: /dev/net/tun
-
           readinessProbe:
             httpGet:
               path: /
@@ -97,7 +100,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 12
-
           livenessProbe:
             httpGet:
               path: /
@@ -106,7 +108,6 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 6
-
           resources:
             requests:
               cpu: 100m
@@ -114,14 +115,13 @@ spec:
             limits:
               cpu: "1"
               memory: 2Gi
-
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: qbittorrent-config
         - name: data
           persistentVolumeClaim:
-            claimName: media-shared-data
+            claimName: media-local-data
         - name: wireguard
           secret:
             secretName: qbittorrent-wireguard
