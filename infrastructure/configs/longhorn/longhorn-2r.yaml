@@ -6,14 +6,6 @@ metadata:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: driver.longhorn.io
 allowVolumeExpansion: true
-allowedTopologies:
-  - matchLabelExpressions:
-      - key: kubernetes.io/hostname
-        values:
-          - wk-1
-          - wk-2
-          - wk-3
-          - media-1
 parameters:
   numberOfReplicas: "2"
   dataLocality: "best-effort"
