@@ -17,6 +17,13 @@ spec:
     createNamespace: true
   targetNamespace: longhorn-system
   values:
-    defaultSettings:
+    global:
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "media"
+          effect: "NoSchedule"
+
+    defaultSetting:
       createDefaultDiskLabeledNodes: true
       taintToleration: "dedicated=media:NoSchedule"
