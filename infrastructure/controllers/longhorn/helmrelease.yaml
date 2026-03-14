@@ -16,4 +16,7 @@ spec:
   install:
     createNamespace: true
   targetNamespace: longhorn-system
-  values: {}
+  values:
+    defaultSettings:
+      createDefaultDiskLabeledNodes: true
+      taintToleration: "dedicated=media:NoSchedule"

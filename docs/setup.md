@@ -235,7 +235,7 @@ kubectl taint nodes cp-X node-role.kubernetes.io/control-plane=:NoSchedule --ove
 ## 6.2) Worker tainten
 
 ```bash
-kubectl label nodes wk-X node-role.kubernetes.io/worker= longhorn=storage --overwrite
+kubectl label node wk-1 wk-2 wk-3 node.longhorn.io/create-default-disk=true --overwrite
 ```
 
 # SOPS
