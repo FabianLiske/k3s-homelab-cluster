@@ -377,7 +377,7 @@ Auf der neuen Hardware:
 Beispiel-Hostname:
 
 ```text
-wk-media-1
+media-1
 ```
 
 ---
@@ -410,7 +410,7 @@ Erwartung:
 Prüfen:
 
 ```bash
-kubectl get nodes --show-labels | grep wk-media-1
+kubectl get nodes --show-labels | grep media-1
 ```
 
 ---
@@ -420,13 +420,13 @@ kubectl get nodes --show-labels | grep wk-media-1
 ### Label setzen
 
 ```bash
-kubectl label node wk-media-1 dedicated=media
+kubectl label node media-1 dedicated=media
 ```
 
 ### Taint setzen
 
 ```bash
-kubectl taint node wk-media-1 dedicated=media:NoSchedule
+kubectl taint node media-1 dedicated=media:NoSchedule
 ```
 
 ### Kontrolle
@@ -443,7 +443,7 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
 Nach dem Join prüfen:
 
 ```bash
-kubectl get pods -A -o wide | grep wk-media-1
+kubectl get pods -A -o wide | grep media-1
 ```
 
 Erwartbar sind u. a.:
@@ -528,7 +528,7 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - wk-media-1
+                - media-1
 ```
 
 ### Beispiel PVC
@@ -558,6 +558,17 @@ In der Praxis ist es oft sinnvoll, nicht nur ein einziges großes PVC zu verwend
 
 Die Verzeichnisse können dabei trotzdem auf demselben lokalen Datenträger liegen.
 
+### Wichtiger Scheduler-Hinweis
+
+Wenn die Media-Node **kein** Longhorn-Disk-Node ist, aber Media-Pods hart auf diese Node gepinnt werden, dann können Longhorn-Konfigurations-PVCs mit `WaitForFirstConsumer` in einen Scheduling-Deadlock laufen:
+
+* der Pod kann nur auf die Media-Node
+* der PVC wartet auf ein geplantes Pod
+* der Scheduler prüft die Longhorn-Kapazität auf genau dieser Node
+* hat die Media-Node dort `0` Kapazität, bleibt das Pod mit `did not have enough free storage` hängen
+
+Für solche Config-PVCs ist daher eine **Longhorn-StorageClass mit `Immediate` Binding** sinnvoll.
+
 ---
 
 ## Schritt 7: Longhorn für Konfigurationsdaten weiterverwenden
@@ -575,6 +586,8 @@ Beispiele:
 * `seerr-config`
 
 Diese PVCs nutzen weiterhin eine Longhorn-StorageClass.
+
+Für Media-Workloads, die ausschließlich auf einer dedizierten Media-Node laufen, sollte diese StorageClass für die kleinen Config-PVCs **`Immediate`** verwenden, damit die Volumes bereits vor dem Pod-Scheduling auf den regulären Longhorn-Storage-Nodes provisioniert werden können.
 
 ---
 
@@ -841,14 +854,14 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
 ### Neue Node labeln/tainten
 
 ```bash
-kubectl label node wk-media-1 dedicated=media
-kubectl taint node wk-media-1 dedicated=media:NoSchedule
+kubectl label node media-1 dedicated=media
+kubectl taint node media-1 dedicated=media:NoSchedule
 ```
 
 ### Pods auf der neuen Node prüfen
 
 ```bash
-kubectl get pods -A -o wide | grep wk-media-1
+kubectl get pods -A -o wide | grep media-1
 ```
 
 ### Temporärer Zugriff auf qBittorrent ohne Ingress

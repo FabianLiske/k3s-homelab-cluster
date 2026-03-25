@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-2r-immediate
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+parameters:
+  numberOfReplicas: "2"
+  dataLocality: "best-effort"
+  replicaAutoBalance: "best-effort"
+  dataEngine: "v1"
+volumeBindingMode: Immediate
