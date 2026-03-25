@@ -10,8 +10,10 @@ resources:
   - storage
   - bazarr
   - jellyfin
+  - lidarr
   - radarr
   - qbittorrent
   - prowlarr
+  - readarr
   - seerr
   - sonarr

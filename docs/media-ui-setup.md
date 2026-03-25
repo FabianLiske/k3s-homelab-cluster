@@ -6,6 +6,8 @@ Dieses Dokument beschreibt die Einrichtung der aktuell vorhandenen Media-Dienste
 * Prowlarr
 * Sonarr
 * Radarr
+* Lidarr
+* Readarr
 * Bazarr
 * Jellyfin
 * Seerr (technisch Jellyseerr)
@@ -28,6 +30,8 @@ Diese Adressen werden **in den Apps** für interne Verbindungen verwendet:
 * `http://prowlarr:9696`
 * `http://sonarr:8989`
 * `http://radarr:7878`
+* `http://lidarr:8686`
+* `http://readarr:8787`
 * `http://bazarr:6767`
 * `http://jellyfin:8096`
 * `http://seerr:5055`
@@ -39,6 +43,8 @@ Diese Adressen verwendest **du im Browser**:
 * `https://prowlarr.intern.rohrbom.be`
 * `https://sonarr.intern.rohrbom.be`
 * `https://radarr.intern.rohrbom.be`
+* `https://lidarr.intern.rohrbom.be`
+* `https://readarr.intern.rohrbom.be`
 * `https://bazarr.intern.rohrbom.be`
 * `https://jellyfin.intern.rohrbom.be`
 * `https://seerr.intern.rohrbom.be`
@@ -62,8 +68,12 @@ Diese Pfade sind der gemeinsame Nenner aller Apps:
 * Downloads unvollständig: `/data/torrents/incomplete`
 * Sonarr-Downloads: `/data/torrents/complete/sonarr`
 * Radarr-Downloads: `/data/torrents/complete/radarr`
+* Lidarr-Downloads: `/data/torrents/complete/lidarr`
+* Readarr-Downloads: `/data/torrents/complete/readarr`
 * Serien-Library: `/data/media/shows`
 * Filme-Library: `/data/media/movies`
+* Musik-Library: `/data/media/music`
+* Bücher-Library: `/data/media/books`
 * Jellyfin-Transcode: `/data/transcode`
 
 ### API-Keys
@@ -72,6 +82,8 @@ Du brauchst API-Keys aus:
 
 * Sonarr
 * Radarr
+* Lidarr
+* Readarr
 
 Du findest sie jeweils unter:
 
@@ -90,10 +102,12 @@ Richte die Apps in dieser Reihenfolge ein:
 1. qBittorrent
 2. Sonarr
 3. Radarr
-4. Prowlarr
-5. Bazarr
-6. Jellyfin
-7. Seerr
+4. Lidarr
+5. Readarr
+6. Prowlarr
+7. Bazarr
+8. Jellyfin
+9. Seerr
 
 So sind die jeweils benötigten API-Keys und Backend-Dienste schon vorhanden.
 
@@ -127,6 +141,10 @@ Lege links unter `Categories` mindestens diese beiden Kategorien an:
   Save Path: `sonarr`
 * `radarr`
   Save Path: `radarr`
+* `lidarr`
+  Save Path: `lidarr`
+* `readarr`
+  Save Path: `readarr`
 
 Wichtig:
 
@@ -134,6 +152,8 @@ Wichtig:
 * Ziel ist am Ende:
   * `sonarr` -> `/data/torrents/complete/sonarr`
   * `radarr` -> `/data/torrents/complete/radarr`
+  * `lidarr` -> `/data/torrents/complete/lidarr`
+  * `readarr` -> `/data/torrents/complete/readarr`
 
 ### Was du hier nicht tun solltest
 
@@ -285,7 +305,149 @@ Indexer in Radarr ebenfalls **nicht manuell** pflegen, wenn Prowlarr das überni
 
 ---
 
-## 6. Prowlarr einrichten
+## 6. Lidarr einrichten
+
+Öffne:
+
+```text
+https://lidarr.intern.rohrbom.be
+```
+
+### API-Key notieren
+
+Gehe zu:
+
+```text
+Settings -> General -> Security
+```
+
+Kopiere den API-Key.
+
+### Media Management
+
+Gehe zu:
+
+```text
+Settings -> Media Management
+```
+
+Empfohlen:
+
+* `Rename Tracks`: aktiv
+* `Use Hardlinks instead of Copy`: aktiv
+
+### Download Client
+
+Gehe zu:
+
+```text
+Settings -> Download Clients
+```
+
+Prüfe zuerst:
+
+* `Completed Download Handling`: aktiviert
+
+Füge dann qBittorrent hinzu:
+
+* Host: `qbittorrent`
+* Port: `8080`
+* Username / Passwort: deine bestehenden qBittorrent-Zugangsdaten
+* Use SSL: aus
+* URL Base: leer
+* Category: `lidarr`
+
+Danach:
+
+* `Test`
+* `Save`
+
+### Root Folder
+
+Wenn du den ersten Artist anlegst oder Root Folders verwaltest, verwende:
+
+```text
+/data/media/music
+```
+
+### Indexer
+
+Indexer in Lidarr **nicht manuell** pflegen, wenn Prowlarr sie synchronisieren soll.
+
+---
+
+## 7. Readarr einrichten
+
+Öffne:
+
+```text
+https://readarr.intern.rohrbom.be
+```
+
+### API-Key notieren
+
+Gehe zu:
+
+```text
+Settings -> General -> Security
+```
+
+Kopiere den API-Key.
+
+### Media Management
+
+Gehe zu:
+
+```text
+Settings -> Media Management
+```
+
+Empfohlen:
+
+* `Rename Books`: aktiv
+* `Use Hardlinks instead of Copy`: aktiv
+
+### Download Client
+
+Gehe zu:
+
+```text
+Settings -> Download Clients
+```
+
+Prüfe zuerst:
+
+* `Completed Download Handling`: aktiviert
+
+Füge dann qBittorrent hinzu:
+
+* Host: `qbittorrent`
+* Port: `8080`
+* Username / Passwort: deine bestehenden qBittorrent-Zugangsdaten
+* Use SSL: aus
+* URL Base: leer
+* Category: `readarr`
+
+Danach:
+
+* `Test`
+* `Save`
+
+### Root Folder
+
+Wenn du das erste Buch anlegst oder Root Folders verwaltest, verwende:
+
+```text
+/data/media/books
+```
+
+### Indexer
+
+Indexer in Readarr **nicht manuell** pflegen, wenn Prowlarr sie synchronisieren soll.
+
+---
+
+## 8. Prowlarr einrichten
 
 Öffne:
 
@@ -349,6 +511,34 @@ Dann:
 * `Test`
 * `Save`
 
+### Lidarr als App anbinden
+
+Füge `Lidarr` analog hinzu:
+
+* App Server / Base URL / Host: `http://lidarr:8686`
+* API-Key: aus Lidarr
+* Sync Level: `Full Sync`
+* Tags: leer
+
+Dann:
+
+* `Test`
+* `Save`
+
+### Readarr als App anbinden
+
+Füge `Readarr` analog hinzu:
+
+* App Server / Base URL / Host: `http://readarr:8787`
+* API-Key: aus Readarr
+* Sync Level: `Full Sync`
+* Tags: leer
+
+Dann:
+
+* `Test`
+* `Save`
+
 ### Indexer synchronisieren
 
 Nach dem Speichern:
@@ -365,6 +555,14 @@ Settings -> Indexers
 
 Dort sollten die von Prowlarr synchronisierten Indexer erscheinen.
 
+Prüfe zusätzlich in Lidarr und Readarr unter:
+
+```text
+Settings -> Indexers
+```
+
+Dort sollten die von Prowlarr synchronisierten Indexer ebenfalls erscheinen.
+
 Wenn dort schon alte manuell gepflegte Indexer vorhanden sind:
 
 * Doppelungen vermeiden
@@ -372,7 +570,7 @@ Wenn dort schon alte manuell gepflegte Indexer vorhanden sind:
 
 ---
 
-## 7. Bazarr einrichten
+## 9. Bazarr einrichten
 
 Öffne:
 
@@ -455,7 +653,7 @@ Nach dem Speichern braucht Bazarr etwas Zeit, um Serien und Filme aus Sonarr/Rad
 
 ---
 
-## 8. Jellyfin einrichten
+## 10. Jellyfin einrichten
 
 Öffne:
 
@@ -503,7 +701,7 @@ Das Jellyfin-Admin-Konto brauchst du anschließend für die erste Seerr-Einricht
 
 ---
 
-## 9. Seerr einrichten
+## 11. Seerr einrichten
 
 Öffne:
 
@@ -600,9 +798,11 @@ Da du nur **eine** Sonarr- und **eine** Radarr-Instanz hast:
 * jeweils genau einen Default-Server setzen
 * **keine** 4K-Server markieren
 
+Lidarr und Readarr werden in Seerr/Jellyseerr in diesem Setup **nicht** angebunden.
+
 ---
 
-## 10. Abschlussprüfung
+## 12. Abschlussprüfung
 
 Wenn alles eingerichtet ist, sollte dieser Ablauf funktionieren:
 
@@ -624,9 +824,25 @@ Für Serien entsprechend:
 6. Jellyfin sieht die Serie nach Scan.
 7. Bazarr sieht die Serie über Sonarr.
 
+Für Musik entsprechend:
+
+1. Album oder Artist in Lidarr hinzufügen.
+2. Lidarr nutzt die von Prowlarr synchronisierten Indexer.
+3. Lidarr schickt den Download an qBittorrent mit Kategorie `lidarr`.
+4. qBittorrent lädt nach `/data/torrents/complete/lidarr`.
+5. Lidarr importiert nach `/data/media/music`.
+
+Für Bücher entsprechend:
+
+1. Buch oder Autor in Readarr hinzufügen.
+2. Readarr nutzt die von Prowlarr synchronisierten Indexer.
+3. Readarr schickt den Download an qBittorrent mit Kategorie `readarr`.
+4. qBittorrent lädt nach `/data/torrents/complete/readarr`.
+5. Readarr importiert nach `/data/media/books`.
+
 ---
 
-## 11. Typische Fehler
+## 13. Typische Fehler
 
 ### Falsche interne URL
 
@@ -663,15 +879,19 @@ In diesem Stack sind Path Mappings normalerweise nicht nötig, weil die Containe
 
 Wenn du Prowlarr als zentrale Quelle nutzt, dann Sonarr/Radarr-Indexer nicht zusätzlich separat pflegen.
 
+Dasselbe gilt auch für Lidarr und Readarr.
+
 ---
 
-## 12. Kurzreferenz
+## 14. Kurzreferenz
 
 ### Browserzugriff
 
 * Prowlarr: `https://prowlarr.intern.rohrbom.be`
 * Sonarr: `https://sonarr.intern.rohrbom.be`
 * Radarr: `https://radarr.intern.rohrbom.be`
+* Lidarr: `https://lidarr.intern.rohrbom.be`
+* Readarr: `https://readarr.intern.rohrbom.be`
 * Bazarr: `https://bazarr.intern.rohrbom.be`
 * Jellyfin: `https://jellyfin.intern.rohrbom.be`
 * Seerr: `https://seerr.intern.rohrbom.be`
@@ -683,6 +903,8 @@ Wenn du Prowlarr als zentrale Quelle nutzt, dann Sonarr/Radarr-Indexer nicht zus
 * Prowlarr: `prowlarr:9696`
 * Sonarr: `sonarr:8989`
 * Radarr: `radarr:7878`
+* Lidarr: `lidarr:8686`
+* Readarr: `readarr:8787`
 * Bazarr: `bazarr:6767`
 * Jellyfin: `jellyfin:8096`
 * Seerr: `seerr:5055`

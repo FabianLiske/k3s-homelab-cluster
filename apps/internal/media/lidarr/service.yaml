@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lidarr
+  namespace: svc-media
+  labels:
+    app: lidarr
+spec:
+  type: ClusterIP
+  selector:
+    app: lidarr
+  ports:
+    - name: http
+      port: 8686
+      targetPort: http
