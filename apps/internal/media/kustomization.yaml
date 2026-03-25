@@ -8,6 +8,10 @@ labels:
 resources:
   - namespace.yaml
   - storage
+  - bazarr
+  - jellyfin
+  - radarr
   - qbittorrent
   - prowlarr
+  - seerr
   - sonarr
