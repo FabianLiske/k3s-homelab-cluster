@@ -7,7 +7,7 @@ data:
   21-ipmi-h11.conf: |
     [[inputs.ipmi_sensor]]
       path = "/usr/local/bin/telegraf-ipmitool"
-      servers = ["${IPMI_USERNAME}:${IPMI_PASSWORD}@lanplus(192.168.10.40)"]
+      servers = ["${IPMI_USERNAME}:${IPMI_PASSWORD}@lanplus(172.26.1.42)"]
       metric_version = 2
       sensors = ["sdr", "dcmi_power_reading"]
       interval = "30s"

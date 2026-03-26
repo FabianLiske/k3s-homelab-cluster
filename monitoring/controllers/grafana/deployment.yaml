@@ -45,6 +45,10 @@ spec:
             - { name: data, mountPath: /var/lib/grafana }
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
+            - name: grafana-dashboard-providers
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: grafana-unpoller-dashboards
+              mountPath: /var/lib/grafana/dashboards/unpoller
           readinessProbe:
             httpGet: { path: /api/health, port: http }
             initialDelaySeconds: 10
@@ -62,3 +66,13 @@ spec:
         - name: grafana-datasources
           configMap:
             name: grafana-datasources
+        - name: grafana-dashboard-providers
+          configMap:
+            name: grafana-dashboard-providers
+        - name: grafana-unpoller-dashboards
+          projected:
+            sources:
+              - configMap:
+                  name: grafana-unpoller-dashboards-core
+              - configMap:
+                  name: grafana-unpoller-dashboards-dpi

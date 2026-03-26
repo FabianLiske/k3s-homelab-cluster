@@ -1,10 +1,28 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: ops-monitoring
+
 resources:
   - grafana-secret.yaml
   - pvc.yaml
   - datasources.yaml
+  - dashboardproviders.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
   - netpol-ingress.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: grafana-unpoller-dashboards-core
+    files:
+      - dashboards/unpoller/11311.json
+      - dashboards/unpoller/11312.json
+      - dashboards/unpoller/11313.json
+      - dashboards/unpoller/11314.json
+      - dashboards/unpoller/11315.json
+  - name: grafana-unpoller-dashboards-dpi
+    files:
+      - dashboards/unpoller/11310.json

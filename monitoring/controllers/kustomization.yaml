@@ -9,4 +9,5 @@ resources:
   - ./prometheus/
   - ./influxdb/
   - ./telegraf/
+  - ./unpoller/
   - ./grafana/

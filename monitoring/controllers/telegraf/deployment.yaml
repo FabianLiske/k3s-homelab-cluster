@@ -13,6 +13,8 @@ spec:
       labels:
         app: telegraf
     spec:
+      imagePullSecrets:
+        - name: ghcr-cred
       securityContext:
         runAsUser: 0
         runAsGroup: 0
@@ -36,26 +38,6 @@ spec:
                 secretKeyRef:
                   name: telegraf-secret
                   key: IPMI_PASSWORD
-            - name: BROCADE_AUTH_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: telegraf-secret
-                  key: BROCADE_AUTH_PASS
-            - name: BROCADE_PRIV_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: telegraf-secret
-                  key: BROCADE_PRIV_PASS
-            - name: EDGEROUTER_AUTH_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: telegraf-secret
-                  key: EDGEROUTER_AUTH_PASS
-            - name: EDGEROUTER_PRIV_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: telegraf-secret
-                  key: EDGEROUTER_PRIV_PASS
             - name: INFLUXDB_NETWORK
               valueFrom:
                 secretKeyRef:
@@ -84,14 +66,6 @@ spec:
               mountPath: /etc/telegraf/telegraf.d/21-ipmi-h11.conf
               subPath: 21-ipmi-h11.conf
               readOnly: true
-            - name: telegraf-snmp-edgerouter
-              mountPath: /etc/telegraf/telegraf.d/30-snmp-edgerouter.conf
-              subPath: 30-snmp-edgerouter.conf
-              readOnly: true
-            - name: telegraf-snmp-brocade
-              mountPath: /etc/telegraf/telegraf.d/31-snmp-brocade.conf
-              subPath: 31-snmp-brocade.conf
-              readOnly: true
       volumes:
         - name: telegraf-main
           configMap:
@@ -102,9 +76,3 @@ spec:
         - name: telegraf-ipmi-h11
           configMap:
             name: telegraf-ipmi-h11
-        - name: telegraf-snmp-edgerouter
-          configMap:
-            name: telegraf-snmp-edgerouter
-        - name: telegraf-snmp-brocade
-          configMap:
-            name: telegraf-snmp-brocade

@@ -25,6 +25,7 @@ data:
               - 'cp-1:9100'
               - 'cp-2:9100'
               - 'cp-3:9100'
+              - 'media-1:9100'
               - 'wk-1:9100'
               - 'wk-2:9100'
               - 'wk-3:9100'
@@ -96,6 +97,15 @@ data:
         scrape_timeout: 2m
         static_configs:
           - targets: ['speedtest-exporter.ops-monitoring.svc:9798']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === UNIFI: UniFi Poller / UnPoller ===
+      - job_name: unifipoller
+        scrape_interval: 30s
+        static_configs:
+          - targets: ['unpoller.ops-monitoring.svc:9130']
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'

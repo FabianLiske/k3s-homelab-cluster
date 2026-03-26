@@ -18,8 +18,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m0s
-#  path: ./clusters/k3s-homelab
-  path: ./clusters/k3s-homelab/flux-system
+  path: ./clusters/k3s-homelab
   prune: true
   sourceRef:
     kind: GitRepository
