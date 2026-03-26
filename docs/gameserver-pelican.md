@@ -1,165 +1,76 @@
-# Pelican als Hybrid-Gameserver-Panel
+# Pelican auf `media-1`
 
 ## Zielbild
 
 Pelican laeuft als normale interne App im Cluster.
 Wings und die eigentlichen Gameserver laufen hostseitig auf `media-1`.
 
-Die Netztrennung in dieser Variante ist:
+Die Netztrennung ist dabei:
 
 * Panel-Webzugriff: ueber `nginx-internal` auf VLAN20
-* Host-Management von `media-1`: weiter ueber VLAN100
-* Game-Traffic: ueber eine eigene Game-IP auf einem separaten VLAN nur auf `media-1`
-
-Das Repo automatisiert nur den Cluster-Teil.
-Alles, was direkt auf `media-1` oder im Router passieren muss, bleibt bewusst manuell.
+* Host-Management von `media-1`: ueber VLAN100 auf `172.26.100.31`
+* Game-Traffic: ueber `vlan50` mit `172.26.50.31`
 
 ---
 
-## Was im Repo enthalten ist
+## Ist-Zustand
 
-Der Cluster-Teil liegt unter [`../apps/internal/pelican`](../apps/internal/pelican):
+Dieser Guide geht von deinem aktuellen Stand aus:
 
-* eigener Namespace `svc-games`
-* Pelican Deployment auf der dedizierten Media-Node
-* Longhorn-PVC fuer Panel-Daten
-* interner Ingress auf `https://pelican.intern.rohrbom.be`
-* optionales Secret-Beispiel unter [`../apps/internal/pelican/pelican-secret.yaml.example`](../apps/internal/pelican/pelican-secret.yaml.example)
+* `media-1` laeuft mit Ubuntu Server 24.04 LTS.
+* K3s ist auf `media-1` bereits als Agent installiert.
+* `media-1` hat im Cluster die Node-IP `172.26.100.31`.
+* `media-1` wurde bereits mit `dedicated=media` gelabelt und mit `dedicated=media:NoSchedule` getaintet.
+* Das Parent-Interface ist `enp8s0`.
+* Auf `media-1` sind `vlan10`, `vlan20` und `vlan30` bereits wie in [`setup.md`](./setup.md) bzw. [`../temp.md`](../temp.md) eingerichtet.
+* Die Basis-Pakete aus `setup.md` sind bereits installiert.
 
-Wichtige Defaults:
+Mit echten Werten arbeite ich im Rest dieses Guides direkt so:
 
-* SQLite-first
-* `ghcr.io/pelican-dev/panel:latest`
-* `BEHIND_PROXY=true`
-* `TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12`
-* persistente Daten unter `/pelican-data`
+* Management-IP von `media-1`: `172.26.100.31`
+* Game-VLAN: `50`
+* Game-Interface: `vlan50`
+* Game-IP von `media-1`: `172.26.50.31/24`
+* Game-Gateway: `172.26.50.1`
+* Panel-FQDN: `pelican.intern.rohrbom.be`
+* Panel-IP: `172.26.20.151`
+* Wings-FQDN: `wings-media-1.intern.rohrbom.be`
+* Wings-Port: `8080`
+* Wings-SFTP-Port: `2022`
+
+Wichtige Annahme:
+
+* Ich gehe hier bewusst von `172.26.50.31/24` auf `vlan50` aus, passend zur Node-Endung `.31`.
 
 ---
 
 ## Harte Reihenfolge
 
-Die wichtigste Regel fuer dieses Setup:
+Bitte genau in dieser Reihenfolge arbeiten:
 
-**Zieh Pelican nicht per Flux hoch, bevor `media-1` hostseitig fertig vorbereitet ist.**
-
-Die empfohlene Reihenfolge ist:
-
-1. Werte fuer `media-1`, VLANs und IPs festziehen.
-2. `media-1` auf Ubuntu 24.04 vorbereiten.
-3. Game-VLAN und Source-Based Routing auf `media-1` fertigstellen.
-4. Docker und Wings-Binary auf `media-1` vorbereiten.
-5. Host-Firewall fuer SSH, Wings und interne Verwaltung setzen.
-6. Node im Cluster labeln/tainten und DNS vorbereiten.
-7. Erst dann Repo pushen bzw. Flux fuer Pelican reconciliieren.
-8. Dann Pelican Web-Installer ausfuehren.
-9. Danach Wings mit der von Pelican erzeugten Konfiguration aktivieren.
-10. Erst wenn intern alles funktioniert, Router-Portforwards fuer Spielports oeffnen.
-
-Wenn du dich an diese Reihenfolge haeltst, vermeidest du genau das Problem, dass Pelican schon laeuft, waehrend die Media-Node netzseitig noch gar nicht sauber vorbereitet ist.
+1. `media-1`-Istzustand pruefen.
+2. `vlan50` mit `172.26.50.31/24` auf `media-1` einrichten.
+3. Source-Based Routing fuer `172.26.50.31` fertigstellen und testen.
+4. Nur die zusaetzlichen Pelican-/Wings-Abhaengigkeiten installieren.
+5. Docker installieren und testen.
+6. Wings-Binary und Verzeichnisse vorbereiten, aber Wings noch nicht starten.
+7. Host-Firewall fuer `media-1` bewusst **nicht** global dichtmachen.
+8. DNS fuer Panel und Wings vorbereiten.
+9. Erst dann Pelican im Cluster deployen.
+10. Danach den Pelican-Web-Installer ausfuehren.
+11. Danach Wings per Pelican-Konfiguration aktivieren.
+12. Erst ganz am Ende Router-Portforwards fuer Spielports oeffnen.
 
 ---
 
-## Werte vor dem Start festlegen
+## Phase 1: `media-1` verifizieren
 
-Passe diese Shell-Variablen zuerst an deine echte Umgebung an.
-Die Beispiele gehen von einem Game-VLAN 50 aus.
+Alle Befehle in dieser Phase laufen direkt auf `media-1`.
 
-```bash
-export MEDIA_NODE="media-1"
-export PARENT_IF="enp8s0"            # auf manchen Hosts auch eth0
-export GAME_VLAN_ID="50"
-export GAME_IF="vlan${GAME_VLAN_ID}"
-export GAME_IP="172.26.50.10"
-export GAME_PREFIX="24"
-export GAME_IP_CIDR="${GAME_IP}/${GAME_PREFIX}"
-export GAME_GW="172.26.50.1"
-export GAME_TABLE="50"
-export PANEL_HOST="pelican.intern.rohrbom.be"
-export PANEL_IP="172.26.20.151"
-export WINGS_FQDN="wings-media-1.intern.rohrbom.be"
-export WINGS_PORT="8080"
-export WINGS_SFTP_PORT="2022"
-export MGMT_NET="172.26.100.0/24"
-export CLUSTER_NODE_NET="172.26.0.0/16"
-export CLUSTER_POD_NET="10.42.0.0/16"
-```
-
-Hinweis:
-
-* `CLUSTER_POD_NET=10.42.0.0/16` ist der K3s-Default.
-* `CLUSTER_NODE_NET=172.26.0.0/16` ist hier absichtlich etwas grob, damit Wings sicher aus dem Cluster erreichbar bleibt.
-* Wenn du spaeter tighter werden willst, kannst du die Netze spaeter enger schneiden.
-
----
-
-## Phase 1: Admin-PC und Cluster-Preflight
-
-Diese Schritte machst du **vor** dem eigentlichen Pelican-Deploy.
-
-### 1. Node-Status pruefen
+### 1. Host-Check
 
 ```bash
-kubectl get node "${MEDIA_NODE}" -o wide
-kubectl get node "${MEDIA_NODE}" --show-labels
-```
-
-Wenn `media-1` noch nicht sauber im Cluster ist, ziehe zuerst die allgemeinen Schritte aus [`media-node.md`](./media-node.md) nach.
-
-### 2. Media-Node labeln und tainten
-
-Pelican ist im Repo fest auf `dedicated=media` plus `amd64` gelegt.
-
-```bash
-kubectl label node "${MEDIA_NODE}" dedicated=media --overwrite
-kubectl taint node "${MEDIA_NODE}" dedicated=media:NoSchedule --overwrite
-kubectl get node "${MEDIA_NODE}" --show-labels
-kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
-```
-
-Wichtig:
-
-* Setze **nicht** `longhorn=storage` auf `media-1`.
-* Longhorn soll auf der Media-Node nur konsumiert werden, nicht dort replizieren.
-
-### 3. DNS vorab planen
-
-Du brauchst mindestens diese beiden Eintraege:
-
-* `pelican.intern.rohrbom.be -> 172.26.20.151`
-* `${WINGS_FQDN} -> VLAN100-IP-von-media-1`
-
-Den ersten Eintrag brauchst du fuer das Panel.
-Den zweiten brauchst du spaeter fuer Wings, weil Pelican bei einem HTTPS-Panel auch fuer Wings ein TLS-faehiges Ziel erwartet.
-
-Noch nicht deployen.
-Jetzt geht es erst an `media-1`.
-
----
-
-## Phase 2: `media-1` auf Ubuntu Server 24.04 vorbereiten
-
-Alle folgenden Schritte laufen direkt auf `media-1`.
-
-### 1. Basis-Update und Grundpakete
-
-```bash
-sudo apt update && sudo apt full-upgrade -y
-sudo apt install -y \
-  ca-certificates \
-  curl \
-  jq \
-  unzip \
-  ufw \
-  open-iscsi \
-  nfs-common \
-  smartmontools
-sudo systemctl enable --now iscsid
-sudo timedatectl set-timezone Europe/Berlin
-```
-
-Kurzer Host-Check:
-
-```bash
+hostnamectl
 lsb_release -a
 uname -m
 ip -br addr
@@ -168,101 +79,56 @@ ip route
 
 Erwartung:
 
+* Hostname ist `media-1`
 * Architektur ist `x86_64`
-* der Host hat bereits seine normale Management-Erreichbarkeit
+* `enp8s0` existiert
+* `vlan10`, `vlan20` und `vlan30` existieren bereits
 * die Default-Route bleibt auf dem Management-/Node-Netz
 
-### 2. Sysctls fuer Multi-VLAN und Routing
-
-Das Repo arbeitet bereits mit diesen Sysctls fuer Multi-VLAN-Betrieb, siehe auch [`setup.md`](./setup.md).
+### 2. Bereits vorhandene Sysctls pruefen
 
 ```bash
-sudo tee /etc/sysctl.d/100-multivlan.conf >/dev/null <<'EOF'
-net.bridge.bridge-nf-call-iptables=1
-net.ipv4.ip_forward=1
-net.ipv6.conf.all.forwarding=1
-
-net.ipv4.conf.all.rp_filter=2
-net.ipv4.conf.default.rp_filter=2
-EOF
-
-sudo sysctl --system
 sysctl net.ipv4.ip_forward
 sysctl net.ipv4.conf.all.rp_filter
 sysctl net.ipv4.conf.default.rp_filter
 ```
 
-Wichtig:
+Erwartung:
 
-* `rp_filter=2` ist hier absichtlich locker genug fuer Multi-Homing.
-* Mit strengem Reverse Path Filtering machen mehrere VLANs und Source-Based Routing oft Aerger.
+* `net.ipv4.ip_forward = 1`
+* `net.ipv4.conf.all.rp_filter = 2`
+* `net.ipv4.conf.default.rp_filter = 2`
 
-### 3. Parent-Interface sicher identifizieren
+Wenn das nicht passt, zieh zuerst den Sysctl-Teil aus [`setup.md`](./setup.md) nach.
 
-Bevor du Netplan anfasst, pruefe nochmal das echte Parent-Interface.
-
-```bash
-ip -br link
-ip route
-```
-
-Wenn du dir unsicher bist:
-
-```bash
-printf 'PARENT_IF=%s\n' "${PARENT_IF}"
-```
-
-Typisch ist auf deiner x86-Node eher `enp8s0` als `eth0`.
-
-### 4. Netplan-Datei finden und sichern
-
-Finde zuerst heraus, welche Datei das Parent-Interface bereits definiert.
-Lege danach ein Backup an.
+### 3. Bestehende Netplan-Datei sichern
 
 ```bash
 ls -1 /etc/netplan
-sudo grep -R "^[[:space:]]*${PARENT_IF}:$" /etc/netplan/*.yaml
-```
-
-Beispiel-Backup:
-
-```bash
 sudo cp /etc/netplan/90-net.yaml "/etc/netplan/90-net.yaml.bak.$(date +%F-%H%M%S)"
 ```
 
-Wenn dein Parent-Interface in einer anderen Datei liegt, sichere **diese** Datei statt `90-net.yaml`.
+---
 
-### 5. Game-VLAN in Netplan eintragen
+## Phase 2: `vlan50` auf `media-1` einrichten
 
-Fuege in die Netplan-Datei, die dein Parent-Interface verwaltet, das Game-VLAN ein.
+Deine bestehende Netplan-Datei verwendet bereits `enp8s0` und `vlan10`/`vlan20`/`vlan30`.
+Jetzt wird derselbe Stil um `vlan50` erweitert.
 
-Das Beispiel unten geht davon aus:
+### 1. `90-net.yaml` bearbeiten
 
-* Parent-Interface: `${PARENT_IF}`
-* Game-VLAN: `${GAME_VLAN_ID}`
-* Game-IP: `${GAME_IP_CIDR}`
-* Router/Gateway im Game-VLAN: `${GAME_GW}`
-* Policy-Routing-Tabelle: `${GAME_TABLE}`
+```bash
+sudo nano /etc/netplan/90-net.yaml
+```
 
-Wichtig:
-
-* **keine** zweite normale Default-Route im `main` Table setzen
-* die Default-Route fuer das Game-VLAN kommt **nur** in die eigene Routing-Tabelle
-* genau dadurch laeuft Antwort-Traffic fuer die Game-IP ueber das Game-VLAN und nicht versehentlich ueber VLAN100 zurueck
-
-Netplan-Snippet zum Einbauen:
+Erweitere den bestehenden `vlans:`-Block um genau diesen Eintrag:
 
 ```yaml
-network:
-  version: 2
-  renderer: networkd
-
-  vlans:
     vlan50:
       id: 50
       link: enp8s0
       addresses:
-        - 172.26.50.10/24
+        - 172.26.50.31/24
       dhcp4: false
       dhcp6: false
       routes:
@@ -270,83 +136,130 @@ network:
           via: 172.26.50.1
           table: 50
       routing-policy:
-        - from: 172.26.50.10/32
+        - from: 172.26.50.31/32
           table: 50
 ```
 
-Passe das Snippet an deine echten Variablen an.
-Wenn in deiner Datei schon `vlans:` existiert, fuege nur den neuen VLAN-Block darunter ein.
+Wichtig:
 
-### 6. Netplan anwenden und Routing pruefen
+* Keine normale zweite Default-Route im `main` Table bauen.
+* Die Default-Route fuer das Game-Netz existiert nur in Routing-Tabelle `50`.
+* Genau dadurch geht Antwort-Traffic fuer `172.26.50.31` spaeter auch wirklich ueber `vlan50` raus.
+
+### 2. Netplan anwenden
 
 ```bash
+sudo chmod 600 /etc/netplan/90-net.yaml
 sudo netplan generate
 sudo netplan try
 sudo netplan apply
 ```
 
-Danach pruefen:
+### 3. Routing pruefen
 
 ```bash
-ip -br addr show dev "${GAME_IF}"
-ip rule show | grep "${GAME_IP}/32"
-ip route show table "${GAME_TABLE}"
-ip route get 1.1.1.1 from "${GAME_IP}"
-ping -c 3 "${GAME_GW}"
+ip -br addr show dev vlan50
+ip rule show | grep '172.26.50.31/32'
+ip route show table 50
+ip route get 1.1.1.1 from 172.26.50.31
+ping -c 3 172.26.50.1
 ```
 
-Das Entscheidende ist die Ausgabe von:
+Die wichtigste Ausgabe ist:
 
 ```bash
-ip route get 1.1.1.1 from "${GAME_IP}"
+ip route get 1.1.1.1 from 172.26.50.31
 ```
 
 Erwartung:
 
-* die Route geht ueber `dev ${GAME_IF}`
-* der Traffic mit Source `${GAME_IP}` verlaesst den Host also wirklich ueber das Game-VLAN
+* die Route geht ueber `dev vlan50`
+* Source ist `172.26.50.31`
 
 Wenn das nicht stimmt, **nicht** mit Pelican weitermachen.
 
-### 7. Docker CE installieren
+---
 
-Pelican Wings erwartet Docker auf dem Host.
-Fuer Ubuntu 24.04 kannst du den offiziellen Quick-Installer verwenden.
+## Phase 3: Zusaetzliche Host-Pakete fuer Pelican/Wings
+
+Die Basis aus `setup.md` ist schon da.
+Hier kommt nur noch das dazu, was du fuer Pelican/Wings wirklich extra brauchst.
+
+```bash
+sudo apt update
+sudo apt install -y \
+  certbot \
+  curl \
+  jq \
+  ufw \
+  unzip
+```
+
+Kurzer Check:
+
+```bash
+dpkg -l certbot jq ufw unzip | grep '^ii'
+```
+
+---
+
+## Phase 4: Docker auf `media-1`
+
+Pelican Wings nutzt Docker direkt auf dem Host.
+
+### 1. Docker installieren
 
 ```bash
 curl -fsSL https://get.docker.com/ | CHANNEL=stable sudo sh
 sudo systemctl enable --now docker
+```
+
+### 2. Docker pruefen
+
+```bash
 sudo docker info >/dev/null && echo "Docker OK"
 sudo docker run --rm hello-world
 ```
 
-### 8. Wings-Binary und Verzeichnisse vorbereiten
+Wenn `hello-world` sauber laeuft, ist Docker bereit.
 
-Wings speichert standardmaessig unter:
+---
 
-* Config: `/etc/pelican/config.yml`
-* Root: `/var/lib/pelican`
-* Volumes: `/var/lib/pelican/volumes`
-* Backups: `/var/lib/pelican/backups`
-* Archives: `/var/lib/pelican/archives`
+## Phase 5: Wings vorbereiten, aber noch nicht starten
 
-Lege diese Verzeichnisse vorher sauber an:
+### 1. Verzeichnisse anlegen
+
+Wings nutzt standardmaessig:
+
+* `/etc/pelican/config.yml`
+* `/var/lib/pelican`
+* `/var/lib/pelican/volumes`
+* `/var/lib/pelican/archives`
+* `/var/lib/pelican/backups`
+* `/var/log/pelican`
+
+Anlegen:
 
 ```bash
-sudo install -d -m 755 /etc/pelican /var/run/wings /var/log/pelican /var/lib/pelican
-sudo install -d -m 755 /var/lib/pelican/volumes /var/lib/pelican/archives /var/lib/pelican/backups
+sudo install -d -m 755 /etc/pelican
+sudo install -d -m 755 /var/run/wings
+sudo install -d -m 755 /var/log/pelican
+sudo install -d -m 755 /var/lib/pelican
+sudo install -d -m 755 /var/lib/pelican/volumes
+sudo install -d -m 755 /var/lib/pelican/archives
+sudo install -d -m 755 /var/lib/pelican/backups
 ```
 
-Wings selbst herunterladen:
+### 2. Wings-Binary installieren
 
 ```bash
-ARCH="$([ "$(uname -m)" = "x86_64" ] && echo amd64 || echo arm64)"
-sudo curl -L -o /usr/local/bin/wings "https://github.com/pelican-dev/wings/releases/latest/download/wings_linux_${ARCH}"
+sudo curl -L -o /usr/local/bin/wings \
+  https://github.com/pelican-dev/wings/releases/latest/download/wings_linux_amd64
 sudo chmod 0755 /usr/local/bin/wings
 wings version
 ```
 
-### 9. Systemd-Unit fuer Wings anlegen, aber noch nicht starten
+### 3. Systemd-Unit anlegen
 
 ```bash
 sudo tee /etc/systemd/system/wings.service >/dev/null <<'EOF'
@@ -372,95 +285,132 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl status wings --no-pager || true
+```
+
+### 4. Noch nicht starten
+
+An dieser Stelle **nicht**:
+
+```bash
+sudo systemctl enable --now wings
+```
+
+Wings startet erst spaeter, wenn Pelican die passende Node-Konfiguration erzeugt hat.
+
+---
+
+## Phase 6: Firewall auf `media-1`
+
+Die erste Version des Guides hatte hier ein pauschales `ufw default deny incoming`.
+Das ist fuer `media-1` in deinem Cluster zu grob, weil die Node nicht nur SSH und Wings spricht, sondern auch ganz normalen k3s-, kube-proxy-, CNI- und Ingress-Traffic fuer andere Dienste auf VLAN20/VLAN30/VLAN100 transportiert.
+
+Kurz gesagt:
+
+* Auf `media-1` **keine** globale UFW-Deny-Policy aktivieren.
+* Die Erreichbarkeit deiner bestehenden Media-Dienste soll erhalten bleiben.
+* Die eigentliche Abschottung fuer Pelican/Wings/Games erfolgt in v1 ueber internes DNS, VLAN-Trennung und Router/NAT, nicht ueber eine hostweite Default-Deny-Firewall auf dem k3s-Worker.
+
+### 1. UFW auf `media-1` fuer diesen Schritt deaktiviert lassen
+
+Wenn UFW bereits aktiv ist:
+
+```bash
+sudo ufw disable
+sudo systemctl disable ufw --now || true
+sudo ufw status verbose
+```
+
+Erwartung:
+
+* `Status: inactive`
+
+### 2. Was stattdessen in v1 die Sicherheit traegt
+
+* `pelican.intern.rohrbom.be` bleibt ein interner Ingress-Host auf VLAN20.
+* `wings-media-1.intern.rohrbom.be` zeigt intern auf `172.26.100.31`.
+* Es gibt **keine** WAN-Portforwards auf SSH, Wings oder das Panel.
+* WAN-Portforwards kommen spaeter nur fuer ausgewaehlte Spielports auf `172.26.50.31`.
+* Das Game-VLAN liegt nur auf `media-1`.
+
+### 3. Warum ich das hier so drehe
+
+Die offiziellen k3s-Hinweise sind bei Host-Firewalls ziemlich klar: wenn man sie nicht komplett deaktiviert, muss man mindestens die Pod-/Service-CIDRs und die noetigen Node-Ports sauber freigeben, und je nach Setup kommen weitere Ports dazu.
+
+In deinem Cluster ist `media-1` gleichzeitig:
+
+* k3s-Worker
+* Ingress-Footprint fuer interne Dienste
+* Media-Node fuer bestehende Services
+* spaeter Gameserver-Host
+
+Fuer so eine Node ist ein sauberer Host-Firewall-Plan moeglich, aber deutlich breiter als die wenigen Ports `22`, `8080` und `2022`.
+Fuer den Pelican-Start ist es sicherer, UFW hier erstmal **nicht** als globale Node-Firewall zu benutzen.
+
+---
+
+## Phase 7: DNS vorbereiten
+
+Bevor du Pelican oder Wings wirklich nutzt, sollten diese internen Namen bereits stimmen:
+
+* `pelican.intern.rohrbom.be -> 172.26.20.151`
+* `wings-media-1.intern.rohrbom.be -> 172.26.100.31`
+
+Der erste Name zeigt auf deinen internen Ingress.
+Der zweite Name zeigt direkt auf die Management-IP von `media-1`.
+
+---
+
+## Phase 8: Cluster-Seite nur verifizieren
+
+Weil `media-1` laut deinem Stand bereits mit Label und Taint gejoint wurde, pruefen wir hier nur noch.
+
+Auf deinem Admin-PC:
+
+```bash
+kubectl get node media-1 -o wide
+kubectl get node media-1 --show-labels
+kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
+```
+
+Erwartung:
+
+* Node-IP ist `172.26.100.31`
+* Label `dedicated=media` ist vorhanden
+* Taint `dedicated=media:NoSchedule` ist vorhanden
+
+Wenn einer der beiden Punkte fehlt:
+
+```bash
+kubectl label node media-1 dedicated=media --overwrite
+kubectl taint node media-1 dedicated=media:NoSchedule --overwrite
 ```
 
 Wichtig:
 
-* **noch nicht** `systemctl enable --now wings`
-* zuerst muss spaeter die Konfiguration aus dem Panel kommen
-
-### 10. Host-Firewall setzen
-
-Auf Ubuntu ist `ufw` hier die pragmatischste Basis.
-Damit schuetzt du vor allem SSH und Wings.
-
-```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-
-sudo ufw allow from "${MGMT_NET}" to any port 22 proto tcp
-sudo ufw allow from "${CLUSTER_NODE_NET}" to any port "${WINGS_PORT}" proto tcp
-sudo ufw allow from "${CLUSTER_POD_NET}" to any port "${WINGS_PORT}" proto tcp
-sudo ufw allow from "${MGMT_NET}" to any port "${WINGS_SFTP_PORT}" proto tcp
-
-sudo ufw enable
-sudo ufw status verbose
-```
-
-Wichtige Einordnung:
-
-* Port `22/tcp`: nur SSH aus dem Management-Netz
-* Port `${WINGS_PORT}/tcp`: fuer die Kommunikation Panel -> Wings aus dem Cluster
-* Port `${WINGS_SFTP_PORT}/tcp`: fuer SFTP nur intern aus dem Management-Netz
-* **keine** Freigabe fuer Spielports an dieser Stelle
-
-Noch wichtiger:
-
-* Docker-published Ports koennen `ufw` teilweise umgehen
-* die eigentliche Freigabe deiner Gameserver kontrollierst du primaer ueber Router/NAT und ueber die in Pelican angelegten Allokationen
-* `ufw` ist hier vor allem fuer Host-Management und Wings sinnvoll
-
-### 11. Host-Readiness-Check
-
-Bevor du irgendetwas von Pelican deployest, sollten diese Checks alle gruen sein:
-
-```bash
-ip route get 1.1.1.1 from "${GAME_IP}"
-sudo docker info >/dev/null && echo "Docker OK"
-test -x /usr/local/bin/wings && echo "Wings binary OK"
-test -d /etc/pelican && echo "/etc/pelican OK"
-test -d /var/lib/pelican/volumes && echo "Pelican volumes dir OK"
-sudo ufw status verbose
-```
-
-Erst wenn das passt, geht es wieder zurueck an den Cluster.
+* **kein** `longhorn=storage` auf `media-1` setzen
 
 ---
 
-## Phase 3: Erst jetzt Pelican im Cluster deployen
+## Phase 9: Erst jetzt Pelican im Cluster deployen
 
-### 1. Interne DNS-Aufloesung fuer das Panel sicherstellen
+### 1. Optionales Secret vorbereiten
 
-Der interne Ingress liegt heute auf `172.26.20.151`, siehe [`../infrastructure/controllers/ingress-nginx/vlan20/helmrelease.yaml`](../infrastructure/controllers/ingress-nginx/vlan20/helmrelease.yaml).
+Das Deployment funktioniert auch ohne zusaetzliches Secret.
+Pelican erzeugt dann den `APP_KEY` selbst und speichert ihn im PVC.
 
-Lege vor dem Rollout mindestens diesen Eintrag an:
-
-* `${PANEL_HOST} -> ${PANEL_IP}`
-
-### 2. Optionales Secret vorbereiten
-
-Das Deployment funktioniert auch **ohne** zusaetzliches Secret.
-
-Ohne Secret passiert Folgendes:
-
-* Pelican erzeugt beim ersten Start selbst ein `APP_KEY`
-* der Schluessel wird in `/pelican-data/.env` gespeichert
-* die App bleibt dadurch nach Pod-Neustarts stabil
-
-Wenn du den Schluessel lieber von Anfang an selbst kontrollieren willst:
+Wenn du den Schluessel lieber selbst vorgeben willst:
 
 1. Kopiere [`../apps/internal/pelican/pelican-secret.yaml.example`](../apps/internal/pelican/pelican-secret.yaml.example) nach `apps/internal/pelican/pelican-secret.yaml`.
 2. Fuelle die Werte aus.
-3. Verschluessle die Datei mit SOPS:
+3. Verschluessle die Datei:
 
 ```bash
 sops --encrypt --in-place apps/internal/pelican/pelican-secret.yaml
 ```
 
-4. Entferne in [`../apps/internal/pelican/kustomization.yaml`](../apps/internal/pelican/kustomization.yaml) den Kommentar vor `pelican-secret.yaml`.
+4. Entkommentiere `pelican-secret.yaml` in [`../apps/internal/pelican/kustomization.yaml`](../apps/internal/pelican/kustomization.yaml).
 
-### 3. Erst jetzt pushen und Flux reconciliieren
+### 2. Flux reconciliieren
 
 ```bash
 flux reconcile kustomization apps -n flux-system --with-source
@@ -470,111 +420,94 @@ kubectl -n svc-games get ingress
 kubectl -n svc-games logs deploy/pelican --tail=200
 ```
 
-Pruefen:
-
-* Pod ist `Running`
-* PVC ist `Bound`
-* Ingress ist vorhanden
-* die ersten Logs zeigen keinen offensichtlichen Startfehler
-
-### 4. Panel-URL pruefen
+### 3. Panel pruefen
 
 ```bash
-curl -Ik "https://${PANEL_HOST}"
+curl -Ik https://pelican.intern.rohrbom.be
 ```
 
 Danach im Browser:
 
-* `https://${PANEL_HOST}/installer`
+* `https://pelican.intern.rohrbom.be/installer`
 
 ---
 
-## Phase 4: Pelican Web-Installer
+## Phase 10: Pelican Web-Installer
 
-Sobald Pod, PVC und Ingress sauber stehen:
+Wenn Pod, PVC und Ingress sauber stehen:
 
-1. Oeffne `https://${PANEL_HOST}/installer`
-2. Fuehre den Installer im Browser durch
-3. Nutze fuer v1 die einfachen Defaults:
+1. `https://pelican.intern.rohrbom.be/installer` oeffnen
+2. Installer durchlaufen
+3. fuer v1 folgende Defaults verwenden:
 
 * Cache Driver: `Filesystem`
 * Database Driver: `SQLite`
 * Queue Driver: `Database`
 * Session Driver: `Filesystem`
 
-4. Lege den ersten Admin-Benutzer an
-
-Warte nach dem ersten Start ruhig ein paar Minuten, wenn Pelican noch Migrations ausfuehrt.
+4. ersten Admin-Benutzer anlegen
 
 ---
 
-## Phase 5: Wings erst nach dem Panel aktivieren
+## Phase 11: Wings mit echter Pelican-Konfiguration aktivieren
 
-### Wichtig vorab
+### 1. TLS fuer Wings vorbereiten
 
-Da dein Panel ueber `https://` laeuft, solltest du fuer Wings ebenfalls ein TLS-faehiges Ziel verwenden.
-Plane deshalb Wings mit einem internen FQDN wie `${WINGS_FQDN}` auf der VLAN100-IP von `media-1`.
+Da dein Panel ueber HTTPS laeuft, solltest du Wings ebenfalls ueber einen TLS-faehigen Namen anbinden:
 
-### 1. Zertifikat fuer Wings vorbereiten
+* `wings-media-1.intern.rohrbom.be -> 172.26.100.31`
 
-Wenn du keine interne PKI hast, ist ein DNS-Challenge-Zertifikat der pragmatischste Weg.
+Wenn du kein internes CA-Setup hast, ist ein DNS-Challenge-Zertifikat der pragmatische Weg.
 
 ```bash
 sudo apt install -y certbot
 ```
 
-Danach ein Zertifikat fuer `${WINGS_FQDN}` holen, zum Beispiel per DNS-Challenge.
-Der genaue Ablauf haengt von deinem DNS-Setup ab.
-
 Ziel:
 
-* Zertifikat liegt z. B. unter `/etc/letsencrypt/live/${WINGS_FQDN}/fullchain.pem`
-* Key liegt z. B. unter `/etc/letsencrypt/live/${WINGS_FQDN}/privkey.pem`
+* Zertifikat unter `/etc/letsencrypt/live/wings-media-1.intern.rohrbom.be/fullchain.pem`
+* Key unter `/etc/letsencrypt/live/wings-media-1.intern.rohrbom.be/privkey.pem`
 
 ### 2. Node in Pelican anlegen
 
 Im Pelican-Adminbereich:
 
 1. neue Node fuer `media-1` anlegen
-2. Host/FQDN: `${WINGS_FQDN}`
+2. Host/FQDN: `wings-media-1.intern.rohrbom.be`
 3. Scheme: `https`
-4. Daemon Port: `${WINGS_PORT}`
-5. SFTP Port: `${WINGS_SFTP_PORT}`
+4. Daemon Port: `8080`
+5. SFTP Port: `2022`
+
+### 3. Game-Allokationen anlegen
+
+Die Allokationen gehoeren auf die Game-IP:
+
+* `172.26.50.31`
+
+Nicht auf:
+
+* `172.26.100.31`
 
 Merksatz:
 
-* Node/Wings = Management-IP bzw. Management-FQDN auf VLAN100
-* Server-Allokationen = Game-IP auf dem Game-VLAN
+* Wings/Node = `172.26.100.31` bzw. `wings-media-1.intern.rohrbom.be`
+* Spielports = `172.26.50.31`
 
-### 3. Allokationen fuer die Game-IP anlegen
+### 4. Konfiguration aus Pelican holen
 
-Lege in Pelican die Allokationen mit der **Game-IP von `media-1`** an.
+In Pelican:
 
-Damit landen:
+1. Node `media-1` oeffnen
+2. `Configuration`-Tab oeffnen
+3. Config kopieren oder den `Auto Deploy Command` verwenden
 
-* Minecraft, Valheim, Terraria, Factorio usw. auf der Game-IP
-* das Panel selbst **nicht**
-
-### 4. Wings-Konfiguration von Pelican holen
-
-Sobald die Node in Pelican existiert:
-
-1. in Pelican auf die Node gehen
-2. Tab `Configuration` oeffnen
-3. entweder den Config-Block kopieren
-4. oder den `Auto Deploy Command` verwenden
-
-Wenn du die Config manuell uebernimmst:
+Wenn du die Config manuell eintraegst:
 
 ```bash
 sudo nano /etc/pelican/config.yml
 ```
 
-Danach die von Pelican erzeugte YAML dort eintragen und speichern.
-
-### 5. Wings erst lokal im Debug starten
-
-Vor dem Daemonizing einmal testen:
+### 5. Wings erst lokal testen
 
 ```bash
 sudo wings --debug
@@ -582,10 +515,10 @@ sudo wings --debug
 
 Wenn das sauber startet:
 
-* mit `CTRL+C` wieder beenden
+* mit `CTRL+C` beenden
 * dann erst als Service aktivieren
 
-### 6. Wings als Service aktivieren
+### 6. Wings als Service starten
 
 ```bash
 sudo systemctl enable --now wings
@@ -593,94 +526,67 @@ sudo systemctl status wings --no-pager
 sudo journalctl -u wings -n 100 --no-pager
 ```
 
-Jetzt sollte Pelican die Node als erreichbar sehen.
-
 ---
 
-## Phase 6: Router und WAN-Freigaben erst ganz am Ende
+## Phase 12: Router erst ganz am Ende
 
-### Zielbild
+Sobald intern alles funktioniert und ein Testserver sauber startet:
 
-Nur die eigentlichen Spielports werden aus dem Internet weitergeleitet.
-Management bleibt intern.
-
-### Reihenfolge
-
-1. zuerst intern pruefen, dass Pelican <-> Wings funktioniert
-2. dann einen Testserver starten
-3. erst dann WAN-Portforwards anlegen
-
-### Empfohlene Regeln
-
-* WAN -> ausgewaehlte TCP/UDP-Spielports -> `${GAME_IP}`
+* WAN -> ausgewaehlte TCP/UDP-Spielports -> `172.26.50.31`
 * kein WAN-Forward auf SSH
 * kein WAN-Forward auf Wings
-* kein WAN-Forward auf das Pelican-Webpanel
+* kein WAN-Forward auf `pelican.intern.rohrbom.be`
 
-Wenn du pro Spiel DNS-Eintraege mit SRV-Records nutzen willst:
+Wenn du spaeter Cloudflare-SRV-Eintraege verwendest:
 
-* Cloudflare nur als DNS verwenden
+* Cloudflare nur als DNS
 * kein normaler HTTP-Proxy dazwischen
-* fuer echtes TCP-/UDP-Proxying waere Cloudflare Spectrum eine andere Produktklasse
 
 ---
 
-## Verifikation
+## Schnelle Checks
+
+### Host
+
+```bash
+ip -br addr show dev vlan50
+ip route get 1.1.1.1 from 172.26.50.31
+sudo docker info >/dev/null && echo "Docker OK"
+sudo systemctl status wings --no-pager
+sudo ufw status verbose
+```
+
+Erwartung:
+
+* die Route fuer Source `172.26.50.31` geht ueber `vlan50`
+* Docker meldet `Docker OK`
+* `wings` ist nach Phase 11 `active (running)`
+* UFW steht fuer diesen Startzustand auf `Status: inactive`
 
 ### Cluster
 
 ```bash
 kubectl -n svc-games get pods
-kubectl -n svc-games logs deploy/pelican --tail=200
 kubectl -n svc-games get ingress pelican
+kubectl -n svc-games logs deploy/pelican --tail=200
 ```
 
-Pruefen:
+### Erfolgskriterien
 
-* Pod ist `Running`
-* PVC ist `Bound`
-* `https://${PANEL_HOST}/installer` ist intern erreichbar
-
-### Host
-
-```bash
-ip route get 1.1.1.1 from "${GAME_IP}"
-sudo systemctl status docker --no-pager
-sudo systemctl status wings --no-pager
-```
-
-Pruefen:
-
-* Source `${GAME_IP}` geht wirklich ueber `${GAME_IF}`
+* `vlan50` hat `172.26.50.31/24`
+* Source `172.26.50.31` routet ueber `vlan50`
 * Docker laeuft
-* Wings laeuft
-
-### Nach dem ersten Testserver
-
-Pruefen:
-
-* Pelican erreicht Wings auf der VLAN100-IP bzw. `${WINGS_FQDN}`
-* ein Testserver startet erfolgreich
-* der Testserver lauscht auf der Game-IP, nicht auf der Management-IP
-* von aussen sind nur die explizit weitergeleiteten Spielports erreichbar
-
----
-
-## Bekannte Annahmen
-
-Dieses Setup basiert bewusst auf folgenden Entscheidungen:
-
-* Pelican-Webpanel laeuft ueber `nginx-internal` auf VLAN20
-* Host-Management von `media-1` bleibt auf VLAN100
-* Game-VLAN liegt nur auf `media-1`
-* v1 startet mit genau einer Game-IP
-* die erste Initialisierung erfolgt manuell ueber den offiziellen Web-Installer
+* UFW ist auf `media-1` fuer diesen Startzustand inactive
+* Pelican ist intern ueber `https://pelican.intern.rohrbom.be` erreichbar
+* Wings ist intern ueber `wings-media-1.intern.rohrbom.be:8080` erreichbar
+* Spielserver binden an `172.26.50.31`, nicht an `172.26.100.31`
 
 ---
 
 ## Referenzen
 
+* [`setup.md`](./setup.md)
+* [`media-node.md`](./media-node.md)
+* [`../apps/internal/pelican`](../apps/internal/pelican)
 * Pelican Panel Docker: https://pelican.dev/docs/panel/advanced/docker/
 * Pelican Wings Install: https://pelican.dev/docs/wings/install/
-* Repo-Setup fuer Multi-VLAN: [`setup.md`](./setup.md)
-* Media-Node-Hintergrund: [`media-node.md`](./media-node.md)

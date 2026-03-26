@@ -12,5 +12,4 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-# Uncomment after creating and encrypting pelican-secret.yaml with SOPS.
-#  - pelican-secret.yaml
+  - pelican-secret.yaml
