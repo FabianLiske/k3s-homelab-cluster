@@ -350,13 +350,19 @@ Fuer den Pelican-Start ist es sicherer, UFW hier erstmal **nicht** als globale N
 
 ## Phase 7: DNS vorbereiten
 
-Bevor du Pelican oder Wings wirklich nutzt, sollten diese internen Namen bereits stimmen:
+Bevor du Pelican oder Wings wirklich nutzt, sollten diese Namen bereits stimmen:
 
 * `pelican.intern.rohrbom.be -> 172.26.20.151`
 * `wings-media-1.intern.rohrbom.be -> 172.26.100.31`
 
 Der erste Name zeigt auf deinen internen Ingress.
-Der zweite Name zeigt direkt auf die Management-IP von `media-1`.
+Der zweite Name zeigt auf die Management-IP von `media-1`.
+
+Wichtig:
+
+* Der Cloudflare-Eintrag fuer `wings-media-1.intern.rohrbom.be` muss auf `DNS only` stehen, nicht auf proxied.
+* Wings bleibt damit sauber im Management-Netz auf VLAN100.
+* Die spaeteren Spielserver-Allokationen bleiben trotzdem auf `172.26.50.31`.
 
 ---
 
@@ -453,22 +459,62 @@ Wenn Pod, PVC und Ingress sauber stehen:
 
 ### 1. TLS fuer Wings vorbereiten
 
-Da dein Panel ueber HTTPS laeuft, solltest du Wings ebenfalls ueber einen TLS-faehigen Namen anbinden:
+Da dein Panel ueber HTTPS laeuft, solltest du Wings ebenfalls ueber einen TLS-faehigen Namen anbinden.
+Du hast keine interne CA, und dein DNS liegt in Cloudflare. Deshalb ist fuer dich der sinnvolle Weg:
 
+* `DNS-01` via Cloudflare
 * `wings-media-1.intern.rohrbom.be -> 172.26.100.31`
+* Cloudflare-Eintrag auf `DNS only`
 
-Wenn du kein internes CA-Setup hast, ist ein DNS-Challenge-Zertifikat der pragmatische Weg.
+Der A-Record darf dabei ruhig auf einer privaten IP liegen.
+Bei `DNS-01` ist entscheidend, dass Cloudflare die Zone autoritativ verwaltet, nicht dass die Ziel-IP oeffentlich erreichbar ist.
 
 ```bash
-sudo apt install -y certbot
+sudo apt update
+sudo apt install -y certbot python3-certbot-dns-cloudflare
 ```
 
-Ziel:
+### 2. Cloudflare-API-Token fuer Certbot hinterlegen
+
+Lege in Cloudflare einen API-Token an, der mindestens DNS-Edit-Rechte fuer die Zone `intern.rohrbom.be` hat.
+
+Dann auf `media-1`:
+
+```bash
+sudo install -d -m 700 /root/.secrets/certbot
+sudo nano /root/.secrets/certbot/cloudflare.ini
+sudo chmod 600 /root/.secrets/certbot/cloudflare.ini
+```
+
+Inhalt der Datei:
+
+```ini
+dns_cloudflare_api_token = <CLOUDFLARE_API_TOKEN>
+```
+
+### 3. Zertifikat fuer Wings holen
+
+```bash
+sudo certbot certonly \
+  --dns-cloudflare \
+  --dns-cloudflare-credentials /root/.secrets/certbot/cloudflare.ini \
+  --dns-cloudflare-propagation-seconds 60 \
+  -d wings-media-1.intern.rohrbom.be
+```
+
+Erwartung:
 
 * Zertifikat unter `/etc/letsencrypt/live/wings-media-1.intern.rohrbom.be/fullchain.pem`
 * Key unter `/etc/letsencrypt/live/wings-media-1.intern.rohrbom.be/privkey.pem`
 
-### 2. Node in Pelican anlegen
+Pruefen:
+
+```bash
+sudo ls -l /etc/letsencrypt/live/wings-media-1.intern.rohrbom.be/
+sudo certbot certificates
+```
+
+### 4. Node in Pelican anlegen
 
 Im Pelican-Adminbereich:
 
@@ -478,7 +524,7 @@ Im Pelican-Adminbereich:
 4. Daemon Port: `8080`
 5. SFTP Port: `2022`
 
-### 3. Game-Allokationen anlegen
+### 5. Game-Allokationen anlegen
 
 Die Allokationen gehoeren auf die Game-IP:
 
@@ -493,7 +539,7 @@ Merksatz:
 * Wings/Node = `172.26.100.31` bzw. `wings-media-1.intern.rohrbom.be`
 * Spielports = `172.26.50.31`
 
-### 4. Konfiguration aus Pelican holen
+### 6. Konfiguration aus Pelican holen
 
 In Pelican:
 
@@ -507,7 +553,13 @@ Wenn du die Config manuell eintraegst:
 sudo nano /etc/pelican/config.yml
 ```
 
-### 5. Wings erst lokal testen
+Pruefe in der erzeugten Config besonders diese Punkte:
+
+* API-/Daemon-Host passt zu `wings-media-1.intern.rohrbom.be`
+* TLS-Zertifikat zeigt auf `/etc/letsencrypt/live/wings-media-1.intern.rohrbom.be/fullchain.pem`
+* TLS-Key zeigt auf `/etc/letsencrypt/live/wings-media-1.intern.rohrbom.be/privkey.pem`
+
+### 7. Wings erst lokal testen
 
 ```bash
 sudo wings --debug
@@ -518,7 +570,7 @@ Wenn das sauber startet:
 * mit `CTRL+C` beenden
 * dann erst als Service aktivieren
 
-### 6. Wings als Service starten
+### 8. Wings als Service starten
 
 ```bash
 sudo systemctl enable --now wings
