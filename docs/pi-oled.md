@@ -25,7 +25,8 @@ Die Control-Plane-Nodes werden ueber eine `NoSchedule`-Toleration bewusst mit ab
 
 - Das DaemonSet mountet `/dev/i2c-1`, `/proc`, `/sys` und `/` vom Host read-only in den Container.
 - Kubernetes-Zugriff ist read-only auf `nodes` und `pods` beschraenkt.
-- Es wird weder `privileged` noch `hostNetwork` oder `hostPID` benoetigt.
+- Der Container laeuft `privileged`, damit der Zugriff auf das I2C-Character-Device `/dev/i2c-1` auf den Pis funktioniert.
+- Es wird weiterhin weder `hostNetwork` noch `hostPID` benoetigt.
 
 ## Pruefen
 
