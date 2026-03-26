@@ -6,4 +6,5 @@ resources:
   - ./linkding/
   - ./paperless-ngx/
   - ./media/
+  - ./pelican/
 #  - ./qbittorrent/

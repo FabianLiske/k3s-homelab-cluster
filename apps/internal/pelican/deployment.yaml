@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pelican
+  namespace: svc-games
+  labels:
+    app: pelican
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: pelican
+  template:
+    metadata:
+      labels:
+        app: pelican
+    spec:
+      nodeSelector:
+        dedicated: media
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 82
+      containers:
+        - name: pelican
+          image: ghcr.io/pelican-dev/panel:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: XDG_DATA_HOME
+              value: /pelican-data
+            - name: APP_URL
+              value: https://pelican.intern.rohrbom.be
+            - name: BEHIND_PROXY
+              value: "true"
+            - name: TRUSTED_PROXIES
+              value: "10.0.0.0/8,172.16.0.0/12"
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pelican-secret
+                  key: APP_KEY
+                  optional: true
+            - name: LE_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: pelican-secret
+                  key: LE_EMAIL
+                  optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /pelican-data
+            - name: caddyfile
+              mountPath: /etc/caddy/Caddyfile
+              subPath: Caddyfile
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pelican-data
+        - name: caddyfile
+          configMap:
+            name: pelican-caddy
+            items:
+              - key: Caddyfile
+                path: Caddyfile
