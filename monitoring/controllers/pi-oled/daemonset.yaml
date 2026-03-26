@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: pi-oled
+  namespace: ops-monitoring
+  labels: { app: pi-oled }
+spec:
+  selector:
+    matchLabels: { app: pi-oled }
+  template:
+    metadata:
+      labels: { app: pi-oled }
+    spec:
+      serviceAccountName: pi-oled
+      automountServiceAccountToken: true
+      imagePullSecrets:
+        - name: ghcr-cred
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pi-oled
+          image: ghcr.io/fabianliske/pi-sysinfo-oled:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: I2C_BUS
+              value: "1"
+            - name: I2C_ADDRESS
+              value: "0x3C"
+            - name: DISPLAY_ROTATE
+              value: "2"
+            - name: HOST_PROC_PATH
+              value: /host/proc
+            - name: HOST_SYS_PATH
+              value: /host/sys
+            - name: HOST_ROOT_PATH
+              value: /host/root
+            - name: REFRESH_INTERVAL_SECONDS
+              value: "0.5"
+            - name: PAGE_DURATION_SECONDS
+              value: "4.0"
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: dev-i2c
+              mountPath: /dev/i2c-1
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: host-sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: host-root
+              mountPath: /host/root
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: dev-i2c
+          hostPath:
+            path: /dev/i2c-1
+            type: CharDevice
+        - name: host-proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: host-sys
+          hostPath:
+            path: /sys
+            type: Directory
+        - name: host-root
+          hostPath:
+            path: /
+            type: Directory
+        - name: tmp
+          emptyDir: {}

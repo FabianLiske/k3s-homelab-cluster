@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pi-oled-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pi-oled-reader
+subjects:
+  - kind: ServiceAccount
+    name: pi-oled
+    namespace: ops-monitoring
