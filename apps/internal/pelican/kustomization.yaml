@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: svc-games
+labels:
+  - pairs:
+      app: pelican
+      gitops: flux
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - configmap-caddy.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+# Uncomment after creating and encrypting pelican-secret.yaml with SOPS.
+#  - pelican-secret.yaml
