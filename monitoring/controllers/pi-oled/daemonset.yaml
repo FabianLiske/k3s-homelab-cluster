@@ -35,7 +35,7 @@ spec:
             - name: I2C_ADDRESS
               value: "0x3C"
             - name: DISPLAY_ROTATE
-              value: "2"
+              value: "1"
             - name: HOST_PROC_PATH
               value: /host/proc
             - name: HOST_SYS_PATH
