@@ -22,13 +22,15 @@ spec:
           ports:
             - { name: metrics, containerPort: 9130 }
           readinessProbe:
-            httpGet: { path: /metrics, port: metrics }
+            httpGet: { path: /, port: metrics }
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
-            httpGet: { path: /metrics, port: metrics }
+            httpGet: { path: /, port: metrics }
             initialDelaySeconds: 30
             periodSeconds: 20
+            timeoutSeconds: 5
           resources:
             requests: { cpu: 100m, memory: 128Mi }
             limits: { cpu: "1", memory: 512Mi }
