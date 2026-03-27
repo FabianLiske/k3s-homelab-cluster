@@ -11,3 +11,4 @@ data:
   kubernetes.yaml: |
     mode: cluster
     ingress: true
+  proxmox.yaml: ""
