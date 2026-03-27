@@ -49,6 +49,9 @@ spec:
             - name: http
               containerPort: 3000
           volumeMounts:
+            - name: homepage-assets
+              mountPath: /app/public/images
+              readOnly: true
             - name: homepage-config
               mountPath: /app/config/bookmarks.yaml
               subPath: bookmarks.yaml
@@ -100,6 +103,9 @@ spec:
               cpu: 500m
               memory: 512Mi
       volumes:
+        - name: homepage-assets
+          configMap:
+            name: homepage-assets
         - name: homepage-config
           configMap:
             name: homepage-config

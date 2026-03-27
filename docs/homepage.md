@@ -21,6 +21,7 @@ Aufteilung der Konfiguration:
 * `configmap.yaml`: nicht-sensitive Dateien wie `kubernetes.yaml`
 * `homepage-secret.yaml`: sensitive Homepage-Konfig wie `services.yaml`, `settings.yaml`, `widgets.yaml`
 * `homepage-secret.yaml.example`: Vorlage fuer Aenderungen
+* `assets/`: lokale Bilder fuer Homepage, die nach `/app/public/images` gemountet werden
 
 ## Secret bearbeiten
 
@@ -55,6 +56,12 @@ Falls du eine unverschluesselte Arbeitskopie erstellt hast, danach wieder versch
 ```bash
 sops --encrypt --in-place apps/internal/homepage/homepage-secret.yaml
 ```
+
+Fuer lokale Hintergrundbilder gilt:
+
+* Bilder liegen im Repo unter `apps/internal/homepage/assets/`
+* sie werden im Container unter `/app/public/images` bereitgestellt
+* nach neuen Bildern ist ein Pod-Neustart noetig, weil Homepage statische Dateien beim Start einliest
 
 ## Erste Konfiguration
 

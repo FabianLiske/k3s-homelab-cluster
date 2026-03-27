@@ -5,6 +5,10 @@ labels:
   - pairs:
       app: homepage
       gitops: flux
+configMapGenerator:
+  - name: homepage-assets
+    files:
+      - shaded-landscape.webp=assets/shaded-landscape.webp
 resources:
   - namespace.yaml
   - serviceaccount.yaml
