@@ -78,4 +78,4 @@ spec:
             claimName: lidarr-config
         - name: data
           persistentVolumeClaim:
-            claimName: media-local-data
+            claimName: media-cold-data

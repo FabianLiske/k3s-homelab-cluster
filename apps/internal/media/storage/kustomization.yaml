@@ -2,5 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - storageclass-media-local.yaml
+  - pv-media-cold-data.yaml
+  - pvc-media-cold-data.yaml
   - pv-media-local-data.yaml
   - pvc-media-local-data.yaml

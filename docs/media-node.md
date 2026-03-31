@@ -465,6 +465,15 @@ Auf dem Host-OS:
 * Mountpoint erzeugen
 * persistent in `/etc/fstab` eintragen
 
+Fuer den inzwischen konkreten Umbau von `media-1` mit:
+
+* NVMe weiter fuer Hot-Daten
+* 3x HDD als ZFS-RAIDZ1 fuer kalte Mediendaten
+* einem zweiten lokalen PVC fuer kalte Daten
+* kaltem `/data` im Pod plus gezielten heißen Unter-Mounts fuer `incomplete` und `transcode`
+
+siehe die detaillierte Schritt-fuer-Schritt-Anleitung in [`media-storage-zfs.md`](./media-storage-zfs.md).
+
 Beispiel:
 
 ```bash

@@ -49,9 +49,8 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: media
-              mountPath: /data/media
-              subPath: media
+            - name: data
+              mountPath: /data
           readinessProbe:
             tcpSocket:
               port: http
@@ -77,6 +76,6 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: bazarr-config
-        - name: media
+        - name: data
           persistentVolumeClaim:
-            claimName: media-local-data
+            claimName: media-cold-data

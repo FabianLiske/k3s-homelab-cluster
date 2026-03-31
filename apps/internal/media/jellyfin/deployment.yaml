@@ -45,6 +45,9 @@ spec:
               mountPath: /config
             - name: data
               mountPath: /data
+            - name: transcode
+              mountPath: /data/transcode
+              subPath: transcode
           readinessProbe:
             tcpSocket:
               port: http
@@ -71,5 +74,8 @@ spec:
           persistentVolumeClaim:
             claimName: jellyfin-config
         - name: data
+          persistentVolumeClaim:
+            claimName: media-cold-data
+        - name: transcode
           persistentVolumeClaim:
             claimName: media-local-data

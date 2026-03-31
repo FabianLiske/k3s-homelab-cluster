@@ -88,6 +88,9 @@ spec:
               mountPath: /config
             - name: data
               mountPath: /data
+            - name: incomplete
+              mountPath: /data/torrents/incomplete
+              subPath: torrents/incomplete
             - name: wireguard
               mountPath: /config/wireguard
             - name: dev-net-tun
@@ -120,6 +123,9 @@ spec:
           persistentVolumeClaim:
             claimName: qbittorrent-config
         - name: data
+          persistentVolumeClaim:
+            claimName: media-cold-data
+        - name: incomplete
           persistentVolumeClaim:
             claimName: media-local-data
         - name: wireguard
