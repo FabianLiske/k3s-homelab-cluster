@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: immich-config
+  namespace: svc-immich
+data:
+  config.json: |
+    {
+      "server": {
+        "externalDomain": "https://immich.rohrbom.be"
+      },
+      "passwordLogin": {
+        "enabled": true
+      },
+      "oauth": {
+        "enabled": false
+      },
+      "job": {
+        "backgroundTask": {
+          "concurrency": 2
+        },
+        "faceDetection": {
+          "concurrency": 1
+        },
+        "library": {
+          "concurrency": 2
+        },
+        "metadataExtraction": {
+          "concurrency": 2
+        },
+        "migration": {
+          "concurrency": 1
+        },
+        "ocr": {
+          "concurrency": 1
+        },
+        "search": {
+          "concurrency": 2
+        },
+        "sidecar": {
+          "concurrency": 2
+        },
+        "smartSearch": {
+          "concurrency": 1
+        },
+        "thumbnailGeneration": {
+          "concurrency": 2
+        },
+        "videoConversion": {
+          "concurrency": 1
+        }
+      },
+      "library": {
+        "scan": {
+          "cronExpression": "0 2 * * *",
+          "enabled": true
+        },
+        "watch": {
+          "enabled": false
+        }
+      },
+      "machineLearning": {
+        "urls": [
+          "http://immich-machine-learning:3003"
+        ]
+      }
+    }

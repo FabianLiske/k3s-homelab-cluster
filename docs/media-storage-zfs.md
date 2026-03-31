@@ -451,9 +451,38 @@ Wenn alles sauber läuft:
 
 dann kannst du die alten Host-Backups später löschen:
 
+Vorher einmal sauber aufraeumen und pruefen:
+
+```bash
+findmnt -R /data
+df -hT /data
+sudo du -xh --max-depth=1 /data 2>/dev/null | sort -h
+sudo find /data -maxdepth 1 -mindepth 1 -type d \( -name 'media.nvme-backup-*' -o -name 'torrents.complete.nvme-backup-*' \) -print
+kubectl -n svc-media exec deployment/qbittorrent -- sh -c 'du -sh /data/torrents/incomplete /data/torrents/complete 2>/dev/null'
+kubectl -n svc-media exec deployment/jellyfin -- sh -c 'du -sh /data/transcode 2>/dev/null'
+```
+
+Wichtig dazu:
+
+* Das heiße PVC `media-local-data` ist ein lokales PV auf dem Host-Pfad `/data`
+* Die PVC-Groesse ist hier keine harte Laufzeit-Grenze wie ein echtes Filesystem-Quota
+* Die echte Grenze setzt das darunterliegende Dateisystem auf der NVMe
+* Wenn du spaeter echte harte Limits willst, brauchst du dafuer ein eigenes Dateisystem, ein eigenes LV/ZVOL oder Filesystem-Quotas
+
+Wenn die Altverzeichnisse wirklich nur noch Backup sind:
+
 ```bash
 sudo rm -rf /data/media.nvme-backup-YYYY-MM-DD-HHMMSS
 sudo rm -rf /data/torrents.complete.nvme-backup-YYYY-MM-DD-HHMMSS
+```
+
+Danach kurz gegenpruefen:
+
+```bash
+df -hT /data
+sudo du -xh --max-depth=1 /data 2>/dev/null | sort -h
+kubectl -n svc-media exec deployment/qbittorrent -- df -h /data/torrents/incomplete
+kubectl -n svc-media exec deployment/jellyfin -- df -h /data/transcode
 ```
 
 ---
@@ -484,4 +513,5 @@ Und die alten Media-Manifeste wieder deployen.
 
 * [x86-Media-Node im bestehenden ARM-K3s-Cluster](./media-node.md)
 * [UI-Einrichtung des Media-Stacks](./media-ui-setup.md)
+* [Immich-Storage-Vorbereitung auf `media-1`](./immich-storage.md)
 * OpenZFS RAIDZ: <https://openzfs.github.io/openzfs-docs/Basic%20Concepts/RAIDZ.html>

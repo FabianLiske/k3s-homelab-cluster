@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: svc-immich
+labels:
+  - pairs:
+      app: immich
+      gitops: flux
+resources:
+  - namespace.yaml
+  - immich-secret.yaml
+  - configmap-env.yaml
+  - configmap-config.yaml
+  - storage/
+  - deployment-database.yaml
+  - service-database.yaml
+  - deployment-redis.yaml
+  - service-redis.yaml
+  - deployment-machine-learning.yaml
+  - service-machine-learning.yaml
+  - deployment-server.yaml
+  - service-server.yaml
+  - ingress-public.yaml
+  - netpol-ingress-public.yaml
+  - netpol-database-ingress.yaml
+  - netpol-redis-ingress.yaml
+  - netpol-machine-learning-ingress.yaml

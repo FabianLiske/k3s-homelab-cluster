@@ -32,7 +32,7 @@ spec:
                   name: cloudflare-api-token
                   key: api-token
             - name: DOMAINS
-              value: "vpn.rohrbom.be,vault.rohrbom.be,kochen.mitschen.de"
+              value: "immich.rohrbom.be,vpn.rohrbom.be,vault.rohrbom.be,kochen.mitschen.de"
             - name: PROXIED
               value: "false"
           volumeMounts:

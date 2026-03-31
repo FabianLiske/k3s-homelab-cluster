@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-server
+  namespace: svc-immich
+  labels:
+    app: immich-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: immich-server
+  template:
+    metadata:
+      labels:
+        app: immich-server
+    spec:
+      enableServiceLinks: false
+      nodeSelector:
+        dedicated: media
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: server
+          image: ghcr.io/immich-app/immich-server:v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 2283
+          envFrom:
+            - configMapRef:
+                name: immich-env
+            - secretRef:
+                name: immich-secret
+          volumeMounts:
+            - name: library
+              mountPath: /data
+            - name: generated
+              mountPath: /data/thumbs
+              subPath: thumbs
+            - name: generated
+              mountPath: /data/encoded-video
+              subPath: encoded-video
+            - name: generated
+              mountPath: /data/profile
+              subPath: profile
+            - name: generated
+              mountPath: /data/backups
+              subPath: backups
+            - name: config
+              mountPath: /etc/immich/config.json
+              subPath: config.json
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 4Gi
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+      volumes:
+        - name: library
+          persistentVolumeClaim:
+            claimName: immich-library-data
+        - name: generated
+          persistentVolumeClaim:
+            claimName: immich-generated-data
+        - name: config
+          configMap:
+            name: immich-config

@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ml-from-immich-server
+  namespace: svc-immich
+spec:
+  podSelector:
+    matchLabels:
+      app: immich-machine-learning
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: immich-server
+      ports:
+        - protocol: TCP
+          port: 3003

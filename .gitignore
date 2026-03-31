@@ -1,4 +1,11 @@
 docs/setup-secrets.md
+docs/media-storage-zfs.md
+docs/immich-storage.md
+docs/gameserver-setup.md
+docs/homepage.md
+docs/media-node.md
+docs/media-ui-setup.md
 age*.key
 docs/notes.md
 temp.md
+.codex
