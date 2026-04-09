@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: svc-image-compressor
+labels:
+  - pairs:
+      app: image-compressor
+      gitops: flux
+resources:
+  - namespace.yaml
+  - ghcr-cred-secret.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
