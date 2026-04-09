@@ -4,7 +4,17 @@ metadata:
   name: homepage-config
   namespace: svc-homepage
 data:
-  bookmarks.yaml: ""
+  bookmarks.yaml: |
+    - Quick Links:
+        - GitHub:
+            - abbr: GH
+              href: https://github.com/FabianLiske
+        - Compressor:
+            - abbr: IC
+              href: https://compressor.intern.rohrbom.be/
+        - Immich Photos:
+            - abbr: IM
+              href: https://immich.rohrbom.be/photos
   custom.css: ""
   custom.js: ""
   docker.yaml: ""
