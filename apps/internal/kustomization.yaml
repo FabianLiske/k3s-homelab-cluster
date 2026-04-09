@@ -8,5 +8,4 @@ resources:
   - ./paperless-ngx/
   - ./media/
   - ./pelican/
-  # - ./image-compressor/
-#  - ./qbittorrent/
+  - ./image-compressor/
