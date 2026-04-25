@@ -24,7 +24,7 @@ spec:
       containers:
         - name: pi-oled
           image: ghcr.io/fabianliske/pi-sysinfo-oled:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: NODE_NAME
               valueFrom:
