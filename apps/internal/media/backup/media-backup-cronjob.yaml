@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: media-backup
+  namespace: svc-media
+  labels:
+    app: media-backup
+spec:
+  schedule: "30 4 * * *"
+  timeZone: Europe/Berlin
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: media-backup
+        spec:
+          nodeSelector:
+            dedicated: media
+            kubernetes.io/arch: amd64
+          tolerations:
+            - key: dedicated
+              operator: Equal
+              value: media
+              effect: NoSchedule
+          restartPolicy: OnFailure
+          containers:
+            - name: rsync
+              image: alpine:3.20
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  apk add --no-cache rsync
+                  rsync -aH --numeric-ids --delete-delay --partial --human-readable --stats \
+                    --exclude='/immich/**' \
+                    --exclude='/lost+found' \
+                    /source/ /target/
+              volumeMounts:
+                - name: media
+                  mountPath: /source
+                  readOnly: true
+                - name: backup-target
+                  mountPath: /target
+          volumes:
+            - name: media
+              persistentVolumeClaim:
+                claimName: media-cold-data
+                readOnly: true
+            - name: backup-target
+              nfs:
+                server: 172.26.60.223
+                path: /mnt/tank/backups/media

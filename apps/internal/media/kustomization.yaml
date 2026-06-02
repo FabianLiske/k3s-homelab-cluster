@@ -8,6 +8,7 @@ labels:
 resources:
   - namespace.yaml
   - storage
+  - backup
   - bazarr
   - jellyfin
   - lidarr
