@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: linkding-data
   namespace: svc-linkding
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-daily: enabled
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-2r

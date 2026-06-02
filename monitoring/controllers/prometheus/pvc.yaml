@@ -5,6 +5,7 @@ metadata:
   namespace: ops-monitoring
   labels:
     recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-daily: enabled
     recurring-job.longhorn.io/trim-weekly: enabled
 spec:
   accessModes: [ReadWriteOnce]

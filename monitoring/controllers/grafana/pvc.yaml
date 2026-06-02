@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: grafana-data
   namespace: ops-monitoring
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-daily: enabled
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-2r

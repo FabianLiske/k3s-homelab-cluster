@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: trilium-data
   namespace: svc-trilium
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-daily: enabled
   annotations:
     kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
@@ -11,4 +14,3 @@ spec:
   resources:
     requests:
       storage: 5Gi
-      
