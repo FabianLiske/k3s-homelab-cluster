@@ -34,6 +34,8 @@ spec:
         - name: jellyfin
           image: jellyfin/jellyfin:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
           ports:
             - name: http
               containerPort: 8096
@@ -48,6 +50,8 @@ spec:
             - name: transcode
               mountPath: /data/transcode
               subPath: transcode
+            - name: dri
+              mountPath: /dev/dri
           readinessProbe:
             tcpSocket:
               port: http
@@ -79,3 +83,7 @@ spec:
         - name: transcode
           persistentVolumeClaim:
             claimName: media-local-data
+        - name: dri
+          hostPath:
+            path: /dev/dri
+            type: Directory
