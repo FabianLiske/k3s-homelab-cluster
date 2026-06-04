@@ -4,9 +4,8 @@
 
 ## Ziel-Nodes
 
-Das DaemonSet ist fuer alle `arm64`-Nodes vorgesehen. Im aktuellen Cluster sind das:
+Das DaemonSet laeuft auf `arm64`-Nodes, die explizit als OLED-faehig gelabelt sind:
 
-- `cp-1`
 - `cp-2`
 - `cp-3`
 - `wk-1`
@@ -15,10 +14,19 @@ Das DaemonSet ist fuer alle `arm64`-Nodes vorgesehen. Im aktuellen Cluster sind 
 
 Die Control-Plane-Nodes werden ueber eine `NoSchedule`-Toleration bewusst mit abgedeckt.
 
+Node-Label:
+
+```bash
+kubectl label node <node> pi-oled.rohrbom.be/enabled=true
+```
+
+Wenn ein OLED fehlt, falsch verkabelt ist oder am I2C-Bus nicht antwortet, darf dieses Label nicht gesetzt sein. Sonst startet der Pod in einen I2C-Timeout-CrashLoop.
+
 ## Voraussetzungen pro Node
 
 - I2C ist auf dem Host aktiviert.
 - Das OLED ist als SSD1306 an `/dev/i2c-1` erreichbar.
+- Der Node ist mit `pi-oled.rohrbom.be/enabled=true` gelabelt.
 - Das private GHCR-Image `ghcr.io/fabianliske/pi-sysinfo-oled:latest` ist ueber das Secret `ghcr-cred` im Namespace `ops-monitoring` pullbar.
 
 ## Laufzeitverhalten
