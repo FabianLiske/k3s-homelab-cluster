@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ntfy-config
+  namespace: svc-ntfy
+data:
+  NTFY_BASE_URL: "https://ntfy.rohrbom.be"
+  NTFY_LISTEN_HTTP: ":80"
+  NTFY_BEHIND_PROXY: "true"
+
+  NTFY_CACHE_FILE: "/var/lib/ntfy/cache.db"
+  NTFY_CACHE_DURATION: "72h"
+  NTFY_CACHE_STARTUP_QUERIES: |
+    pragma journal_mode = WAL;
+    pragma synchronous = normal;
+    pragma temp_store = memory;
+    pragma busy_timeout = 15000;
+
+  NTFY_AUTH_FILE: "/var/lib/ntfy/user.db"
+  NTFY_AUTH_DEFAULT_ACCESS: "deny-all"
+  NTFY_ENABLE_LOGIN: "true"
+  NTFY_REQUIRE_LOGIN: "true"
+
+  NTFY_ATTACHMENT_CACHE_DIR: "/var/lib/ntfy/attachments"
+  NTFY_ATTACHMENT_TOTAL_SIZE_LIMIT: "1G"
+  NTFY_ATTACHMENT_FILE_SIZE_LIMIT: "10M"
+  NTFY_ATTACHMENT_EXPIRY_DURATION: "24h"
+
+  NTFY_UPSTREAM_BASE_URL: "https://ntfy.sh"
+  NTFY_LOG_FORMAT: "json"
