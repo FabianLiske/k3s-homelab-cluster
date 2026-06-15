@@ -18,7 +18,7 @@ data:
 
   NTFY_AUTH_FILE: "/var/lib/ntfy/user.db"
   NTFY_AUTH_DEFAULT_ACCESS: "deny-all"
-  NTFY_AUTH_ACCESS: "media-backup:homelab:write"
+  NTFY_AUTH_ACCESS: "media-backup:homelab:write,truenas:truenas:write"
   NTFY_ENABLE_LOGIN: "true"
   NTFY_REQUIRE_LOGIN: "true"
 
