@@ -36,11 +36,55 @@ spec:
                 - /bin/sh
                 - -ec
                 - |
-                  apk add --no-cache rsync
+                  apk add --no-cache rsync curl
+
+                  notify() {
+                    title="$1"
+                    priority="$2"
+                    tags="$3"
+                    message="$4"
+
+                    curl -fsS --retry 3 --retry-delay 2 \
+                      -H "Authorization: Bearer ${NTFY_TOKEN}" \
+                      -H "Title: ${title}" \
+                      -H "Priority: ${priority}" \
+                      -H "Tags: ${tags}" \
+                      -d "${message}" \
+                      "${NTFY_URL}/${NTFY_TOPIC}" >/dev/null || \
+                      echo "Failed to send ntfy notification" >&2
+                  }
+
+                  started_at="$(date -Is)"
+                  started_ts="$(date +%s)"
+
+                  set +e
                   rsync -aH --numeric-ids --delete-delay --partial --human-readable --stats \
                     --exclude='/immich/**' \
                     --exclude='/lost+found' \
                     /source/ /target/
+                  status="$?"
+                  set -e
+
+                  duration="$(( $(date +%s) - started_ts ))s"
+
+                  if [ "${status}" -eq 0 ]; then
+                    notify "Media backup completed" "default" "white_check_mark" \
+                      "media-backup completed successfully. Started: ${started_at}. Duration: ${duration}."
+                  else
+                    notify "Media backup failed" "high" "warning" \
+                      "media-backup failed with exit code ${status}. Started: ${started_at}. Duration: ${duration}."
+                    exit "${status}"
+                  fi
+              env:
+                - name: NTFY_URL
+                  value: "https://ntfy.rohrbom.be"
+                - name: NTFY_TOPIC
+                  value: "homelab"
+                - name: NTFY_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: media-backup-ntfy
+                      key: token
               volumeMounts:
                 - name: media
                   mountPath: /source
