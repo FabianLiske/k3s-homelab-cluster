@@ -66,9 +66,6 @@ network:
       dhcp4-overrides:
         use-dns: false
         use-routes: false
-      nameservers:
-        addresses: [1.1.1.1, 1.0.0.1]
-        search: []
 
     vlan20:
       id: 20
@@ -78,9 +75,6 @@ network:
       dhcp4-overrides:
         use-dns: false
         use-routes: false
-      nameservers:
-        addresses: [1.1.1.1, 1.0.0.1]
-        search: []
 
     vlan30:
       id: 30
@@ -90,9 +84,6 @@ network:
       dhcp4-overrides:
         use-dns: false
         use-routes: false
-      nameservers:
-        addresses: [1.1.1.1, 1.0.0.1]
-        search: []
 ```
 
 ```bash
