@@ -10,6 +10,8 @@ spec:
   template:
     metadata:
       labels: { app: ntfy }
+      annotations:
+        ntfy.rohrbom.be/config-revision: "2026-06-15-truenas-alerts"
     spec:
       containers:
         - name: ntfy
