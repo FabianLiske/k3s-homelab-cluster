@@ -11,6 +11,7 @@ resources:
   - configmap-env.yaml
   - configmap-config.yaml
   - storage/
+  - backup/
   - deployment-database.yaml
   - service-database.yaml
   - deployment-redis.yaml

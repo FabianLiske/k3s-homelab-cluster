@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-db-from-immich-backup
+  namespace: svc-immich
+spec:
+  podSelector:
+    matchLabels:
+      app: immich-database
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: immich-backup
+      ports:
+        - protocol: TCP
+          port: 5432

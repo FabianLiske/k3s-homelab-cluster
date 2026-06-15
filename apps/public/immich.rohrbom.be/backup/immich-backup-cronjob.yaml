@@ -1,0 +1,133 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: immich-backup
+  namespace: svc-immich
+  labels:
+    app: immich-backup
+spec:
+  schedule: "15 3,15 * * *"
+  timeZone: Europe/Berlin
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: immich-backup
+        spec:
+          automountServiceAccountToken: false
+          nodeSelector:
+            dedicated: media
+            kubernetes.io/arch: amd64
+          tolerations:
+            - key: dedicated
+              operator: Equal
+              value: media
+              effect: NoSchedule
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: postgres:14-alpine
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - configMapRef:
+                    name: immich-env
+                - secretRef:
+                    name: immich-secret
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  apk add --no-cache rsync
+                  set -u
+
+                  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+                  dump_tmp="/target/database/immich-${stamp}.sql"
+                  dump_final="/target/database/immich-${stamp}.sql.gz"
+                  export PGPASSWORD="${DB_PASSWORD}"
+
+                  mkdir -p \
+                    /target/current/upload-location \
+                    /target/current/model-cache \
+                    /target/database \
+                    "/target/rsync-deleted/${stamp}"
+
+                  rm -f "${dump_tmp}" "${dump_tmp}.gz" "${dump_final}"
+                  pg_dump \
+                    --clean \
+                    --if-exists \
+                    --host="${DB_HOSTNAME}" \
+                    --port="${DB_PORT}" \
+                    --username="${DB_USERNAME}" \
+                    --dbname="${DB_DATABASE_NAME}" \
+                    > "${dump_tmp}"
+                  gzip -9 "${dump_tmp}"
+                  mv "${dump_tmp}.gz" "${dump_final}"
+
+                  rsync -aH --numeric-ids --delete-delay --partial --human-readable --stats \
+                    --backup \
+                    --backup-dir="/target/rsync-deleted/${stamp}/upload-location" \
+                    --exclude='/thumbs' \
+                    --exclude='/encoded-video' \
+                    --exclude='/profile' \
+                    --exclude='/backups' \
+                    --exclude='/lost+found' \
+                    /source/library/ /target/current/upload-location/
+
+                  for generated_dir in backups encoded-video profile thumbs; do
+                    mkdir -p "/target/current/upload-location/${generated_dir}"
+                    rsync -aH --numeric-ids --delete-delay --partial --human-readable --stats \
+                      --backup \
+                      --backup-dir="/target/rsync-deleted/${stamp}/upload-location/${generated_dir}" \
+                      --exclude='/lost+found' \
+                      "/source/generated/${generated_dir}/" "/target/current/upload-location/${generated_dir}/"
+                  done
+
+                  rsync -aH --numeric-ids --delete-delay --partial --human-readable --stats \
+                    --backup \
+                    --backup-dir="/target/rsync-deleted/${stamp}/model-cache" \
+                    --exclude='/lost+found' \
+                    /source/model-cache/ /target/current/model-cache/
+
+                  find /target/database -maxdepth 1 -type f -name 'immich-*.sql.gz' -mtime +45 -delete
+                  find /target/rsync-deleted -mindepth 1 -maxdepth 1 -type d -mtime +45 -exec rm -rf {} +
+              volumeMounts:
+                - name: library
+                  mountPath: /source/library
+                  readOnly: true
+                - name: generated
+                  mountPath: /source/generated
+                  readOnly: true
+                - name: model-cache
+                  mountPath: /source/model-cache
+                  readOnly: true
+                - name: backup-target
+                  mountPath: /target
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: "2"
+                  memory: 2Gi
+          volumes:
+            - name: library
+              persistentVolumeClaim:
+                claimName: immich-library-data
+                readOnly: true
+            - name: generated
+              persistentVolumeClaim:
+                claimName: immich-generated-data
+                readOnly: true
+            - name: model-cache
+              persistentVolumeClaim:
+                claimName: immich-model-cache-data
+                readOnly: true
+            - name: backup-target
+              nfs:
+                server: 172.26.60.223
+                path: /mnt/tank/backups/immich
