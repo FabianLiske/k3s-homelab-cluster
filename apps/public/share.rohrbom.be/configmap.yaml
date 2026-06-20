@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jirafeau-config
+  namespace: svc-jirafeau
+data:
+  WEB_ROOT: "https://share.rohrbom.be/"
+  LANG: "de"
+  TITLE: "Rohrbom Share"
+  ORGANISATION: "Rohrbom"
+  FILE_HASH: "random"
+  PREVIEW: "1"
+  ENABLE_CRYPT: "0"
+  AVAILABILITIES: |
+    {
+      "minute": false,
+      "hour": false,
+      "day": true,
+      "week": true,
+      "fortnight": false,
+      "month": true,
+      "quarter": false,
+      "year": true,
+      "none": true
+    }
+  AVAILABILITY_DEFAULT: "month"
+  ONE_TIME_DOWNLOAD: "1"
+  ONE_TIME_DOWNLOAD_PRESELECTED: "0"
+  MAXIMAL_UPLOAD_SIZE: "20480"
+  STORE_UPLOADER_IP: "0"
+  DOWNLOAD_PASSWORD_REQUIREMENT: "optional"

@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: svc-jirafeau
+labels:
+  - pairs: { app: jirafeau, gitops: flux }
+resources:
+  - namespace.yaml
+  - jirafeau-secret.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress-public.yaml
+  - netpol-ingress-public.yaml
+  - netpol-egress-deny.yaml
