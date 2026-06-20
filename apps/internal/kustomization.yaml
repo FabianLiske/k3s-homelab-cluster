@@ -9,3 +9,4 @@ resources:
   - ./media/
   - ./pelican/
   - ./image-compressor/
+  - ./mampftracker/

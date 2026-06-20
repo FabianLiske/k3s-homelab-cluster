@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mampftracker
+  namespace: svc-mampftracker
+  labels:
+    app: mampftracker
+spec:
+  type: ClusterIP
+  selector:
+    app: mampftracker
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

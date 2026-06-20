@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mampftracker
+  namespace: svc-mampftracker
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+spec:
+  ingressClassName: nginx-internal
+  rules:
+    - host: mampf.rohrbom.be
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mampftracker
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - mampf.rohrbom.be
+      secretName: mampftracker-tls
