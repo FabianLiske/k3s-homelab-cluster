@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mampftracker-from-public-ingress
+  namespace: svc-mampftracker
+spec:
+  podSelector:
+    matchLabels:
+      app: mampftracker
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-30
+      ports:
+        - protocol: TCP
+          port: 8080

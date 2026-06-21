@@ -8,7 +8,10 @@ labels:
 resources:
   - namespace.yaml
   - ghcr-cred-secret.yaml
+  - mampftracker-auth-secret.yaml
   - pvc.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - ingress-public.yaml
+  - netpol-ingress-public.yaml
+  - netpol-egress.yaml

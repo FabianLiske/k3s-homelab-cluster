@@ -5,8 +5,11 @@ metadata:
   namespace: svc-mampftracker
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-dns
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "2592000"
 spec:
-  ingressClassName: nginx-internal
+  ingressClassName: nginx-public
   rules:
     - host: mampf.rohrbom.be
       http:
