@@ -8,9 +8,13 @@ labels:
 resources:
   - namespace.yaml
   - configmap.yaml
+  - legal-pages-configmap.yaml
   - pvc.yaml
   - deployment.yaml
+  - legal-pages-deployment.yaml
   - service.yaml
+  - legal-pages-service.yaml
   - ingress-public.yaml
   - netpol-ingress-public.yaml
+  - legal-pages-netpol-ingress-public.yaml
   - netpol-egress.yaml

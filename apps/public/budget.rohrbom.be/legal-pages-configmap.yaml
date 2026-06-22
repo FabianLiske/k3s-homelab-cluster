@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: actualbudget-legal-pages
+  namespace: svc-actualbudget
+data:
+  nginx.conf: |
+    pid /tmp/nginx.pid;
+
+    events {}
+
+    http {
+      include /etc/nginx/mime.types;
+      access_log /dev/stdout;
+      error_log /dev/stderr warn;
+      client_body_temp_path /tmp/client-body;
+      proxy_temp_path /tmp/proxy;
+      fastcgi_temp_path /tmp/fastcgi;
+      uwsgi_temp_path /tmp/uwsgi;
+      scgi_temp_path /tmp/scgi;
+
+      server {
+        listen 8080;
+        server_name _;
+
+        location = /privacy {
+          default_type text/html;
+          alias /usr/share/nginx/html/privacy.html;
+        }
+
+        location = /terms {
+          default_type text/html;
+          alias /usr/share/nginx/html/terms.html;
+        }
+
+        location = /health {
+          access_log off;
+          return 200 "ok\n";
+        }
+
+        location / {
+          return 404;
+        }
+      }
+    }
+
+  privacy.html: |
+    <!doctype html>
+    <html lang="de">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Datenschutz</title>
+        <style>
+          :root {
+            color-scheme: light dark;
+            font-family: system-ui, sans-serif;
+          }
+
+          body {
+            margin: 0;
+            padding: 3rem 1.25rem;
+            line-height: 1.6;
+          }
+
+          main {
+            max-width: 44rem;
+            margin: 0 auto;
+          }
+
+          h1 {
+            font-size: 2rem;
+            letter-spacing: 0;
+          }
+
+          a {
+            color: inherit;
+          }
+        </style>
+      </head>
+      <body>
+        <main>
+          <h1>Datenschutz</h1>
+          <p>
+            Diese Anwendung wird ausschließlich privat betrieben. Sie verarbeitet
+            Kontostände und Transaktionen meiner eigenen Bankkonten und speichert
+            diese in meiner selbst gehosteten Actual-Budget-Instanz. Eine Weitergabe
+            an Dritte erfolgt nur, soweit dies technisch für die Kommunikation mit
+            Enable Banking und den beteiligten Banken erforderlich ist.
+          </p>
+          <p>
+            Kontakt:
+            <a href="mailto:fabian.liske+budget@gmail.com">fabian.liske+budget@gmail.com</a>
+          </p>
+        </main>
+      </body>
+    </html>
+
+  terms.html: |
+    <!doctype html>
+    <html lang="de">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Nutzungsbedingungen</title>
+        <style>
+          :root {
+            color-scheme: light dark;
+            font-family: system-ui, sans-serif;
+          }
+
+          body {
+            margin: 0;
+            padding: 3rem 1.25rem;
+            line-height: 1.6;
+          }
+
+          main {
+            max-width: 44rem;
+            margin: 0 auto;
+          }
+
+          h1 {
+            font-size: 2rem;
+            letter-spacing: 0;
+          }
+        </style>
+      </head>
+      <body>
+        <main>
+          <h1>Nutzungsbedingungen</h1>
+          <p>
+            Diese Anwendung dient ausschließlich der privaten Verwaltung meiner
+            eigenen Finanzen. Sie wird nicht öffentlich oder kommerziell angeboten
+            und darf nicht von Dritten genutzt werden.
+          </p>
+        </main>
+      </body>
+    </html>

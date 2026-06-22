@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: actualbudget-legal-pages
+  namespace: svc-actualbudget
+spec:
+  type: ClusterIP
+  selector:
+    actualbudget.rohrbom.be/component: legal-pages
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

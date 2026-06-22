@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: actualbudget-legal-pages
+  namespace: svc-actualbudget
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      actualbudget.rohrbom.be/component: legal-pages
+  template:
+    metadata:
+      labels:
+        actualbudget.rohrbom.be/component: legal-pages
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: config
+              mountPath: /usr/share/nginx/html/privacy.html
+              subPath: privacy.html
+              readOnly: true
+            - name: config
+              mountPath: /usr/share/nginx/html/terms.html
+              subPath: terms.html
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: config
+          configMap:
+            name: actualbudget-legal-pages
+        - name: tmp
+          emptyDir: {}

@@ -17,6 +17,20 @@ spec:
     - host: budget.rohrbom.be
       http:
         paths:
+          - path: /privacy
+            pathType: Exact
+            backend:
+              service:
+                name: actualbudget-legal-pages
+                port:
+                  number: 80
+          - path: /terms
+            pathType: Exact
+            backend:
+              service:
+                name: actualbudget-legal-pages
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:

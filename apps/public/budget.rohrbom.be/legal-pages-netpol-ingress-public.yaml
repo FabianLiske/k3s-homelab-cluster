@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-actualbudget-legal-pages-from-public-ingress
+  namespace: svc-actualbudget
+spec:
+  podSelector:
+    matchLabels:
+      actualbudget.rohrbom.be/component: legal-pages
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-30
+      ports:
+        - protocol: TCP
+          port: 8080
