@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: actualbudget
+  namespace: svc-actualbudget
+  labels:
+    app: actualbudget
+spec:
+  type: ClusterIP
+  selector:
+    app: actualbudget
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
