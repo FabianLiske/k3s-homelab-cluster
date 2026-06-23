@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calibre
+  namespace: svc-media
+  labels:
+    app: calibre
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: calibre
+  template:
+    metadata:
+      labels:
+        app: calibre
+    spec:
+      nodeSelector:
+        dedicated: media
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: prepare-library-directories
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/import/ebooks /data/media/books
+              chown 1000:1000 /data/import/ebooks /data/media/books
+              chmod 2775 /data/import/ebooks /data/media/books
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      containers:
+        - name: calibre
+          image: ghcr.io/crocodilestick/calibre-web-automated:v4.0.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8083
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: NETWORK_SHARE_MODE
+              value: "false"
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: /cwa-book-ingest
+              subPath: import/ebooks
+            - name: data
+              mountPath: /calibre-library
+              subPath: media/books
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 18
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: calibre-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: media-cold-data

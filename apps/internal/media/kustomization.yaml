@@ -10,6 +10,7 @@ resources:
   - storage
   - backup
   - bazarr
+  - calibre
   - jellyfin
   - lidarr
   - radarr
