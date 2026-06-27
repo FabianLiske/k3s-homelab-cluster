@@ -91,6 +91,16 @@ data:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
             action: drop
+      # === EXTERNAL: 172.26.107.130 Metrics ===
+      - job_name: klima-display
+        scrape_interval: 1m
+        metrics_path: /metrics
+        static_configs:
+          - targets: ['172.26.107.130']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
       # === SPEEDTEST EXPORTER: Metrics ===
       - job_name: speedtest
         scrape_interval: 5m
