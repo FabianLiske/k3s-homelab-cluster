@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: unpoller
-          image: ghcr.io/unpoller/unpoller:v2.38.0
+          image: ghcr.io/unpoller/unpoller:v3.1.2
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
