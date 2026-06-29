@@ -26,7 +26,14 @@ spec:
               set -e
               if [ ! -f /geoip/GeoLite2-City.mmdb ] || [ $(find /geoip/GeoLite2-City.mmdb -mtime +14 | wc -l) -gt 0 ]; then
                 echo "Lade GeoLite2-City.mmdb..."
-                curl -fsSL -o /geoip/GeoLite2-City.mmdb.new \
+                rm -f /geoip/GeoLite2-City.mmdb.new
+                curl -fsSL \
+                  --connect-timeout 10 \
+                  --max-time 60 \
+                  --retry 3 \
+                  --retry-delay 5 \
+                  --retry-all-errors \
+                  -o /geoip/GeoLite2-City.mmdb.new \
                   https://git.io/GeoLite2-City.mmdb
                 mv /geoip/GeoLite2-City.mmdb.new /geoip/GeoLite2-City.mmdb
               else
