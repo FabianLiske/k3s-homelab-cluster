@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: ops-monitoring
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 3101
+      grpc_listen_port: 0
+      log_level: info
+
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    clients:
+      - url: http://loki.ops-monitoring.svc:3100/loki/api/v1/push
+
+    scrape_configs:
+      # === Public ingress-nginx access logs (JSON) mit GeoIP-Enrichment ===
+      - job_name: ingress-nginx-public
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: ingress-30
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+            regex: controller
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            regex: controller
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - replacement: ingress-nginx-public
+            target_label: app
+          - replacement: /var/log/pods/*$1/*.log
+            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            separator: /
+            target_label: __path__
+        pipeline_stages:
+          # Container-Log-Format: "<json>\n" via stdout — entweder text "klog" oder json
+          # k3s/containerd liefert pro Zeile: <ts> stdout F <log>
+          - cri: {}
+          # Ingress-Logzeilen sind in unserem Format reine JSON-Objekte (siehe ingress-30 helmrelease)
+          - json:
+              expressions:
+                remote_addr:
+                proxy_protocol_addr:
+                remote_user:
+                time:
+                request_method:
+                host:
+                request_uri:
+                status:
+                body_bytes_sent:
+                http_referer:
+                http_user_agent:
+                request_length:
+                request_time:
+                proxy_upstream_name:
+                upstream_addr:
+                upstream_response_time:
+                upstream_status:
+                req_id:
+                cf_ray: "cf_ray"
+                cf_connecting_ip: "cf_connecting_ip"
+                x_forwarded_for: "x_forwarded_for"
+          - geoip:
+              db: /geoip/GeoLite2-City.mmdb
+              source: remote_addr
+              db_type: city
+          - labels:
+              host:
+              status:
+              request_method:
+              geoip_country_code:
+              geoip_city_name:
+              # via_cloudflare lassen wir per template-stage berechnen
+          - template:
+              source: via_cloudflare
+              template: '{{ if .cf_ray }}yes{{ else }}no{{ end }}'
+          - labels:
+              via_cloudflare:
+          - timestamp:
+              source: time
+              format: RFC3339
+              fallback_formats:
+                - "02/Jan/2006:15:04:05 -0700"
+              action_on_failure: skip
+
+      # === Alle übrigen Pod-Logs (Standard k8s-Discovery) ===
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: ingress-30
+            action: drop
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - replacement: /var/log/pods/*$1/*.log
+            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            separator: /
+            target_label: __path__
+        pipeline_stages:
+          - cri: {}

@@ -45,7 +45,18 @@ spec:
       publishService:
         enabled: true
       config:
-        use-forwarded-headers: "false"
+        # Echte Client-IP hinter Cloudflare ermitteln. Direkt-Zugriffe auf die WAN-IP
+        # bleiben unverändert, weil ihre remote_addr NICHT in proxy-real-ip-cidr matcht.
+        use-forwarded-headers: "true"
+        compute-full-forwarded-for: "true"
+        # Cloudflare IP-Ranges — automatisch aktualisiert via .github/workflows/update-cloudflare-ips.yaml.
+        # Zwischen den BEGIN/END-Markern NICHT manuell editieren; sonst Workflow anpassen.
+        # CLOUDFLARE-IPS:BEGIN
+        proxy-real-ip-cidr: "173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22,2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,2a06:98c0::/29,2c0f:f248::/32"
+        # CLOUDFLARE-IPS:END
+        # JSON-Access-Log fuer Promtail.
+        log-format-escape-json: "true"
+        log-format-upstream: '{"time":"$time_iso8601","remote_addr":"$remote_addr","proxy_protocol_addr":"$proxy_protocol_addr","x_forwarded_for":"$proxy_add_x_forwarded_for","remote_user":"$remote_user","request_method":"$request_method","host":"$host","request_uri":"$request_uri","server_protocol":"$server_protocol","status":$status,"body_bytes_sent":$body_bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","request_length":$request_length,"request_time":$request_time,"proxy_upstream_name":"$proxy_upstream_name","upstream_addr":"$upstream_addr","upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","req_id":"$req_id","cf_ray":"$http_cf_ray","cf_connecting_ip":"$http_cf_connecting_ip"}'
       metrics:
         enabled: true
       extraArgs:

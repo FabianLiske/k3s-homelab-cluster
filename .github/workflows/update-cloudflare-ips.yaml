@@ -1,0 +1,98 @@
+name: Update Cloudflare IP Ranges
+
+on:
+  schedule:
+    # Jeden Montag 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch Cloudflare IP ranges
+        id: fetch
+        run: |
+          set -euo pipefail
+          IPV4=$(curl -fsSL https://www.cloudflare.com/ips-v4)
+          IPV6=$(curl -fsSL https://www.cloudflare.com/ips-v6)
+          if [ -z "$IPV4" ] || [ -z "$IPV6" ]; then
+            echo "Cloudflare-Antwort leer — Abbruch."
+            exit 1
+          fi
+          COMBINED=$(printf '%s\n%s\n' "$IPV4" "$IPV6" | grep -v '^$' | paste -sd ',' -)
+          echo "cidrs=$COMBINED" >> "$GITHUB_OUTPUT"
+
+      - name: Patch HelmRelease
+        id: patch
+        env:
+          CIDRS: ${{ steps.fetch.outputs.cidrs }}
+        run: |
+          set -euo pipefail
+          FILE=infrastructure/controllers/ingress-nginx/vlan30/helmrelease.yaml
+
+          if ! grep -q 'CLOUDFLARE-IPS:BEGIN' "$FILE" || ! grep -q 'CLOUDFLARE-IPS:END' "$FILE"; then
+            echo "Marker fehlen in $FILE."
+            exit 1
+          fi
+
+          # Indent der Marker-Zeile uebernehmen (gleicher Einzug wie das umgebende YAML).
+          INDENT=$(awk '/CLOUDFLARE-IPS:BEGIN/ { match($0, /^[[:space:]]*/); print substr($0, RSTART, RLENGTH); exit }' "$FILE")
+
+          NEW_LINE="${INDENT}proxy-real-ip-cidr: \"${CIDRS}\""
+
+          python3 - "$FILE" "$NEW_LINE" <<'PY'
+          import sys, pathlib
+          path = pathlib.Path(sys.argv[1])
+          new_line = sys.argv[2]
+          lines = path.read_text().splitlines()
+          out, inside = [], False
+          for line in lines:
+              if "CLOUDFLARE-IPS:BEGIN" in line:
+                  out.append(line)
+                  out.append(new_line)
+                  inside = True
+                  continue
+              if "CLOUDFLARE-IPS:END" in line:
+                  inside = False
+                  out.append(line)
+                  continue
+              if inside:
+                  continue
+              out.append(line)
+          path.write_text("\n".join(out) + "\n")
+          PY
+
+          if git diff --quiet -- "$FILE"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open Pull Request
+        if: steps.patch.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-cloudflare-ips
+          base: main
+          commit-message: "chore: update Cloudflare IP ranges"
+          title: "chore: update Cloudflare IP ranges"
+          body: |
+            Automatischer Sync der Cloudflare-IP-Ranges in `infrastructure/controllers/ingress-nginx/vlan30/helmrelease.yaml`.
+
+            Quellen:
+            - https://www.cloudflare.com/ips-v4
+            - https://www.cloudflare.com/ips-v6
+
+            Bitte den Diff kurz pruefen und mergen — Flux deployt danach automatisch.
+          labels: |
+            automated
+            infrastructure
+          delete-branch: true

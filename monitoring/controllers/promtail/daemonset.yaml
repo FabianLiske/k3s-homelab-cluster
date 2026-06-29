@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: ops-monitoring
+  labels: { app: promtail }
+spec:
+  selector:
+    matchLabels: { app: promtail }
+  template:
+    metadata:
+      labels: { app: promtail }
+    spec:
+      serviceAccountName: promtail
+      tolerations:
+        - operator: "Exists"
+      initContainers:
+        # GeoLite2-City als kostenlosen Mirror via P3TERX/GeoLite.mmdb pullen,
+        # damit kein MaxMind-Account/Token im Cluster nötig ist.
+        - name: geoip-fetch
+          image: curlimages/curl:8.10.1
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              if [ ! -f /geoip/GeoLite2-City.mmdb ] || [ $(find /geoip/GeoLite2-City.mmdb -mtime +14 | wc -l) -gt 0 ]; then
+                echo "Lade GeoLite2-City.mmdb..."
+                curl -fsSL -o /geoip/GeoLite2-City.mmdb.new \
+                  https://git.io/GeoLite2-City.mmdb
+                mv /geoip/GeoLite2-City.mmdb.new /geoip/GeoLite2-City.mmdb
+              else
+                echo "GeoLite2-City.mmdb ist aktuell."
+              fi
+          volumeMounts:
+            - { name: geoip, mountPath: /geoip }
+      containers:
+        - name: promtail
+          image: grafana/promtail:3.3.2
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          ports:
+            - { name: http, containerPort: 3101 }
+          env:
+            - { name: TZ, value: Europe/Berlin }
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef: { fieldPath: spec.nodeName }
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            runAsUser: 0
+          volumeMounts:
+            - { name: config, mountPath: /etc/promtail }
+            - { name: positions, mountPath: /run/promtail }
+            - { name: varlogpods, mountPath: /var/log/pods, readOnly: true }
+            - { name: varlibcontainers, mountPath: /var/lib/docker/containers, readOnly: true }
+            - { name: varlogcontainers, mountPath: /var/log/containers, readOnly: true }
+            - { name: geoip, mountPath: /geoip, readOnly: true }
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+      volumes:
+        - name: config
+          configMap: { name: promtail-config }
+        - name: positions
+          hostPath: { path: /var/lib/promtail, type: DirectoryOrCreate }
+        - name: varlogpods
+          hostPath: { path: /var/log/pods }
+        - name: varlibcontainers
+          hostPath: { path: /var/lib/docker/containers }
+        - name: varlogcontainers
+          hostPath: { path: /var/log/containers }
+        - name: geoip
+          emptyDir: {}

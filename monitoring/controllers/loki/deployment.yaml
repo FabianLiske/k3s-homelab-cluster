@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: ops-monitoring
+  labels: { app: loki }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: loki } }
+  template:
+    metadata:
+      labels: { app: loki }
+    spec:
+      serviceAccountName: loki
+      securityContext:
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: loki
+          image: grafana/loki:3.3.2
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/loki/loki.yaml
+          ports:
+            - { name: http, containerPort: 3100 }
+            - { name: grpc, containerPort: 9095 }
+          env:
+            - { name: TZ, value: Europe/Berlin }
+          volumeMounts:
+            - { name: data, mountPath: /loki }
+            - { name: config, mountPath: /etc/loki/loki.yaml, subPath: loki.yaml }
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /ready, port: http }
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "2", memory: 2Gi }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: loki-data }
+        - name: config
+          configMap: { name: loki-config }

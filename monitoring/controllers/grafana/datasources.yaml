@@ -26,3 +26,11 @@ data:
           httpMode: GET
         secureJsonData:
           token: ${INFLUXDB_ADMIN_TOKEN}
+      - name: Loki
+        type: loki
+        url: http://loki.ops-monitoring.svc:3100
+        access: proxy
+        isDefault: false
+        editable: false
+        jsonData:
+          maxLines: 1000

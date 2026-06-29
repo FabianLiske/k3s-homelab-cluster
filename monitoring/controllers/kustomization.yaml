@@ -8,6 +8,8 @@ resources:
   - ./ping-exporter/
   - ./speedtest-exporter/
   - ./prometheus/
+  - ./loki/
+  - ./promtail/
   - ./influxdb/
   - ./telegraf/
   - ./unpoller/
