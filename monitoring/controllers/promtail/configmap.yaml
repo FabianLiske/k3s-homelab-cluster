@@ -80,13 +80,23 @@ data:
               status:
               request_method:
               geoip_country_code:
-              geoip_city_name:
               # via_cloudflare lassen wir per template-stage berechnen
           - template:
               source: via_cloudflare
               template: '{{ if .cf_ray }}yes{{ else }}no{{ end }}'
           - labels:
               via_cloudflare:
+          - labeldrop:
+              - geoip_city_name
+              - geoip_continent_code
+              - geoip_continent_name
+              - geoip_country_name
+              - geoip_location_latitude
+              - geoip_location_longitude
+              - geoip_postal_code
+              - geoip_subdivision_code
+              - geoip_subdivision_name
+              - geoip_timezone
           - timestamp:
               source: time
               format: RFC3339
