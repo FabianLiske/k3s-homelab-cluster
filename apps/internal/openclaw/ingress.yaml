@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw
+  namespace: svc-openclaw
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+spec:
+  ingressClassName: nginx-internal
+  rules:
+    - host: openclaw.intern.rohrbom.be
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  number: 18789
+  tls:
+    - hosts:
+        - openclaw.intern.rohrbom.be
+      secretName: openclaw-tls

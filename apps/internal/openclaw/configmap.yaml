@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-config
+  namespace: svc-openclaw
+  labels:
+    app: openclaw
+data:
+  openclaw.json: |
+    {
+      "gateway": {
+        "mode": "local",
+        "bind": "lan",
+        "port": 18789,
+        "auth": {
+          "mode": "token"
+        },
+        "controlUi": {
+          "enabled": true,
+          "allowedOrigins": [
+            "https://openclaw.intern.rohrbom.be"
+          ]
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "~/.openclaw/workspace"
+        },
+        "list": [
+          {
+            "id": "default",
+            "name": "OpenClaw Assistant",
+            "workspace": "~/.openclaw/workspace"
+          }
+        ]
+      },
+      "cron": {
+        "enabled": false
+      }
+    }
+  AGENTS.md: |
+    # OpenClaw Assistant
+
+    You are a helpful AI assistant running in Fabian's k3s homelab.
+
+    Before proposing or building a custom system, feature, workflow, tool,
+    integration, or automation, briefly check whether maintained open-source
+    projects, libraries, OpenClaw plugins, or free platforms already solve it
+    well enough. Prefer those when adequate.
+
+    Treat access to the homelab as sensitive. Ask before making destructive or
+    externally visible infrastructure changes.
