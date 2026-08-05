@@ -21,8 +21,16 @@ DRAIN_TIMEOUT=900
 REBOOT_TIMEOUT=900
 READY_TIMEOUT=600
 
-declare -a KUBECTL SSH_BASE SELECTED_NODES SERVER_NODES AGENT_NODES
-declare -A SSH_HOST_OVERRIDES NODE_IPS NODE_ROLES NODE_WAS_UNSCHEDULABLE NODE_LEASE_BEFORE
+declare -a KUBECTL=()
+declare -a SSH_BASE=()
+declare -a SELECTED_NODES=()
+declare -a SERVER_NODES=()
+declare -a AGENT_NODES=()
+declare -A SSH_HOST_OVERRIDES=()
+declare -A NODE_IPS=()
+declare -A NODE_ROLES=()
+declare -A NODE_WAS_UNSCHEDULABLE=()
+declare -A NODE_LEASE_BEFORE=()
 ACTIVE_NODE=
 BACKUP_RUN_DIR=
 
@@ -227,7 +235,7 @@ discover_nodes() {
   (( ${#SELECTED_NODES[@]} > 0 )) || die "Keine Nodes ausgewaehlt."
 }
 
-declare -A NODE_VERSIONS
+declare -A NODE_VERSIONS=()
 
 validate_version_plan() {
   local node current current_minor target_minor
