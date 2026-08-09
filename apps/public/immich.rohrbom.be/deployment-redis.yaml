@@ -6,7 +6,7 @@ metadata:
   labels:
     app: immich-redis
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: immich-redis
@@ -16,14 +16,6 @@ spec:
         app: immich-redis
     spec:
       enableServiceLinks: false
-      nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
       containers:
         - name: redis
           image: docker.io/valkey/valkey:9@sha256:3eeb09785cd61ec8e3be35f8804c8892080f3ca21934d628abc24ee4ed1698f6

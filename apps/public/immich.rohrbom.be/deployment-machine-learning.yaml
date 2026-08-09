@@ -6,7 +6,7 @@ metadata:
   labels:
     app: immich-machine-learning
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: immich-machine-learning
@@ -17,19 +17,13 @@ spec:
     spec:
       enableServiceLinks: false
       nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
+        node.rohrbom.be/heavy-compute: "true"
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: machine-learning
-          image: ghcr.io/immich-app/immich-machine-learning:v2
+          image: ghcr.io/immich-app/immich-machine-learning:v2.7.5
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -71,5 +65,4 @@ spec:
             failureThreshold: 6
       volumes:
         - name: model-cache
-          persistentVolumeClaim:
-            claimName: immich-model-cache-data
+          emptyDir: {}

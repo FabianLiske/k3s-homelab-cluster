@@ -6,6 +6,7 @@ metadata:
   labels:
     app: immich-backup
 spec:
+  suspend: true
   schedule: "15 3,15 * * *"
   timeZone: Europe/Berlin
   concurrencyPolicy: Forbid

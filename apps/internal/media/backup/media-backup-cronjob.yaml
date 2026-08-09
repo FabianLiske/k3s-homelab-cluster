@@ -6,6 +6,7 @@ metadata:
   labels:
     app: media-backup
 spec:
+  suspend: true
   schedule: "30 4 * * *"
   timeZone: Europe/Berlin
   concurrencyPolicy: Forbid

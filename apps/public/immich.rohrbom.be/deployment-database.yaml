@@ -6,7 +6,7 @@ metadata:
   labels:
     app: immich-database
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: immich-database
@@ -16,14 +16,6 @@ spec:
         app: immich-database
     spec:
       enableServiceLinks: false
-      nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
       securityContext:
         fsGroup: 999
         fsGroupChangePolicy: OnRootMismatch
@@ -75,4 +67,4 @@ spec:
       volumes:
         - name: db-data
           persistentVolumeClaim:
-            claimName: immich-db-data
+            claimName: immich-db-data-longhorn

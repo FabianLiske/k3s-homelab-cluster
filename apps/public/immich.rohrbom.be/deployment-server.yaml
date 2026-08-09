@@ -6,7 +6,7 @@ metadata:
   labels:
     app: immich-server
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: immich-server
@@ -16,20 +16,12 @@ spec:
         app: immich-server
     spec:
       enableServiceLinks: false
-      nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: server
-          image: ghcr.io/immich-app/immich-server:v2
+          image: ghcr.io/immich-app/immich-server:v2.7.5
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -40,20 +32,8 @@ spec:
             - secretRef:
                 name: immich-secret
           volumeMounts:
-            - name: library
+            - name: data
               mountPath: /data
-            - name: generated
-              mountPath: /data/thumbs
-              subPath: thumbs
-            - name: generated
-              mountPath: /data/encoded-video
-              subPath: encoded-video
-            - name: generated
-              mountPath: /data/profile
-              subPath: profile
-            - name: generated
-              mountPath: /data/backups
-              subPath: backups
             - name: config
               mountPath: /etc/immich/config.json
               subPath: config.json
@@ -80,12 +60,9 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 6
       volumes:
-        - name: library
+        - name: data
           persistentVolumeClaim:
-            claimName: immich-library-data
-        - name: generated
-          persistentVolumeClaim:
-            claimName: immich-generated-data
+            claimName: immich-data
         - name: config
           configMap:
             name: immich-config
