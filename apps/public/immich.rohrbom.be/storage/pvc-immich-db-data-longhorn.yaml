@@ -5,6 +5,8 @@ metadata:
   namespace: svc-immich
   annotations:
     kustomize.toolkit.fluxcd.io/prune: disabled
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-daily: enabled
 spec:
   accessModes:
     - ReadWriteOnce
