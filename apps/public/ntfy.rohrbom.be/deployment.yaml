@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ntfy
-          image: binwiederhier/ntfy:latest
+          image: binwiederhier/ntfy:v2.26.3
           imagePullPolicy: IfNotPresent
           args: ["serve"]
           ports:
