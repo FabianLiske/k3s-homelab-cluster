@@ -6,12 +6,9 @@ metadata:
   labels:
     app: readarr
 spec:
-  replicas: 0
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   selector:
     matchLabels:
       app: readarr
@@ -20,14 +17,6 @@ spec:
       labels:
         app: readarr
     spec:
-      nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
       securityContext:
         fsGroup: 1000
       containers:
@@ -49,8 +38,10 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: data
-              mountPath: /data
+            - name: media
+              mountPath: /data/media
+            - name: torrents
+              mountPath: /data/torrents
           readinessProbe:
             tcpSocket:
               port: http
@@ -76,6 +67,9 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: readarr-config
-        - name: data
+        - name: media
           persistentVolumeClaim:
-            claimName: media-cold-data
+            claimName: media-data
+        - name: torrents
+          persistentVolumeClaim:
+            claimName: torrent-data

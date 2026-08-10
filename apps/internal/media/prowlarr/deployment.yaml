@@ -6,12 +6,9 @@ metadata:
   labels:
     app: prowlarr
 spec:
-  replicas: 0
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   selector:
     matchLabels:
       app: prowlarr
@@ -20,14 +17,6 @@ spec:
       labels:
         app: prowlarr
     spec:
-      nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
       securityContext:
         fsGroup: 1000
       containers:
