@@ -192,7 +192,10 @@ Settings -> Media Management
 Empfohlen:
 
 * `Rename Episodes`: aktiv
-* `Use Hardlinks instead of Copy`: aktiv
+* `Use Hardlinks instead of Copy`: **deaktiviert**
+
+`/data/torrents` und `/data/media` sind getrennte NFS-Dateisysteme. Deshalb können
+Imports keine Hardlinks verwenden und müssen kopiert werden.
 
 ### Download Client
 
@@ -263,7 +266,10 @@ Settings -> Media Management
 Empfohlen:
 
 * `Rename Movies`: aktiv
-* `Use Hardlinks instead of Copy`: aktiv
+* `Use Hardlinks instead of Copy`: **deaktiviert**
+
+`/data/torrents` und `/data/media` sind getrennte NFS-Dateisysteme. Deshalb können
+Imports keine Hardlinks verwenden und müssen kopiert werden.
 
 ### Download Client
 
@@ -334,7 +340,10 @@ Settings -> Media Management
 Empfohlen:
 
 * `Rename Tracks`: aktiv
-* `Use Hardlinks instead of Copy`: aktiv
+* `Use Hardlinks instead of Copy`: **deaktiviert**
+
+`/data/torrents` und `/data/media` sind getrennte NFS-Dateisysteme. Deshalb können
+Imports keine Hardlinks verwenden und müssen kopiert werden.
 
 ### Download Client
 
@@ -405,7 +414,10 @@ Settings -> Media Management
 Empfohlen:
 
 * `Rename Books`: aktiv
-* `Use Hardlinks instead of Copy`: aktiv
+* `Use Hardlinks instead of Copy`: **deaktiviert**
+
+`/data/torrents` und `/data/media` sind getrennte NFS-Dateisysteme. Deshalb können
+Imports keine Hardlinks verwenden und müssen kopiert werden.
 
 ### Download Client
 
