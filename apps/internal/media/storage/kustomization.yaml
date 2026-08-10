@@ -6,3 +6,5 @@ resources:
   - pvc-media-cold-data.yaml
   - pv-media-local-data.yaml
   - pvc-media-local-data.yaml
+  - pv-torrent-data.yaml
+  - pvc-torrent-data.yaml

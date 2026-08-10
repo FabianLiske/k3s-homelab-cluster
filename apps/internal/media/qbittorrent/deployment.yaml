@@ -6,12 +6,9 @@ metadata:
   labels:
     app: qbittorrent
 spec:
-  replicas: 0
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   selector:
     matchLabels:
       app: qbittorrent
@@ -20,14 +17,6 @@ spec:
       labels:
         app: qbittorrent
     spec:
-      nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
       securityContext:
         fsGroup: 1000
       containers:
@@ -86,11 +75,8 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: data
-              mountPath: /data
-            - name: incomplete
-              mountPath: /data/torrents/incomplete
-              subPath: torrents/incomplete
+            - name: torrents
+              mountPath: /data/torrents
             - name: wireguard
               mountPath: /config/wireguard
             - name: dev-net-tun
@@ -122,12 +108,9 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: qbittorrent-config
-        - name: data
+        - name: torrents
           persistentVolumeClaim:
-            claimName: media-cold-data
-        - name: incomplete
-          persistentVolumeClaim:
-            claimName: media-local-data
+            claimName: torrent-data
         - name: wireguard
           secret:
             secretName: qbittorrent-wireguard
