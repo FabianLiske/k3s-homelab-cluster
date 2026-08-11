@@ -160,9 +160,12 @@ def relative(path: Path, root: Path) -> str:
 def print_plan(plan: DirectoryPlan, root: Path, number: int, total: int) -> None:
     print()
     print(f"[{number}/{total}] {relative(plan.directory, root)}")
+    source_width = max(
+        [len("ALT"), *(len(rename.source.name) for rename in plan.renames)]
+    )
+    print(f"  {'ALT':<{source_width}}  ->  NEU")
     for rename in plan.renames:
-        print(f"  ALT: {rename.source.name}")
-        print(f"  NEU: {rename.destination.name}")
+        print(f"  {rename.source.name:<{source_width}}  ->  {rename.destination.name}")
     for path in plan.ambiguous:
         print(f"  BLOCKIERT (mehrdeutig): {path.name}")
     for problem in plan.problems:
@@ -222,7 +225,7 @@ def apply_plan(plan: DirectoryPlan) -> None:
 def prompt_for_directory() -> str:
     while True:
         try:
-            answer = input("Ordner umbenennen? [j]a / [n]ein / [q]uit: ").strip().lower()
+            answer = input("Diesen Ordner umbenennen? [y/N/q]: ").strip().lower()
         except EOFError:
             return "q"
         if answer in {"j", "ja", "y", "yes"}:
@@ -231,7 +234,7 @@ def prompt_for_directory() -> str:
             return "no"
         if answer in {"q", "quit", "ende"}:
             return "quit"
-        print("Bitte j, n oder q eingeben.")
+        print("Bitte y, n oder q eingeben.")
 
 
 def main() -> int:

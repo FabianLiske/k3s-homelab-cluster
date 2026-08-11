@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 
@@ -82,6 +84,21 @@ class DirectoryPlanTest(unittest.TestCase):
 
             self.assertFalse(source.exists())
             self.assertTrue((root / "Show S02E03.mkv").exists())
+
+    def test_prints_one_old_to_new_line_per_episode(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "Show 1-01.mkv").touch()
+            (root / "Show 1-02.mkv").touch()
+            plan = RENAMER.build_plans(root)[0]
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                RENAMER.print_plan(plan, root, 1, 1)
+
+            lines = output.getvalue().splitlines()
+            self.assertIn("Show 1-01.mkv  ->  Show S01E01.mkv", lines[3])
+            self.assertIn("Show 1-02.mkv  ->  Show S01E02.mkv", lines[4])
 
 
 if __name__ == "__main__":
