@@ -11,3 +11,5 @@ docs/media-vm-zielbild.md
 docs/media-vm-action-log.md
 temp.md
 .codex
+__pycache__/
+*.py[cod]
