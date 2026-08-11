@@ -6,12 +6,9 @@ metadata:
   labels:
     app: calibre
 spec:
-  replicas: 0
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   selector:
     matchLabels:
       app: calibre
@@ -20,14 +17,6 @@ spec:
       labels:
         app: calibre
     spec:
-      nodeSelector:
-        dedicated: media
-        kubernetes.io/arch: amd64
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: media
-          effect: NoSchedule
       securityContext:
         fsGroup: 1000
       initContainers:
@@ -37,9 +26,7 @@ spec:
             - sh
             - -c
             - |
-              mkdir -p /data/import/ebooks /data/media/books
-              chown 1000:1000 /data/import/ebooks /data/media/books
-              chmod 2775 /data/import/ebooks /data/media/books
+              mkdir -p /data/book-ingest /data/books
           volumeMounts:
             - name: data
               mountPath: /data
@@ -58,16 +45,16 @@ spec:
             - name: TZ
               value: "Europe/Berlin"
             - name: NETWORK_SHARE_MODE
-              value: "false"
+              value: "true"
           volumeMounts:
             - name: config
               mountPath: /config
             - name: data
               mountPath: /cwa-book-ingest
-              subPath: import/ebooks
+              subPath: book-ingest
             - name: data
               mountPath: /calibre-library
-              subPath: media/books
+              subPath: books
           readinessProbe:
             tcpSocket:
               port: http
@@ -95,4 +82,4 @@ spec:
             claimName: calibre-config
         - name: data
           persistentVolumeClaim:
-            claimName: media-cold-data
+            claimName: media-data
