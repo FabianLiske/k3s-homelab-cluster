@@ -8,14 +8,11 @@ labels:
 resources:
   - namespace.yaml
   - storage
-  - backup
-  - bazarr
   - calibre
   - jellyfin
   - lidarr
   - radarr
   - qbittorrent
   - prowlarr
-  - readarr
   - seerr
   - sonarr
