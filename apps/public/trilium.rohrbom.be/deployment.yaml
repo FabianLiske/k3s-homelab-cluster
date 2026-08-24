@@ -6,44 +6,57 @@ metadata:
   labels: { app: trilium }
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector: { matchLabels: { app: trilium } }
   template:
     metadata: { labels: { app: trilium } }
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
       containers:
         - name: trilium
-          image: zadam/trilium:latest
+          image: triliumnext/trilium:v0.105.0
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
             runAsGroup: 0
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
           ports:
             - name: http
               containerPort: 8080
           env:
-            - name: TRILIUM_PORT
+            - name: TRILIUM_DATA_DIR
+              value: /home/node/trilium-data
+            - name: TRILIUM_NETWORK_PORT
               value: "8080"
+            # Exactly one trusted hop: the nginx-public ingress controller.
+            - name: TRILIUM_NETWORK_TRUSTEDREVERSEPROXY
+              value: "1"
           volumeMounts:
             - name: data
               mountPath: /home/node/trilium-data
           readinessProbe:
-            httpGet: { path: "/", port: http }
+            httpGet: { path: /api/health-check, port: http }
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 12
           livenessProbe:
-            httpGet: { path: "/", port: http }
+            httpGet: { path: /api/health-check, port: http }
             initialDelaySeconds: 120
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 6
           resources:
             requests: { cpu: 100m, memory: 256Mi }
-            limits:   { cpu: "1",   memory: 1Gi }
+            limits: { cpu: "1", memory: 1Gi }
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: trilium-data
-            

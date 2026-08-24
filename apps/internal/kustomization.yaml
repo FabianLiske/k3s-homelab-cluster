@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - ./homepage/
   - ./stirling-pdf/
-  - ./trilium/
   - ./linkding/
   - ./paperless-ngx/
   - ./media/

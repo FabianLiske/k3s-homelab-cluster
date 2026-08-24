@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-trilium-from-public-ingress
+  namespace: svc-trilium
+spec:
+  podSelector:
+    matchLabels:
+      app: trilium
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-30
+      ports:
+        - { protocol: TCP, port: 8080 }
