@@ -18,6 +18,7 @@ spec:
         app: jupyter
     spec:
       automountServiceAccountToken: false
+      enableServiceLinks: false
       nodeSelector:
         node.rohrbom.be/heavy-compute: "true"
       securityContext:
@@ -34,8 +35,9 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - start-notebook.py
+            - --ServerApp.log_level=WARNING
+            - --ServerApp.port=8888
             - --ServerApp.root_dir=/home/jovyan/work
-            - --IdentityProvider.token=$(JUPYTER_TOKEN)
           env:
             - name: JUPYTER_TOKEN
               valueFrom:
