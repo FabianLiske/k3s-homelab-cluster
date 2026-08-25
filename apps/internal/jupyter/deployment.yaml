@@ -35,7 +35,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - start-notebook.py
-            - --ServerApp.log_level=WARNING
+            - --ServerApp.log_level=WARN
             - --ServerApp.port=8888
             - --ServerApp.root_dir=/home/jovyan/work
           env:
