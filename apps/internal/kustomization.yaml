@@ -9,3 +9,4 @@ resources:
   - ./pelican/
   - ./image-compressor/
   - ./openclaw/
+  - ./jupyter/
