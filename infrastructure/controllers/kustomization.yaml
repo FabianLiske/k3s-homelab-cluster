@@ -6,3 +6,4 @@ resources:
   - ./ingress-nginx/
   - ./longhorn/
   - ./cloudflare-ddns
+  - ./intel-gpu/
