@@ -7,6 +7,7 @@ metadata:
     app.kubernetes.io/component: inference
 spec:
   replicas: 1
+  progressDeadlineSeconds: 1800
   strategy:
     type: Recreate
   selector:
@@ -18,6 +19,7 @@ spec:
         app.kubernetes.io/name: vllm
         app.kubernetes.io/component: inference
     spec:
+      enableServiceLinks: false
       terminationGracePeriodSeconds: 120
       nodeSelector:
         node.rohrbom.be/workload: llm
