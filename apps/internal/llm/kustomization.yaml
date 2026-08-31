@@ -8,3 +8,4 @@ labels:
 resources:
   - namespace.yaml
   - storage/
+  - vllm/

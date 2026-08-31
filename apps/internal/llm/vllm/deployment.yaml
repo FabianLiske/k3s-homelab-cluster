@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  labels:
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/component: inference
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vllm
+        app.kubernetes.io/component: inference
+    spec:
+      terminationGracePeriodSeconds: 120
+      nodeSelector:
+        node.rohrbom.be/workload: llm
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: llm
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai-xpu:v0.28.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - vllm
+            - serve
+          args:
+            - openai/gpt-oss-20b
+            - --served-model-name=local-chat
+            - --host=0.0.0.0
+            - --port=8000
+            - --download-dir=/var/lib/llm/models
+            - --gpu-memory-utilization=0.90
+            - --max-model-len=32768
+            - --enable-auto-tool-choice
+            - --tool-call-parser=openai
+            - --reasoning-parser=openai_gptoss
+          env:
+            - name: HF_HOME
+              value: /var/lib/llm/cache/huggingface
+            - name: VLLM_CACHE_ROOT
+              value: /var/lib/llm/cache/vllm
+            - name: TRITON_CACHE_DIR
+              value: /var/lib/llm/cache/triton
+            - name: TORCHINDUCTOR_CACHE_DIR
+              value: /var/lib/llm/cache/torchinductor
+            - name: VLLM_NO_USAGE_STATS
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 180
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "8"
+              memory: 24Gi
+              gpu.intel.com/xe: "1"
+            limits:
+              cpu: "32"
+              memory: 64Gi
+              gpu.intel.com/xe: "1"
+          volumeMounts:
+            - name: llm-storage
+              mountPath: /var/lib/llm
+            - name: shared-memory
+              mountPath: /dev/shm
+      volumes:
+        - name: llm-storage
+          persistentVolumeClaim:
+            claimName: llm-storage
+        - name: shared-memory
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
