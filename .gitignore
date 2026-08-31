@@ -9,6 +9,7 @@ age*.key
 docs/notes.md
 docs/media-vm-zielbild.md
 docs/media-vm-action-log.md
+docs/local-llm-architecture.md
 temp.md
 .codex
 __pycache__/
