@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: litellm-postgresql
+  labels:
+    app.kubernetes.io/name: litellm-postgresql
+    app.kubernetes.io/component: database
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-hourly: enabled
+    recurring-job.longhorn.io/backup-daily: enabled
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-2r
+  resources:
+    requests:
+      storage: 5Gi

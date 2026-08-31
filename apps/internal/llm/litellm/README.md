@@ -22,6 +22,25 @@ To encrypt the real secret with the repository's SOPS configuration:
 sops --encrypt --in-place apps/internal/llm/litellm/litellm-secret.yaml
 ```
 
+## PostgreSQL
+
+LiteLLM uses PostgreSQL for its admin UI, virtual keys and persistent usage
+data. Replace the placeholder in `litellm-database-secret.yaml` with a URL-safe
+password:
+
+```bash
+openssl rand -hex 32
+```
+
+Then encrypt it:
+
+```bash
+sops --encrypt --in-place apps/internal/llm/litellm/litellm-database-secret.yaml
+```
+
+The database uses a 5 GiB Longhorn volume with hourly and daily backups. It is
+only exposed inside the cluster.
+
 ## API test
 
 ```bash

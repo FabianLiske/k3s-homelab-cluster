@@ -21,23 +21,51 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-for-postgresql
+          image: docker.io/library/postgres:17
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -ec
+            - until pg_isready --host=litellm-postgresql --username=litellm --dbname=litellm; do sleep 2; done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       containers:
         - name: litellm
           image: ghcr.io/berriai/litellm:v1.98.0
           imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -ec
           args:
-            - --config
-            - /etc/litellm/config.yaml
-            - --host
-            - 0.0.0.0
-            - --port
-            - "4000"
+            - |
+              export DATABASE_URL="postgresql://litellm:${POSTGRES_PASSWORD}@litellm-postgresql:5432/litellm"
+              exec litellm --config /etc/litellm/config.yaml --host 0.0.0.0 --port 4000
           env:
             - name: LITELLM_MASTER_KEY
               valueFrom:
                 secretKeyRef:
                   name: litellm-secrets
                   key: LITELLM_MASTER_KEY
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-database-secrets
+                  key: POSTGRES_PASSWORD
           ports:
             - name: http
               containerPort: 4000
