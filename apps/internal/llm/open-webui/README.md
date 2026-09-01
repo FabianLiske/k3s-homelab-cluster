@@ -23,6 +23,17 @@ sops --encrypt --in-place apps/internal/llm/open-webui/open-webui-secret.yaml
 On the first startup Open WebUI creates the administrator automatically and
 keeps public signup disabled.
 
+## Web search
+
+Web search is enabled declaratively and uses Open WebUI's built-in DuckDuckGo
+provider, so it does not require an API key. Enable the Web Search toggle in a
+chat to make the `search_web` and `fetch_url` tools available to the model.
+
+`ENABLE_PERSISTENT_CONFIG=false` keeps the settings from this deployment
+authoritative. Consequently, configuration changes made in the Open WebUI
+admin interface do not survive a pod restart and should instead be added to
+the deployment manifest.
+
 ## Storage
 
 - PostgreSQL: 5 GiB Longhorn volume with hourly and daily backups

@@ -90,6 +90,14 @@ spec:
               value: Admin
             - name: ENABLE_SIGNUP
               value: "false"
+            # Keep the Git-managed web search settings authoritative over
+            # values already stored in Open WebUI's PostgreSQL database.
+            - name: ENABLE_PERSISTENT_CONFIG
+              value: "false"
+            - name: ENABLE_WEB_SEARCH
+              value: "true"
+            - name: WEB_SEARCH_ENGINE
+              value: duckduckgo
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
