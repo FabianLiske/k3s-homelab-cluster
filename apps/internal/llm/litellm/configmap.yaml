@@ -11,6 +11,10 @@ data:
           api_base: http://vllm.svc-llm.svc.cluster.local:8000/v1
           api_key: not-needed
           use_chat_completions_api: true
+        model_info:
+          # Together AI serverless reference pricing for GPT-OSS 20B, USD/token.
+          input_cost_per_token: 0.00000005
+          output_cost_per_token: 0.00000020
 
     general_settings:
       master_key: os.environ/LITELLM_MASTER_KEY
