@@ -1,0 +1,36 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: keda-add-ons-http
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: keda
+      namespace: flux-system
+  interval: 5m
+  timeout: 10m
+  targetNamespace: keda
+  install:
+    createNamespace: true
+    crds: Create
+  upgrade:
+    crds: CreateReplace
+  chart:
+    spec:
+      chart: keda-add-ons-http
+      version: "0.15.0"
+      sourceRef:
+        kind: HelmRepository
+        name: kedacore
+        namespace: flux-system
+  values:
+    operator:
+      pullPolicy: IfNotPresent
+    scaler:
+      replicas: 1
+      pullPolicy: IfNotPresent
+    interceptor:
+      pullPolicy: IfNotPresent
+      replicas:
+        min: 1
+        max: 2

@@ -7,3 +7,4 @@ resources:
   - ./longhorn/
   - ./cloudflare-ddns
   - ./intel-gpu/
+  - ./keda/

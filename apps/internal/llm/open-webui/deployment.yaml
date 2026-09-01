@@ -62,6 +62,10 @@ spec:
               value: "true"
             - name: OPENAI_API_BASE_URL
               value: http://litellm.svc-llm.svc.cluster.local:4000/v1
+            - name: AIOHTTP_CLIENT_TIMEOUT
+              value: "600"
+            - name: AIOHTTP_CLIENT_STREAM_IDLE_TIMEOUT
+              value: "600"
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:

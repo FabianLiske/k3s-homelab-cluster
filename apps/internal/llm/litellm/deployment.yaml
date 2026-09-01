@@ -12,6 +12,8 @@ spec:
       app.kubernetes.io/name: litellm
   template:
     metadata:
+      annotations:
+        checksum/config: 93a214c38c44ae14d81cb101491a53e9eba24fc58d31cac4cbd83f0f3c358fa5
       labels:
         app.kubernetes.io/name: litellm
         app.kubernetes.io/component: gateway
