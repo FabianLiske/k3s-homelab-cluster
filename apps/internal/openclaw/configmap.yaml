@@ -71,13 +71,13 @@ data:
             ]
           }
         },
-        "list": [
-          {
-            "id": "default",
+        "entries": {
+          "default": {
+            "default": true,
             "name": "OpenClaw Assistant",
             "workspace": "~/.openclaw/workspace"
           }
-        ]
+        }
       },
       "cron": {
         "enabled": false
