@@ -8,7 +8,7 @@ data:
       - model_name: local-chat
         litellm_params:
           model: openai/local-chat
-          api_base: http://vllm-proxy:8080/v1
+          api_base: http://vllm.svc-llm.svc.cluster.local:8000/v1
           api_key: not-needed
           use_chat_completions_api: true
         model_info:

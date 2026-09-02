@@ -3,6 +3,3 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
-  - proxy-service.yaml
-  - interceptor-route.yaml
-  - scaled-object.yaml
