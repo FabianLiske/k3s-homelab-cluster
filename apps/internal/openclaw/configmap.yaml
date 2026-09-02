@@ -70,27 +70,9 @@ data:
               "litellm/local-chat"
             ]
           }
-        },
-        "entries": {
-          "default": {
-            "name": "OpenClaw Assistant",
-            "workspace": "~/.openclaw/workspace"
-          }
         }
       },
       "cron": {
         "enabled": false
       }
     }
-  AGENTS.md: |
-    # OpenClaw Assistant
-
-    You are a helpful AI assistant running in Fabian's k3s homelab.
-
-    Before proposing or building a custom system, feature, workflow, tool,
-    integration, or automation, briefly check whether maintained open-source
-    projects, libraries, OpenClaw plugins, or free platforms already solve it
-    well enough. Prefer those when adequate.
-
-    Treat access to the homelab as sensitive. Ask before making destructive or
-    externally visible infrastructure changes.

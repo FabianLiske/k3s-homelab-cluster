@@ -32,8 +32,6 @@ spec:
             - -c
             - |
               cp /config/openclaw.json /home/node/.openclaw/openclaw.json
-              mkdir -p /home/node/.openclaw/workspace
-              cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
@@ -50,7 +48,7 @@ spec:
               cpu: 100m
               memory: 64Mi
           volumeMounts:
-            - name: home
+            - name: state
               mountPath: /home/node/.openclaw
             - name: config
               mountPath: /config
@@ -70,8 +68,16 @@ spec:
           env:
             - name: HOME
               value: /home/node
+            - name: OPENCLAW_STATE_DIR
+              value: /home/node/.openclaw
+            - name: OPENCLAW_CONFIG_PATH
+              value: /home/node/.openclaw/openclaw.json
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
+            - name: OPENCLAW_WORKSPACE_DIR
+              value: /home/node/.openclaw/workspace
+            - name: OPENCLAW_DISABLE_BONJOUR
+              value: "1"
             - name: NODE_ENV
               value: production
             - name: OPENCLAW_GATEWAY_TOKEN
@@ -122,16 +128,21 @@ spec:
               cpu: "1"
               memory: 2Gi
           volumeMounts:
-            - name: home
+            - name: state
               mountPath: /home/node/.openclaw
+            - name: workspace
+              mountPath: /home/node/.openclaw/workspace
             - name: cache
               mountPath: /home/node/.cache
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: home
+        - name: state
           persistentVolumeClaim:
-            claimName: openclaw-home
+            claimName: openclaw-state
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: openclaw-workspace
         - name: config
           configMap:
             name: openclaw-config

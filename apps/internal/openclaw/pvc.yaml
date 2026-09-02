@@ -1,7 +1,24 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: openclaw-home
+  name: openclaw-state
+  namespace: svc-openclaw
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/backup-daily: enabled
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-2r
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openclaw-workspace
   namespace: svc-openclaw
   labels:
     recurring-job.longhorn.io/source: enabled
