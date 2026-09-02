@@ -26,6 +26,38 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
+        - name: init-permissions
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              chown 1000:1000 /home/node/.openclaw /home/node/.openclaw/workspace
+              chmod 0700 /home/node/.openclaw /home/node/.openclaw/workspace
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+                - FOWNER
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          volumeMounts:
+            - name: state
+              mountPath: /home/node/.openclaw
+            - name: workspace
+              mountPath: /home/node/.openclaw/workspace
         - name: init-config
           image: busybox:1.37
           imagePullPolicy: IfNotPresent
@@ -34,6 +66,7 @@ spec:
             - -c
             - |
               cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              chmod 0600 /home/node/.openclaw/openclaw.json
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
