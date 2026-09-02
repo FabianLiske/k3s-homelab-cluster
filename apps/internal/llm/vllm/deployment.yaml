@@ -40,8 +40,8 @@ spec:
             - --host=0.0.0.0
             - --port=8000
             - --download-dir=/var/lib/llm/models
-            - --gpu-memory-utilization=0.90
-            - --max-model-len=32768
+            - --gpu-memory-utilization=0.95
+            - --max-model-len=131072
             - --enable-auto-tool-choice
             - --tool-call-parser=openai
             - --reasoning-parser=openai_gptoss

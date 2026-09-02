@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        openclaw.rohrbom.be/config-revision: "local-model-v2"
+        openclaw.rohrbom.be/config-revision: "context-128k-v3"
       labels:
         app: openclaw
     spec:
