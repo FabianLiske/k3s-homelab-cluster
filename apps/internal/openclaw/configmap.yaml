@@ -73,7 +73,6 @@ data:
         },
         "entries": {
           "default": {
-            "default": true,
             "name": "OpenClaw Assistant",
             "workspace": "~/.openclaw/workspace"
           }
