@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        openclaw.rohrbom.be/config-revision: "agent-default-v1"
+        openclaw.rohrbom.be/config-revision: "local-model-v2"
       labels:
         app: openclaw
     spec:

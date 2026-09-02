@@ -57,6 +57,17 @@ data:
           }
         }
       },
+      "tools": {
+        "toolSearch": {
+          "mode": "directory"
+        }
+      },
+      "memory": {
+        "search": {
+          "provider": "none",
+          "fallback": "none"
+        }
+      },
       "agents": {
         "defaults": {
           "workspace": "~/.openclaw/workspace",
