@@ -70,6 +70,8 @@ spec:
           env:
             - name: HOME
               value: /home/node
+            - name: NPM_CONFIG_CACHE
+              value: /home/node/.cache/npm
             - name: OPENCLAW_STATE_DIR
               value: /home/node/.openclaw
             - name: OPENCLAW_CONFIG_PATH
