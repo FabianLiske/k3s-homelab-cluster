@@ -103,6 +103,9 @@ spec:
             httpGet:
               path: /healthz
               port: gateway
+              httpHeaders:
+                - name: X-Forwarded-For
+                  value: 192.0.2.1
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 30
@@ -110,6 +113,9 @@ spec:
             httpGet:
               path: /readyz
               port: gateway
+              httpHeaders:
+                - name: X-Forwarded-For
+                  value: 192.0.2.1
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 6
@@ -117,6 +123,9 @@ spec:
             httpGet:
               path: /healthz
               port: gateway
+              httpHeaders:
+                - name: X-Forwarded-For
+                  value: 192.0.2.1
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3

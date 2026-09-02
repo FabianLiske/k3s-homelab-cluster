@@ -38,7 +38,7 @@ spec:
       watchIngressWithoutClass: false
       service:
         type: LoadBalancer
-        externalTrafficPolicy: Cluster
+        externalTrafficPolicy: Local
         loadBalancerIP: 172.26.20.151
         annotations:
           metallb.universe.tf/address-pool: pool-vlan20-internal
