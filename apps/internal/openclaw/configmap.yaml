@@ -63,6 +63,7 @@ data:
           "model": {
             "primary": "litellm/local-chat"
           },
+          "utilityModel": "litellm/local-chat",
           "models": {
             "litellm/local-chat": {
               "alias": "Local"
@@ -72,6 +73,12 @@ data:
             "allow": [
               "litellm/local-chat"
             ]
+          }
+        },
+        "entries": {
+          "default": {
+            "name": "OpenClaw Assistant",
+            "workspace": "~/.openclaw/workspace"
           }
         }
       },
