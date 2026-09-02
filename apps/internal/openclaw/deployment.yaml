@@ -56,7 +56,7 @@ spec:
               mountPath: /config
       containers:
         - name: gateway
-          image: ghcr.io/openclaw/openclaw:slim
+          image: ghcr.io/openclaw/openclaw:2026.8.2-slim@sha256:5d25165995041caa6a7175bec82b25ad98c44eb269bb42435da8e27ec06e6be4
           imagePullPolicy: IfNotPresent
           command:
             - node
@@ -79,30 +79,11 @@ spec:
                 secretKeyRef:
                   name: openclaw-secrets
                   key: OPENCLAW_GATEWAY_TOKEN
-            - name: ANTHROPIC_API_KEY
+            - name: LITELLM_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: openclaw-secrets
-                  key: ANTHROPIC_API_KEY
-                  optional: true
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: openclaw-secrets
-                  key: OPENAI_API_KEY
-                  optional: true
-            - name: GEMINI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: openclaw-secrets
-                  key: GEMINI_API_KEY
-                  optional: true
-            - name: OPENROUTER_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: openclaw-secrets
-                  key: OPENROUTER_API_KEY
-                  optional: true
+                  key: LITELLM_API_KEY
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
