@@ -8,6 +8,5 @@ resources:
   - ./media/
   - ./pelican/
   - ./image-compressor/
-  - ./openclaw/
   - ./jupyter/
   - ./llm/
