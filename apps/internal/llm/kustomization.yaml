@@ -9,5 +9,6 @@ resources:
   - namespace.yaml
   - storage/
   - vllm/
+  - embeddings/
   - litellm/
   - open-webui/

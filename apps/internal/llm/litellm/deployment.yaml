@@ -12,6 +12,8 @@ spec:
       app.kubernetes.io/name: litellm
   template:
     metadata:
+      annotations:
+        llm.rohrbom.be/config-revision: "local-embedding-v1"
       labels:
         app.kubernetes.io/name: litellm
         app.kubernetes.io/component: gateway

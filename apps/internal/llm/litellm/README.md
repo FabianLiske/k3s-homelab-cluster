@@ -2,7 +2,8 @@
 
 LiteLLM exposes the OpenAI-compatible gateway at
 `https://llm.intern.rohrbom.be` and routes `local-chat` to the internal vLLM
-service.
+service and `local-embedding` to the CPU-based Text Embeddings Inference
+service on `wk-5`.
 
 ## Master key
 
@@ -58,3 +59,18 @@ curl -s https://llm.intern.rohrbom.be/v1/chat/completions \
     "max_tokens": 64
   }' | jq
 ```
+
+Test the embedding route and verify Qwen's 1024-dimensional output:
+
+```bash
+curl -s https://llm.intern.rohrbom.be/v1/embeddings \
+  -H 'Authorization: Bearer <LITELLM_MASTER_KEY>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "local-embedding",
+    "input": "LiteLLM routet dieses Embedding lokal."
+  }' | jq '.data[0].embedding | length'
+```
+
+Virtual keys used by OpenClaw must allow both `local-chat` and
+`local-embedding`.

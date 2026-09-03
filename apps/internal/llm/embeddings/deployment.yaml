@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embeddings
+  labels:
+    app.kubernetes.io/name: embeddings
+    app.kubernetes.io/component: inference
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: embeddings
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: embeddings
+        app.kubernetes.io/component: inference
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      nodeSelector:
+        node.rohrbom.be/workload: llm
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: llm
+          effect: NoSchedule
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: embeddings
+          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9@sha256:c26a226262ad4ff3330fb30b76653c1bb65da2fcf413b92284545a010e0a8a48
+          imagePullPolicy: IfNotPresent
+          args:
+            - --model-id=Qwen/Qwen3-Embedding-0.6B
+            - --revision=97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+            - --served-model-name=local-embedding
+            - --hostname=0.0.0.0
+            - --port=8080
+            - --prometheus-port=9000
+            - --huggingface-hub-cache=/data/cache/huggingface
+            - --tokenization-workers=4
+            - --max-concurrent-requests=32
+            - --max-batch-requests=32
+            - --max-client-batch-size=32
+            - --max-batch-tokens=8192
+            - --auto-truncate
+          env:
+            - name: RAYON_NUM_THREADS
+              value: "8"
+            - name: OMP_NUM_THREADS
+              value: "8"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 180
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "4"
+              memory: 4Gi
+            limits:
+              cpu: "8"
+              memory: 8Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: llm-storage
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: llm-storage
+          persistentVolumeClaim:
+            claimName: llm-storage
+        - name: tmp
+          emptyDir: {}
