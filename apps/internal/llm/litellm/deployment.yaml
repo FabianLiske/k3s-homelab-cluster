@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        llm.rohrbom.be/config-revision: "qwen3-6-27b-fp8-v1"
+        llm.rohrbom.be/config-revision: "qwen3-6-27b-fp8-pricing-v1"
       labels:
         app.kubernetes.io/name: litellm
         app.kubernetes.io/component: gateway

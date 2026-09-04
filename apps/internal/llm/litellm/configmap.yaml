@@ -13,9 +13,10 @@ data:
           api_key: not-needed
           use_chat_completions_api: true
         model_info:
-          # Self-hosted model: keep explicit zero pricing for LiteLLM accounting.
-          input_cost_per_token: 0
-          output_cost_per_token: 0
+          # Cloud-equivalent reference pricing, checked 2026-09-04:
+          # SiliconFlow Qwen3.6-27B: $0.30/M input, $3.20/M output.
+          input_cost_per_token: 0.00000030
+          output_cost_per_token: 0.00000320
 
       - model_name: local-embedding
         litellm_params:

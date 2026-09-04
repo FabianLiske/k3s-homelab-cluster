@@ -6,6 +6,11 @@ LiteLLM exposes the OpenAI-compatible gateway at
 same endpoint and model name. `local-embedding` continues to use the unchanged
 CPU-based Text Embeddings Inference service on `wk-5`.
 
+For LiteLLM cost tracking, `local-chat` uses a cloud-equivalent reference price
+of USD 0.30 per million input tokens and USD 3.20 per million output tokens.
+This reflects commonly available FP8 Qwen3.6-27B pricing checked on 2026-09-04;
+the requests themselves continue to run exclusively on the local vLLM backend.
+
 ## Master key
 
 Replace the placeholder in `litellm-secret.yaml` before deployment. The value
