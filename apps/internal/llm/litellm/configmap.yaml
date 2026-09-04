@@ -7,14 +7,15 @@ data:
     model_list:
       - model_name: local-chat
         litellm_params:
-          model: openai/local-chat
+          # Keep the LiteLLM alias stable while addressing Qwen explicitly.
+          model: openai/Qwen/Qwen3.6-27B-FP8
           api_base: http://vllm.svc-llm.svc.cluster.local:8000/v1
           api_key: not-needed
           use_chat_completions_api: true
         model_info:
-          # Together AI serverless reference pricing for GPT-OSS 20B, USD/token.
-          input_cost_per_token: 0.00000005
-          output_cost_per_token: 0.00000020
+          # Self-hosted model: keep explicit zero pricing for LiteLLM accounting.
+          input_cost_per_token: 0
+          output_cost_per_token: 0
 
       - model_name: local-embedding
         litellm_params:

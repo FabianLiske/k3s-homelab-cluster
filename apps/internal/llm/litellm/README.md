@@ -1,9 +1,10 @@
 # LiteLLM
 
 LiteLLM exposes the OpenAI-compatible gateway at
-`https://llm.intern.rohrbom.be` and routes `local-chat` to the internal vLLM
-service and `local-embedding` to the CPU-based Text Embeddings Inference
-service on `wk-5`.
+`https://llm.intern.rohrbom.be` and routes the stable `local-chat` alias to
+`Qwen/Qwen3.6-27B-FP8` on the internal vLLM service. Existing consumers keep the
+same endpoint and model name. `local-embedding` continues to use the unchanged
+CPU-based Text Embeddings Inference service on `wk-5`.
 
 ## Master key
 
