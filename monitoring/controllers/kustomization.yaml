@@ -14,3 +14,4 @@ resources:
   - ./telegraf/
   - ./unpoller/
   - ./grafana/
+  - ./xpu-smi-exporter/

@@ -14,3 +14,7 @@ spec:
       port: 8000
       targetPort: http
       protocol: TCP
+    - name: metrics
+      port: 8000
+      targetPort: http
+      protocol: TCP

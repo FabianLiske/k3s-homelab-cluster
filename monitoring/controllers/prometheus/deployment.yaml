@@ -33,6 +33,7 @@ spec:
           volumeMounts:
             - { name: data, mountPath: /prometheus }
             - { name: config, mountPath: /etc/prometheus/prometheus.yml, subPath: prometheus.yml }
+            - { name: litellm-credentials, mountPath: /etc/litellm-credentials, readOnly: true }
           readinessProbe:
             httpGet: { path: /-/ready, port: http }
             initialDelaySeconds: 10
@@ -49,3 +50,6 @@ spec:
           persistentVolumeClaim: { claimName: prometheus-data }
         - name: config
           configMap: { name: prometheus-config }
+        - name: litellm-credentials
+          secret:
+            secretName: litellm-metrics-secret

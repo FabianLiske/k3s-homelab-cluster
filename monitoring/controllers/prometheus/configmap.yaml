@@ -25,10 +25,11 @@ data:
               - 'cp-1:9100'
               - 'cp-2:9100'
               - 'cp-3:9100'
-              - 'media-1:9100'
               - 'wk-1:9100'
               - 'wk-2:9100'
               - 'wk-3:9100'
+              - 'wk-4:9100'
+              - 'wk-5:9100'
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
@@ -73,12 +74,11 @@ data:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
             action: drop
-      # === STORAGE: Longhorn ===
+      # === STORAGE: Longhorn (static, per Manager-Pod) ===
       - job_name: longhorn
-        dns_sd_configs:
-          - names: ['_metrics._tcp.longhorn-manager-metrics.longhorn-system.svc']
-            type: SRV
-            refresh_interval: 1m
+        static_configs:
+          - targets:
+              - 'longhorn-manager-metrics.longhorn-system.svc:9500'
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
@@ -116,6 +116,43 @@ data:
         scrape_interval: 30s
         static_configs:
           - targets: ['unpoller.ops-monitoring.svc:9130']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === LLM: vLLM Inference Metrics ===
+      - job_name: vllm
+        static_configs:
+          - targets: ['vllm.svc-llm.svc:8000']
+        metrics_path: /metrics
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*|python_.*|vllm:estimated_flops_.*_created|vllm:estimated_read_bytes_.*_created|vllm:estimated_write_bytes_.*_created|vllm:prefix_cache_queries_created)$'
+            action: drop
+      # === LLM: Text Embeddings Inference Metrics ===
+      - job_name: embeddings
+        static_configs:
+          - targets: ['embeddings.svc-llm.svc:9000']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === LLM: LiteLLM Proxy Metrics ===
+      - job_name: litellm
+        static_configs:
+          - targets: ['litellm.svc-llm.svc:4000']
+        metrics_path: /metrics
+        basic_auth:
+          username: token
+          password_file: /etc/litellm-credentials/LITELLM_MASTER_KEY
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(go_.*|process_.*|promhttp_.*)$'
+            action: drop
+      # === GPU: Intel XPU SMI Exporter ===
+      - job_name: xpu-smi
+        static_configs:
+          - targets: ['xpu-smi-exporter.ops-monitoring.svc:9108']
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
