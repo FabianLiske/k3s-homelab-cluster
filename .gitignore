@@ -12,5 +12,6 @@ docs/media-vm-action-log.md
 docs/local-llm-architecture.md
 temp.md
 .codex
+.claude
 __pycache__/
 *.py[cod]
