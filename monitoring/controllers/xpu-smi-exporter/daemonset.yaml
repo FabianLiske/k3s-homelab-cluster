@@ -43,7 +43,8 @@ spec:
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: true
             capabilities:
-              drop: []
+              drop:
+                - ALL
               add:
                 - SYS_ADMIN
           resources:
