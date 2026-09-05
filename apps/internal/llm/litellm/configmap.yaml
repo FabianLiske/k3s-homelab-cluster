@@ -8,13 +8,13 @@ data:
       - model_name: local-chat
         litellm_params:
           # Keep the LiteLLM alias stable while addressing Qwen explicitly.
-          model: openai/Qwen/Qwen3.6-27B-FP8
+          model: openai/Qwen/Qwen3.8-27B-FP8
           api_base: http://vllm.svc-llm.svc.cluster.local:8000/v1
           api_key: not-needed
           use_chat_completions_api: true
         model_info:
-          # Cloud-equivalent reference pricing, checked 2026-09-04:
-          # SiliconFlow Qwen3.6-27B: $0.30/M input, $3.20/M output.
+          # TODO: reference pricing carried over from Qwen3.6-27B (checked 2026-09-04).
+          # No confirmed SiliconFlow listing for Qwen3.8-27B yet; re-check and update.
           input_cost_per_token: 0.00000030
           output_cost_per_token: 0.00000320
 
