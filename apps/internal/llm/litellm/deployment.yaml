@@ -14,6 +14,7 @@ spec:
     metadata:
       annotations:
         llm.rohrbom.be/config-revision: "qwen3-6-27b-fp8-pricing-v1"
+        llm.rohrbom.be/secret-revision: "2026-09-05-rotate-1"
       labels:
         app.kubernetes.io/name: litellm
         app.kubernetes.io/component: gateway
