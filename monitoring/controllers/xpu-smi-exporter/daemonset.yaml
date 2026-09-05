@@ -41,7 +41,7 @@ spec:
               protocol: TCP
           securityContext:
             readOnlyRootFilesystem: true
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
             capabilities:
               drop:
                 - ALL
