@@ -57,8 +57,12 @@ spec:
           volumeMounts:
             - name: dri
               mountPath: /dev/dri
+            - name: run
+              mountPath: /run
       volumes:
         - name: dri
           hostPath:
             path: /dev/dri
             type: Directory
+        - name: run
+          emptyDir: {}
