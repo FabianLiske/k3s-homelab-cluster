@@ -30,7 +30,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: xpu-smi-exporter
-          image: ghcr.io/intel/xpumanager/xpumd:v2.0.0-238
+          image: ghcr.io/intel/xpumanager/xpumd:v2.1.0
           imagePullPolicy: IfNotPresent
           args:
             - --config
