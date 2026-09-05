@@ -74,11 +74,12 @@ data:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
             action: drop
-      # === STORAGE: Longhorn (static, per Manager-Pod) ===
+      # === STORAGE: Longhorn (DNS-SD via SRV) ===
       - job_name: longhorn
-        static_configs:
-          - targets:
-              - 'longhorn-manager-metrics.longhorn-system.svc:9500'
+        dns_sd_configs:
+          - names: ['_metrics._tcp.longhorn-manager-metrics.longhorn-system.svc']
+            type: SRV
+            refresh_interval: 1m
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
@@ -149,10 +150,15 @@ data:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
             action: drop
-      # === GPU: Intel XPU SMI Exporter ===
+          # Hoch-kardinale Labels entfernen (client_ip, user_agent, user_email, end_user)
+          - regex: 'client_ip|user_agent|user_email|end_user'
+            action: labeldrop
+      # === GPU: Intel XPU SMI Exporter (DNS-SD) ===
       - job_name: xpu-smi
-        static_configs:
-          - targets: ['xpu-smi-exporter.ops-monitoring.svc:9108']
+        dns_sd_configs:
+          - names: ['xpu-smi-exporter.ops-monitoring.svc']
+            type: A
+            port: 8080
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
