@@ -2,16 +2,14 @@
 
 LiteLLM exposes the OpenAI-compatible gateway at
 `https://llm.intern.rohrbom.be` and routes the stable `local-chat` alias to
-`Qwen/Qwen3.8-27B-FP8` on the internal vLLM service. Existing consumers keep the
+`Qwen/Qwen3.6-27B-FP8` on the internal vLLM service. Existing consumers keep the
 same endpoint and model name. `local-embedding` continues to use the unchanged
 CPU-based Text Embeddings Inference service on `wk-5`.
 
-For LiteLLM cost tracking, `local-chat` still carries the cloud-equivalent
-reference price from FP8 Qwen3.6-27B (USD 0.30 per million input tokens, USD
-3.20 per million output tokens, checked 2026-09-04) as a placeholder — no
-confirmed SiliconFlow listing for Qwen3.8-27B was available yet at update time.
-Re-check and update once real pricing shows up; the requests themselves continue
-to run exclusively on the local vLLM backend.
+For LiteLLM cost tracking, `local-chat` uses a cloud-equivalent reference price
+of USD 0.30 per million input tokens and USD 3.20 per million output tokens.
+This reflects commonly available FP8 Qwen3.6-27B pricing checked on 2026-09-04;
+the requests themselves continue to run exclusively on the local vLLM backend.
 
 ## Master key
 

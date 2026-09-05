@@ -1,7 +1,7 @@
 # vLLM
 
-The deployment serves the pre-quantized `Qwen/Qwen3.8-27B-FP8` checkpoint,
-pinned to Hugging Face revision `017b9c7af6b5689d5dd426a76e0bc077eb5ca20a`,
+The deployment serves the pre-quantized `Qwen/Qwen3.6-27B-FP8` checkpoint,
+pinned to Hugging Face revision `e89b16ebf1988b3d6befa7de50abc2d76f26eb09`,
 under both the compatibility name `local-chat` and its real model ID through the
 OpenAI-compatible API. It runs only on `wk-5` and uses both Intel Arc Pro B60
 GPUs as one tensor-parallel vLLM instance (`TP=2`). Model weights and the KV
