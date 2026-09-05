@@ -142,9 +142,9 @@ data:
         static_configs:
           - targets: ['litellm.svc-llm.svc:4000']
         metrics_path: /metrics
-        basic_auth:
-          username: token
-          password_file: /etc/litellm-credentials/LITELLM_MASTER_KEY
+        authorization:
+          type: Bearer
+          credentials_file: /etc/litellm-credentials/LITELLM_METRICS_KEY
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
