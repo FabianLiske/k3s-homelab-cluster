@@ -17,6 +17,18 @@ The first startup downloads roughly 31 GB of model data to the local LLM volume
 and initializes both XPU workers, so it can take significantly longer than later
 starts.
 
+> **Image upgrades:** the Triton/TorchInductor JIT caches under
+> `/var/lib/llm/cache/` are persisted on the `llm-storage` PVC across image
+> versions. A stale cache compiled against an older image's SYCL runtime can
+> fail to load under a newer image (e.g. `libsycl.so.9` missing when the new
+> image only ships `libsycl.so.8`), crashing the container on startup with an
+> `OSError` during model architecture inspection. Symptom looks model-specific
+> but isn't ([intel/llm-scaler#665](https://github.com/intel/llm-scaler/issues/665)).
+> Clear the cache before/while rolling out a new `llm-scaler-vllm` image tag:
+> ```bash
+> kubectl exec -n svc-llm deployment/vllm -- rm -rf /var/lib/llm/cache/triton /var/lib/llm/cache/torchinductor
+> ```
+
 Watch the initial rollout and logs:
 
 ```bash
