@@ -6,4 +6,5 @@ resources:
   - longhorn-2r-immediate.yaml
   - ./recurring-jobs/
   - ingress.yaml
+  - netpol-prometheus-ingress.yaml
   - metrics.yaml
