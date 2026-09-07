@@ -5,5 +5,4 @@ resources:
   - deployment.yaml
   - configmap.yaml
   - configmap-ipmi-h12.yaml
-  - configmap-ipmi-h11.yaml
   - telegraf-secret.yaml
