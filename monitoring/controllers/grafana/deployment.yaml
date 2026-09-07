@@ -51,6 +51,8 @@ spec:
               mountPath: /var/lib/grafana/dashboards/unpoller
             - name: grafana-llm-dashboards
               mountPath: /var/lib/grafana/dashboards/llm
+            - name: grafana-cluster-dashboards
+              mountPath: /var/lib/grafana/dashboards/cluster
           readinessProbe:
             httpGet: { path: /api/health, port: http }
             initialDelaySeconds: 10
@@ -81,3 +83,6 @@ spec:
         - name: grafana-llm-dashboards
           configMap:
             name: grafana-llm-dashboards
+        - name: grafana-cluster-dashboards
+          configMap:
+            name: grafana-cluster-dashboards

@@ -29,3 +29,7 @@ configMapGenerator:
   - name: grafana-llm-dashboards
     files:
       - dashboards/llm/llm.json
+  - name: grafana-cluster-dashboards
+    files:
+      - dashboards/cluster/kubernetes.json
+      - dashboards/cluster/hardware.json
