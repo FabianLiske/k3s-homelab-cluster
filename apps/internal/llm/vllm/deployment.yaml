@@ -47,9 +47,9 @@ spec:
             - --revision=017b9c7af6b5689d5dd426a76e0bc077eb5ca20a
             - --dtype=float16
             - --gpu-memory-utilization=0.95
-            - --max-model-len=131072
+            - --max-model-len=200000
             - --max-num-batched-tokens=8192
-            - --max-num-seqs=1
+            - --max-num-seqs=2
             - --block-size=64
             - --tensor-parallel-size=2
             - --kv-cache-dtype=fp8_e4m3

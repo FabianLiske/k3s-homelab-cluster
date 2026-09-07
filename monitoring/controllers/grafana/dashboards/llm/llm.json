@@ -1103,12 +1103,12 @@
    "id": 154,
    "fieldConfig": {
     "defaults": {
-     "unit": "j",
-     "thresholds": {
-      "mode": "absolute",
-      "steps": [
-       {
-        "color": "blue",
+      "unit": "wh",
+      "thresholds": {
+       "mode": "absolute",
+       "steps": [
+        {
+         "color": "blue",
         "value": null
        }
       ]
@@ -1123,7 +1123,7 @@
    "targets": [
     {
      "refId": "A",
-     "expr": "increase(hw_energy_joules_total{hw_sensor_location='card'}[24h])",
+      "expr": "increase(hw_energy_joules_total{hw_sensor_location='card'}[24h]) / 3600",
      "legendFormat": "{{pci_bdf}}",
      "instant": true
     }
