@@ -1,0 +1,1172 @@
+{
+ "uid": "llm-homelab",
+ "title": "LLM",
+ "tags": [
+  "llm",
+  "vllm",
+  "litellm",
+  "gpu"
+ ],
+ "refresh": "30s",
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "timezone": "browser",
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": []
+ },
+ "panels": [
+  {
+   "type": "row",
+   "title": "vLLM Performance",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   },
+   "id": 101,
+   "panels": []
+  },
+  {
+   "type": "timeseries",
+   "title": "TTFT (Time to First Token)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 1
+   },
+   "id": 110,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))",
+     "legendFormat": "p50",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.9, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))",
+     "legendFormat": "p90",
+     "range": true
+    },
+    {
+     "refId": "C",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))",
+     "legendFormat": "p99",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Inter-Token Latenz \u2192 Tokens/s",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 1
+   },
+   "id": 111,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "1/s",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "1 / histogram_quantile(0.5, sum by (le) (rate(vllm:inter_token_latency_seconds_bucket[5m])))",
+     "legendFormat": "p50",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "1 / histogram_quantile(0.9, sum by (le) (rate(vllm:inter_token_latency_seconds_bucket[5m])))",
+     "legendFormat": "p90",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "E2E Request Latenz",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 9
+   },
+   "id": 112,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:e2e_request_latency_seconds_bucket[5m])))",
+     "legendFormat": "p50",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.9, sum by (le) (rate(vllm:e2e_request_latency_seconds_bucket[5m])))",
+     "legendFormat": "p90",
+     "range": true
+    },
+    {
+     "refId": "C",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(vllm:e2e_request_latency_seconds_bucket[5m])))",
+     "legendFormat": "p99",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Queue-Zeit",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 9
+   },
+   "id": 113,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:request_queue_time_seconds_bucket[15m])))",
+     "legendFormat": "p50",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.9, sum by (le) (rate(vllm:request_queue_time_seconds_bucket[15m])))",
+     "legendFormat": "p90",
+     "range": true
+    },
+    {
+     "refId": "C",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(vllm:request_queue_time_seconds_bucket[15m])))",
+     "legendFormat": "p99",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "row",
+   "title": "vLLM Last & Cache",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 20
+   },
+   "id": 120,
+   "panels": []
+  },
+  {
+   "type": "timeseries",
+   "title": "Requests (running / waiting)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 21
+   },
+   "id": 121,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "vllm:num_requests_running",
+     "legendFormat": "running ({{model_name}})",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "vllm:num_requests_waiting",
+     "legendFormat": "waiting ({{model_name}})",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "gauge",
+   "title": "KV-Cache Auslastung",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 21
+   },
+   "id": 122,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "min": 0,
+     "max": 1,
+     "thresholds": {
+      "mode": "percentage",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 70
+       },
+       {
+        "color": "red",
+        "value": 90
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showThresholdLabels": false,
+    "showThresholdMarkers": true
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "vllm:kv_cache_usage_perc",
+     "legendFormat": "{{model_name}}",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Prefix-Cache Hit-Rate",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 21
+   },
+   "id": 123,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "min": 0,
+     "max": 1,
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "rate(vllm:prefix_cache_hits_total[5m]) / rate(vllm:prefix_cache_queries_total[5m])",
+     "legendFormat": "hit-rate 5m",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Preemptions (1h)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 0,
+    "y": 29
+   },
+   "id": 124,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "area"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(increase(vllm:num_preemptions_total[1h]))",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Requests (running)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 8,
+    "y": 29
+   },
+   "id": 125,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "area"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(vllm:num_requests_running)",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Requests (waiting)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 16,
+    "y": 29
+   },
+   "id": 126,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "area"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(vllm:num_requests_waiting)",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "row",
+   "title": "LiteLLM Nutzung & Kosten",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 34
+   },
+   "id": 130,
+   "panels": []
+  },
+  {
+   "type": "timeseries",
+   "title": "Tokens (rate)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 35
+   },
+   "id": 131,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (model) (rate(litellm_input_tokens_metric_total[5m]))",
+     "legendFormat": "in: {{model}}",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "sum by (model) (rate(litellm_output_tokens_metric_total[5m]))",
+     "legendFormat": "out: {{model}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Requests (rate)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 35
+   },
+   "id": 132,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (model) (rate(litellm_proxy_total_requests_metric_total[5m]))",
+     "legendFormat": "{{model}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Spend (24h)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 0,
+    "y": 43
+   },
+   "id": 133,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "currencyUSD",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(increase(litellm_spend_metric_total[24h]))",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Spend (1h)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 6,
+    "y": 43
+   },
+   "id": 134,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "currencyUSD",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(increase(litellm_spend_metric_total[1h]))",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Aktive Nutzer",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 12,
+    "y": 43
+   },
+   "id": 135,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "litellm_active_users",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Gesamte Nutzer",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 18,
+    "y": 43
+   },
+   "id": 136,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "litellm_total_users",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "row",
+   "title": "LiteLLM Latenz (Gateway vs. reine API)",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 48
+   },
+   "id": 140,
+   "panels": []
+  },
+  {
+   "type": "timeseries",
+   "title": "Gesamtlatenz (p50 / p90 / p99)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 49
+   },
+   "id": 141,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.5, sum by (le, model) (rate(litellm_request_total_latency_metric_bucket[1h])))",
+     "legendFormat": "p50 {{model}}",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.9, sum by (le, model) (rate(litellm_request_total_latency_metric_bucket[1h])))",
+     "legendFormat": "p90 {{model}}",
+     "range": true
+    },
+    {
+     "refId": "C",
+     "expr": "histogram_quantile(0.99, sum by (le, model) (rate(litellm_request_total_latency_metric_bucket[1h])))",
+     "legendFormat": "p99 {{model}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Reine API-Latenz (p50 / p90 / p99)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 49
+   },
+   "id": 142,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.5, sum by (le, model) (rate(litellm_llm_api_latency_metric_bucket[1h])))",
+     "legendFormat": "p50 {{model}}",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.9, sum by (le, model) (rate(litellm_llm_api_latency_metric_bucket[1h])))",
+     "legendFormat": "p90 {{model}}",
+     "range": true
+    },
+    {
+     "refId": "C",
+     "expr": "histogram_quantile(0.99, sum by (le, model) (rate(litellm_llm_api_latency_metric_bucket[1h])))",
+     "legendFormat": "p99 {{model}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Gateway-Overhead (p50 / p90)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 24,
+    "x": 0,
+    "y": 57
+   },
+   "id": 143,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "drawStyle": "bars",
+      "lineWidth": 1,
+      "showPoints": "never",
+      "spanNulls": true,
+      "fillOpacity": 80
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.5, sum by (le, model) (rate(litellm_overhead_latency_metric_bucket[1h])))",
+     "legendFormat": "p50 {{model}}",
+     "range": true
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.9, sum by (le, model) (rate(litellm_overhead_latency_metric_bucket[1h])))",
+     "legendFormat": "p90 {{model}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "row",
+   "title": "GPU (xpu-smi)",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 66
+   },
+   "id": 150,
+   "panels": []
+  },
+  {
+   "type": "timeseries",
+   "title": "Compute-Auslastung",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 67
+   },
+   "id": 151,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "min": 0,
+     "max": 1,
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "hw_gpu_utilization_ratio{hw_gpu_task='all'}",
+     "legendFormat": "{{pci_bdf}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "VRAM-Auslastung",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 67
+   },
+   "id": 152,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "min": 0,
+     "max": 1,
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "hw_memory_usage_bytes / hw_memory_size_bytes",
+     "legendFormat": "{{pci_bdf}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Leistung (card)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 75
+   },
+   "id": 153,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "watt",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "hw_power_watts{hw_sensor_location='card'}",
+     "legendFormat": "{{pci_bdf}}",
+     "range": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Energie (24h)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 12,
+    "y": 75
+   },
+   "id": 154,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "j",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "increase(hw_energy_joules_total{hw_sensor_location='card'}[24h])",
+     "legendFormat": "{{pci_bdf}}",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Health (GPU)",
+   "datasource": "PBFA97CFB590B2093",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 18,
+    "y": 75
+   },
+   "id": 155,
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "hw_status{hw_type='gpu'}",
+     "legendFormat": "{{pci_bdf}}:{{hw_state}}",
+     "instant": true
+    }
+   ]
+  }
+ ]
+}

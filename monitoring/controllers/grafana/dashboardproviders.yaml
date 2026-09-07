@@ -17,3 +17,13 @@ data:
         updateIntervalSeconds: 30
         options:
           path: /var/lib/grafana/dashboards/unpoller
+      - name: llm
+        orgId: 1
+        folder: LLM
+        folderUid: llm
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards/llm

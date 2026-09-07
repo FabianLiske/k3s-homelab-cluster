@@ -49,6 +49,8 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards
             - name: grafana-unpoller-dashboards
               mountPath: /var/lib/grafana/dashboards/unpoller
+            - name: grafana-llm-dashboards
+              mountPath: /var/lib/grafana/dashboards/llm
           readinessProbe:
             httpGet: { path: /api/health, port: http }
             initialDelaySeconds: 10
@@ -76,3 +78,6 @@ spec:
                   name: grafana-unpoller-dashboards-core
               - configMap:
                   name: grafana-unpoller-dashboards-dpi
+        - name: grafana-llm-dashboards
+          configMap:
+            name: grafana-llm-dashboards

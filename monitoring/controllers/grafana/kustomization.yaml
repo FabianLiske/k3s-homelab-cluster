@@ -26,3 +26,6 @@ configMapGenerator:
   - name: grafana-unpoller-dashboards-dpi
     files:
       - dashboards/unpoller/11310.json
+  - name: grafana-llm-dashboards
+    files:
+      - dashboards/llm/llm.json
