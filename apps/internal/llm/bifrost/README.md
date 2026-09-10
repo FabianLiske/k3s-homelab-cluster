@@ -26,6 +26,9 @@ gesät — Git bleibt die einzige Quelle der Wahrheit:
   (`BIFROST_VK_EVAL`), der auf beide Provider beschränkt ist
 - `enforce_auth_on_inference: true` — Inferenz-Endpunkte erfordern den Virtual Key
 - `logs_store` deaktiviert — keine Request-Historie, nur Container-Logs
+- `allow_private_network: true` in beiden `network_config`s — Bifrost blockt
+  standardmäßig RFC-1918-Adressen (SSRF-Schutz); nötig, weil die Provider
+  auf Cluster-DNS-Namen (10.43.x.x) zeigen
 
 Wichtig: Modelle werden als `provider/model` angefragt, also
 `local-vllm/local-chat` bzw. `tei/local-embedding` — nicht wie bei LiteLLM der
