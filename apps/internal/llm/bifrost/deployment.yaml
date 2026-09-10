@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        llm.rohrbom.be/config-revision: "bifrost-v2-1-1-eval-v4"
+        llm.rohrbom.be/config-revision: "bifrost-v2-1-1-eval-v5"
         llm.rohrbom.be/secret-revision: "2026-09-10-initial-1"
       labels:
         app.kubernetes.io/name: bifrost
@@ -89,6 +89,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /app/data
+            - name: logs
+              mountPath: /app/data/logs
             - name: config
               mountPath: /app/data/config.json
               subPath: config.json
@@ -96,6 +98,9 @@ spec:
       volumes:
         - name: data
           emptyDir: {}
+        - name: logs
+          persistentVolumeClaim:
+            claimName: bifrost-logs
         - name: config
           configMap:
             name: bifrost-config

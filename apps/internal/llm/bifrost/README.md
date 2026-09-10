@@ -11,12 +11,15 @@ unverändert.
 
 ## Konfiguration
 
-Kein PVC, kein Postgres. Die komplette Konfiguration liegt in `config.json`
-(ConfigMap `bifrost-config`) und wird read-only nach `/app/data/config.json`
-gemountet. Ein Config-Store ist in Bifrost zwingend für Auth/Virtual Keys
-erforderlich, daher läuft er als **sqlite auf einem emptyDir**
-(`/app/data/config.db`). Der leere Store wird bei jedem Start aus `config.json`
-gesät — Git bleibt die einzige Quelle der Wahrheit:
+Die komplette Konfiguration liegt in `config.json` (ConfigMap
+`bifrost-config`) und wird read-only nach `/app/data/config.json` gemountet.
+Ein Config-Store ist in Bifrost zwingend für Auth/Virtual Keys erforderlich,
+daher läuft er als **sqlite auf einem emptyDir** (`/app/data/config.db`). Der
+leere Store wird bei jedem Start aus `config.json` gesät — Git bleibt die
+einzige Quelle der Wahrheit. Request-Logs liegen als **sqlite auf dem PVC
+`bifrost-logs`** (`longhorn-2r`, 5Gi, ohne Backups) unter
+`/app/data/logs/logs.db` — dadurch füllt sich das Bifrost-Dashboard
+(Requests, Usage, Kosten) und übersteht Pod-Neuschaffungen:
 
 - Provider `local-vllm` (OpenAI-kompatibel, Name `vllm` ist bei Bifrost
   reserviert): `http://vllm.svc-llm.svc.cluster.local:8000`, Modell `local-chat`
@@ -26,7 +29,8 @@ gesät — Git bleibt die einzige Quelle der Wahrheit:
 - Governance: Admin-Auth aktiv, ein Virtual Key `evaluation`
   (`BIFROST_VK_EVAL`), der auf beide Provider beschränkt ist
 - `enforce_auth_on_inference: true` — Inferenz-Endpunkte erfordern den Virtual Key
-- `logs_store` deaktiviert — keine Request-Historie, nur Container-Logs
+- `logs_store` als sqlite auf dem PVC `bifrost-logs` — Request-Historie für
+  das Dashboard (bewusst ohne Longhorn-Backup-Labels)
 - `allow_private_network: true` in beiden `network_config`s — Bifrost blockt
   standardmäßig RFC-1918-Adressen (SSRF-Schutz); nötig, weil die Provider
   auf Cluster-DNS-Namen (10.43.x.x) zeigen
@@ -103,9 +107,9 @@ Consumer sind nicht betroffen.
   v.a. `custom_provider_config` und `governance.virtual_keys`.
 - Provider-Namen nicht mit Bifrost-Eingebauten kollidieren lassen
   (`vllm`, `openai`, … sind reserviert) — daher `local-vllm`.
-- Das emptyDir für `config.db` ist bewusst nicht persistent: bei Pod-Neuschaffung
-  wird der Store aus `config.json` neu gesät (deterministisch, Git-basiert).
-  Änderungen, die nur in der Admin-UI gemacht wurden, gehen bei einem
-  Pod-Neustart verloren.
+- `config.db` liegt bewusst auf einem emptyDir (nicht auf dem PVC): bei
+  Pod-Neuschaffung wird der Config-Store aus `config.json` neu gesät
+  (deterministisch, Git-basiert). Änderungen, die nur in der Admin-UI gemacht
+  wurden, gehen bei einem Pod-Neustart verloren. Nur `logs.db` ist persistent.
 - Bifrost-Keys und LiteLLM-Keys sind getrennte Welten; Consumer, die später
   wechseln, brauchen neu ausgegebene Keys (bzw. Aliasing über Bifrost).

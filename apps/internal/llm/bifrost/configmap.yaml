@@ -22,7 +22,11 @@ data:
         }
       },
       "logs_store": {
-        "enabled": false
+        "enabled": true,
+        "type": "sqlite",
+        "config": {
+          "path": "/app/data/logs/logs.db"
+        }
       },
       "governance": {
         "auth_config": {
