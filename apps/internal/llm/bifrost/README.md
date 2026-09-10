@@ -11,20 +11,30 @@ unverändert.
 
 ## Konfiguration
 
-Bifrost läuft ohne Storage (kein PVC, kein Postgres). Die komplette Konfiguration
-liegt in `config.json` (ConfigMap `bifrost-config`) und wird read-only nach
-`/app/data/config.json` gemountet:
+Kein PVC, kein Postgres. Die komplette Konfiguration liegt in `config.json`
+(ConfigMap `bifrost-config`) und wird read-only nach `/app/data/config.json`
+gemountet. Ein Config-Store ist in Bifrost zwingend für Auth/Virtual Keys
+erforderlich, daher läuft er als **sqlite auf einem emptyDir**
+(`/app/data/config.db`). Der leere Store wird bei jedem Start aus `config.json`
+gesät — Git bleibt die einzige Quelle der Wahrheit:
 
-- Provider `vllm` (OpenAI-kompatibel):
-  `http://vllm.svc-llm.svc.cluster.local:8000/v1`, Modell `local-chat`
+- Provider `local-vllm` (OpenAI-kompatibel, Name `vllm` ist bei Bifrost
+  reserviert): `http://vllm.svc-llm.svc.cluster.local:8000/v1`, Modell `local-chat`
 - Provider `tei` (OpenAI-kompatibel):
   `http://embeddings.svc-llm.svc.cluster.local:8080/v1`, Modell `local-embedding`
 - Governance: Admin-Auth aktiv, ein Virtual Key `evaluation`
   (`BIFROST_VK_EVAL`), der auf beide Provider beschränkt ist
 - `enforce_auth_on_inference: true` — Inferenz-Endpunkte erfordern den Virtual Key
+- `logs_store` deaktiviert — keine Request-Historie, nur Container-Logs
 
-Wichtig: Modelle werden als `provider/model` angefragt, also `vllm/local-chat`
-bzw. `tei/local-embedding` — nicht wie bei LiteLLM der reine Alias `local-chat`.
+Wichtig: Modelle werden als `provider/model` angefragt, also
+`local-vllm/local-chat` bzw. `tei/local-embedding` — nicht wie bei LiteLLM der
+reine Alias `local-chat`.
+
+Konfigurationsänderungen in `config.json` greifen erst nach einem Pod-Neustart
+(die sqlite-DB überlebt nur innerhalb desselben Pods):
+`kubectl -n svc-llm rollout restart deployment/bifrost` — dauerhaft nur über
+dieses Repo.
 
 ## Secrets
 
@@ -60,7 +70,7 @@ curl -s https://bifrost.intern.rohrbom.be/v1/chat/completions \
   -H 'Authorization: Bearer <BIFROST_VK_EVAL>' \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "vllm/local-chat",
+    "model": "local-vllm/local-chat",
     "messages": [{"role": "user", "content": "Antworte nur mit: Bifrost läuft"}],
     "max_tokens": 64
   }' | jq
@@ -87,7 +97,11 @@ Consumer sind nicht betroffen.
 - Bifrost hat einen sehr schnellen Release-Zyklus (Dev-Branch, v2.x seit
   September 2026). Bei Image-Upgrade die Config-Schema-Änderungen prüfen,
   v.a. `custom_provider_config` und `governance.virtual_keys`.
-- Ohne `logs_store` gibt es keine Request-Historie in der Admin-UI, nur
-  Container-Logs.
+- Provider-Namen nicht mit Bifrost-Eingebauten kollidieren lassen
+  (`vllm`, `openai`, … sind reserviert) — daher `local-vllm`.
+- Das emptyDir für `config.db` ist bewusst nicht persistent: bei Pod-Neuschaffung
+  wird der Store aus `config.json` neu gesät (deterministisch, Git-basiert).
+  Änderungen, die nur in der Admin-UI gemacht wurden, gehen bei einem
+  Pod-Neustart verloren.
 - Bifrost-Keys und LiteLLM-Keys sind getrennte Welten; Consumer, die später
   wechseln, brauchen neu ausgegebene Keys (bzw. Aliasing über Bifrost).
