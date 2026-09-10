@@ -19,9 +19,10 @@ erforderlich, daher läuft er als **sqlite auf einem emptyDir**
 gesät — Git bleibt die einzige Quelle der Wahrheit:
 
 - Provider `local-vllm` (OpenAI-kompatibel, Name `vllm` ist bei Bifrost
-  reserviert): `http://vllm.svc-llm.svc.cluster.local:8000/v1`, Modell `local-chat`
+  reserviert): `http://vllm.svc-llm.svc.cluster.local:8000`, Modell `local-chat`
 - Provider `tei` (OpenAI-kompatibel):
-  `http://embeddings.svc-llm.svc.cluster.local:8080/v1`, Modell `local-embedding`
+  `http://embeddings.svc-llm.svc.cluster.local:8080`, Modell `local-embedding`
+- `base_url` **ohne** `/v1`-Suffix — Bifrost hängt `/v1` selbst an
 - Governance: Admin-Auth aktiv, ein Virtual Key `evaluation`
   (`BIFROST_VK_EVAL`), der auf beide Provider beschränkt ist
 - `enforce_auth_on_inference: true` — Inferenz-Endpunkte erfordern den Virtual Key

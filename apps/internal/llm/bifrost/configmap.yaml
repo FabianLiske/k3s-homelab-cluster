@@ -65,7 +65,7 @@ data:
             }
           ],
           "network_config": {
-            "base_url": "http://vllm.svc-llm.svc.cluster.local:8000/v1",
+            "base_url": "http://vllm.svc-llm.svc.cluster.local:8000",
             "allow_private_network": true
           },
           "custom_provider_config": {
@@ -83,7 +83,7 @@ data:
             }
           ],
           "network_config": {
-            "base_url": "http://embeddings.svc-llm.svc.cluster.local:8080/v1",
+            "base_url": "http://embeddings.svc-llm.svc.cluster.local:8080",
             "allow_private_network": true
           },
           "custom_provider_config": {
