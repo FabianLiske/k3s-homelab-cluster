@@ -11,5 +11,4 @@ resources:
   - vllm/
   - embeddings/
   - litellm/
-  - bifrost/
   - open-webui/
