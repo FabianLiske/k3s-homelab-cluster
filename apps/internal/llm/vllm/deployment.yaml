@@ -62,6 +62,11 @@ spec:
             - --tool-call-parser=qwen3_coder
             - --reasoning-parser=qwen3
           env:
+            # Temp: DEBUG logging to diagnose silent stream drops (OWUI
+            # tool-call continuation timeouts). Remove once root cause is
+            # identified.
+            - name: VLLM_LOGGING_LEVEL
+              value: DEBUG
             - name: HF_HOME
               value: /var/lib/llm/cache/huggingface
             - name: VLLM_CACHE_ROOT

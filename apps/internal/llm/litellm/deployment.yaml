@@ -66,6 +66,11 @@ spec:
                   key: LITELLM_MASTER_KEY
             - name: LITELLM_DISABLE_NO_REDIS_WARNING
               value: "true"
+            # Temp: DEBUG logging to diagnose silent stream drops in the
+            # streaming proxy (OWUI tool-call continuation timeouts).
+            # Remove once root cause is identified.
+            - name: LITELLM_LOG
+              value: "DEBUG"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
