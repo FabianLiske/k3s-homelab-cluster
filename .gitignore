@@ -10,8 +10,15 @@ docs/notes.md
 docs/media-vm-zielbild.md
 docs/media-vm-action-log.md
 docs/local-llm-architecture.md
+docs/llm-vm-zielbild.md
+docs/llm-vm-arch-setup.md
 temp.md
 .codex
 .claude
 __pycache__/
 *.py[cod]
+tools/.bin/
+tools/vllm-power-bench-results/
+tools/vllm-power-bench-summary.csv
+wk5-intel-b60-audit-20260913-144812.txt
+fwupd-b60-detail.txt
