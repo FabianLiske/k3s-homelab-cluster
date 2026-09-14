@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-qdrant-from-internal-ingress-and-stack
+  namespace: svc-rag
+spec:
+  podSelector:
+    matchLabels:
+      app: qdrant
+  policyTypes: [Ingress]
+  ingress:
+    # Dashboard/API via nginx-internal Ingress (VLAN 20)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-20
+      ports:
+        - protocol: TCP
+          port: 6333
+    # RAG-Stack-Komponenten (Ingestion/Query) im selben Namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-rag
+      ports:
+        - protocol: TCP
+          port: 6333
+        - protocol: TCP
+          port: 6334

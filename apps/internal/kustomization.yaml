@@ -10,3 +10,4 @@ resources:
   - ./image-compressor/
   - ./jupyter/
   - ./llm/
+  - ./rag/

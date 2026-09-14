@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+  namespace: svc-rag
+  labels:
+    app: docling-serve
+spec:
+  type: ClusterIP
+  selector:
+    app: docling-serve
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

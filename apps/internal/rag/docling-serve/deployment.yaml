@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docling-serve
+  namespace: svc-rag
+  labels:
+    app: docling-serve
+spec:
+  replicas: 1
+  # RWO-PVC: kein RollingUpdate mit zwei Replikaten gleichzeitig
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: docling-serve
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      nodeSelector:
+        node.rohrbom.be/heavy-compute: "true"
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: docling-serve
+          # CPU-Variante (kein GPU im Cluster); arm64+amd64
+          image: ghcr.io/docling-project/docling-serve-cpu:v1.32.0
+          imagePullPolicy: IfNotPresent
+          env:
+            # CPU-Inferenz
+            - name: DOCLING_DEVICE
+              value: cpu
+            - name: UVICORN_WORKERS
+              value: "1"
+            - name: DOCLING_NUM_THREADS
+              value: "4"
+            # 1 gemeinsame Modellinstanz statt je eine pro Worker-Thread
+            # (spart ~2Gi RAM)
+            - name: DOCLING_SERVE_ENG_LOC_SHARE_MODELS
+              value: "true"
+            # Gradio-UI unter /ui (via Ingress 20)
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: "true"
+            # Modelle auf PVC persistieren (Standardpfad liegt in der
+            # Container-Ebene und wäre bei jedem Restart neu zu laden)
+            - name: DOCLING_SERVE_ARTIFACTS_PATH
+              value: /data/models
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          # Erststart lädt ~2-4Gi Modelle: 30min Grace, danach normal
+          startupProbe:
+            httpGet:
+              path: /v1/health
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            # 8Gi-Limit als Puffer gegen bekannten RAM-Zuwachs während
+            # des Processings; OOM heilt über K8s-Restart
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: models
+              mountPath: /data/models
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: docling-models
+        - name: tmp
+          emptyDir: {}
