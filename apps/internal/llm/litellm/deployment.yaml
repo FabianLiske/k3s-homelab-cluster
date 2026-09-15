@@ -71,6 +71,11 @@ spec:
                 secretKeyRef:
                   name: litellm-database-secrets
                   key: POSTGRES_PASSWORD
+            - name: TRILIUM_MCP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: trilium-mcp-secret
+                  key: TRILIUM_MCP_TOKEN
           ports:
             - name: http
               containerPort: 4000

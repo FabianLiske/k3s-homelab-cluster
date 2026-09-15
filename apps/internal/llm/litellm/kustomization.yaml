@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - litellm-secret.yaml
   - litellm-database-secret.yaml
+  - trilium-mcp-secret.yaml
   - configmap.yaml
   - postgresql-pvc.yaml
   - postgresql-service.yaml
