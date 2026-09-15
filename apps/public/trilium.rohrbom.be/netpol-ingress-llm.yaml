@@ -1,0 +1,26 @@
+# Allow the LiteLLM MCP gateway pod to reach Trilium in-cluster.
+# The MCP endpoint (/mcp) requires an ETAPI bearer token, so this does not
+# weaken the token-based protection — it only removes the dependency on
+# the public ingress (internet) for the internal LiteLLM -> Trilium hop.
+# Scoped to the single LiteLLM gateway pod (not the whole svc-llm
+# namespace) via the podSelector combined with the namespaceSelector.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-trilium-from-llm
+  namespace: svc-trilium
+spec:
+  podSelector:
+    matchLabels:
+      app: trilium
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-llm
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: litellm
+      ports:
+        - { protocol: TCP, port: 8080 }

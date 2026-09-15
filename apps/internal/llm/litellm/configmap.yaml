@@ -35,3 +35,16 @@ data:
       set_verbose: false
       callbacks:
         - prometheus
+
+    # Trilium's built-in MCP server, reached in-cluster via the ClusterIP
+    # service (no internet dependency). Trilium requires an ETAPI bearer
+    # token on every /mcp request; the token is injected as an env var
+    # from trilium-mcp-secret (SOPS-encrypted).
+    mcp_servers:
+      trilium:
+        server_id: "trilium"
+        url: http://trilium-svc.svc-trilium.svc.cluster.local:80/mcp
+        transport: "http"
+        description: "Trilium knowledge base (in-cluster, Streamable HTTP)"
+        auth_type: "bearer_token"
+        auth_value: os.environ/TRILIUM_MCP_TOKEN
