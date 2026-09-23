@@ -1,0 +1,20 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: pool-vlan10-mon
+  namespace: metallb-system
+spec:
+  addresses: ["172.26.10.150-172.26.10.199"]
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: adv-vlan10-mon
+  namespace: metallb-system
+spec:
+  ipAddressPools: ["pool-vlan10-mon"]
+  nodeSelectors:
+    - matchLabels:
+        node.rohrbom.be/edge: "true"
+  interfaces: ["vlan10"]
+  
