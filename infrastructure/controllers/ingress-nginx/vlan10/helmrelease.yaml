@@ -39,9 +39,9 @@ spec:
           value: "edge"
           effect: "NoSchedule"
       ingressClassResource:
-        name: nginx-mgmt
-        controllerValue: "k8s.io/ingress-nginx-mgmt"
-      ingressClass: nginx-mgmt
+        name: nginx-mon
+        controllerValue: "k8s.io/ingress-nginx-mon"
+      ingressClass: nginx-mon
       ingressClassByName: true
       watchIngressWithoutClass: false
       service:
@@ -49,7 +49,7 @@ spec:
         externalTrafficPolicy: Cluster
         loadBalancerIP: 172.26.10.151
         annotations:
-          metallb.universe.tf/address-pool: pool-vlan10-mgmt
+          metallb.universe.tf/address-pool: pool-vlan10-mon
       publishService:
         enabled: true
       config:

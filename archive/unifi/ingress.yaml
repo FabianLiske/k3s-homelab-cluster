@@ -11,7 +11,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
 spec:
-  ingressClassName: nginx-mgmt
+  ingressClassName: nginx-mon
   rules:
     - host: unifi.intern.rohrbom.be
       http:
