@@ -13,5 +13,8 @@ metadata:
   namespace: metallb-system
 spec:
   ipAddressPools: ["pool-vlan30-public"]
+  nodeSelectors:
+    - matchLabels:
+        node.rohrbom.be/edge: "true"
   interfaces: ["vlan30"]
   
