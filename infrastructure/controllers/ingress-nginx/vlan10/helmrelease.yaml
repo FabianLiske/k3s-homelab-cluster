@@ -19,6 +19,9 @@ spec:
   values:
     controller:
       kind: DaemonSet
+      nodeSelector:
+        kubernetes.io/os: linux
+        node.rohrbom.be/edge: "true"
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
