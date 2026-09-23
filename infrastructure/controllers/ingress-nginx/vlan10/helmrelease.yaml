@@ -30,6 +30,10 @@ spec:
           operator: "Equal"
           value: "media"
           effect: "NoSchedule"
+        - key: "dedicated"
+          operator: "Equal"
+          value: "edge"
+          effect: "NoSchedule"
       ingressClassResource:
         name: nginx-mgmt
         controllerValue: "k8s.io/ingress-nginx-mgmt"
