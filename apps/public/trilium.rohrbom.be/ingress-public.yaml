@@ -13,7 +13,12 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-spec:
+    # Der MCP-Endpunkt bleibt nur cluster-intern erreichbar (LiteLLM -> Trilium,
+    #siehe netpol-ingress-llm.yaml). Public wird /mcp hart auf 404 gestellt;
+    #die Web UI (Catch-all "/") ist davon unbeeinflusst.
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      location = /mcp { return 404; }
+  spec:
   ingressClassName: nginx-public
   rules:
     - host: trilium.rohrbom.be

@@ -65,3 +65,6 @@ spec:
         enabled: true
       extraArgs:
         metrics-per-host: "false"
+        # Erlaubt configuration-snippets pro Ingress (braucht der Trilium-Ingress,
+        # um /mcp public auf 404 zu stellen — MCP laeuft nur cluster-intern via LiteLLM).
+        enable-snippets: "true"
