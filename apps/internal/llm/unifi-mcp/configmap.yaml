@@ -1,0 +1,14 @@
+# Non-secret unifi-mcp configuration (all other settings use upstream
+# defaults, see unifi-mcp repo .env.example).
+#
+# Secrets (UNIFI_API_KEY, MCP_AUTH_TOKEN) live in unifi-mcp-secret.yaml
+# (SOPS-encrypted).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unifi-mcp-config
+data:
+  UNIFI_BASE_URL: "https://172.26.1.1"
+  # Gateway cert has no SAN for the IP; extract-once pins the certificate at
+  # startup (fingerprint logged) and verifies the chain for the session.
+  UNIFI_TLS_MODE: "extract-once"

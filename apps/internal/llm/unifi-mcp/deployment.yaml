@@ -1,0 +1,87 @@
+# UniFi Network MCP server (read-only MVP).
+#
+# Stateless Streamable HTTP MCP endpoint under /mcp (Bearer-auth, token from
+# unifi-mcp-secret), plus /healthz (liveness) and /readyz (readiness, verifies
+# UniFi Gateway reachability). See unifi-mcp repo README + design doc §21-26.
+# The image is built multi-arch (amd64/arm64) by GitHub Actions and pinned
+# by commit sha (no "latest" tag by design).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unifi-mcp
+  labels:
+    app.kubernetes.io/name: unifi-mcp
+    app.kubernetes.io/component: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: unifi-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: unifi-mcp
+        app.kubernetes.io/component: mcp-server
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: unifi-mcp
+          image: ghcr.io/fabianliske/unifi-mcp:sha-8197f05
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: unifi-mcp-config
+            - secretRef:
+                name: unifi-mcp-secret
+          # Gateway TLS bootstrap + capability check at startup can take a
+          # while if the gateway is slow or unreachable; give a 120s window
+          # before liveness starts to count.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

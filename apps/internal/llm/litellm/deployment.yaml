@@ -76,6 +76,11 @@ spec:
                 secretKeyRef:
                   name: trilium-mcp-secret
                   key: TRILIUM_MCP_TOKEN
+            - name: UNIFI_MCP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: unifi-mcp-secret
+                  key: MCP_AUTH_TOKEN
           ports:
             - name: http
               containerPort: 4000

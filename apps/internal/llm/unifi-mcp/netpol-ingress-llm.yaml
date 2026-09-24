@@ -1,0 +1,21 @@
+# Allow only the LiteLLM gateway pod (same namespace) to reach unifi-mcp.
+# The MCP endpoint additionally requires the Bearer token from
+# unifi-mcp-secret, so this only scopes the network path — it does not
+# replace the token-based protection.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-unifi-mcp-from-llm
+  namespace: svc-llm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: unifi-mcp
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: litellm
+      ports:
+        - { protocol: TCP, port: 8000 }

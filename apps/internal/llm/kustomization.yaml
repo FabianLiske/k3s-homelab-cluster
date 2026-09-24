@@ -12,3 +12,4 @@ resources:
   - embeddings/
   - litellm/
   - open-webui/
+  - unifi-mcp/
