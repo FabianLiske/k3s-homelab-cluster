@@ -9,13 +9,19 @@ spec:
   chart:
     spec:
       chart: ingress-nginx
-      version: "*"
+      version: "4.15.1"
       sourceRef:
         kind: HelmRepository
         name: ingress-nginx
         namespace: flux-system
+  # The MetalLB pools (infrastructure/configs/metallb) are only applied after
+  # this HelmRelease is Ready (infra-controllers -> infra-configs dependsOn
+  # chain), so install/upgrade must not wait for the LoadBalancer IP.
   install:
     createNamespace: true
+    disableWait: true
+  upgrade:
+    disableWait: true
   targetNamespace: ingress-100
   values:
     controller:
@@ -42,7 +48,7 @@ spec:
         externalTrafficPolicy: Cluster
         loadBalancerIP: 172.26.100.151
         annotations:
-          metallb.universe.tf/address-pool: pool-vlan100-admin
+          metallb.io/address-pool: pool-vlan100-admin
       publishService:
         enabled: true
       config:

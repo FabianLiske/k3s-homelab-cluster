@@ -9,13 +9,19 @@ spec:
   chart:
     spec:
       chart: ingress-nginx
-      version: "*"
+      version: "4.15.1"
       sourceRef:
         kind: HelmRepository
         name: ingress-nginx
         namespace: flux-system
+  # The MetalLB pools (infrastructure/configs/metallb) are only applied after
+  # this HelmRelease is Ready (infra-controllers -> infra-configs dependsOn
+  # chain), so install/upgrade must not wait for the LoadBalancer IP.
   install:
     createNamespace: true
+    disableWait: true
+  upgrade:
+    disableWait: true
   targetNamespace: ingress-30
   values:
     controller:
@@ -24,16 +30,6 @@ spec:
         kubernetes.io/os: linux
         node.rohrbom.be/edge: "true"
       tolerations:
-        - key: "node-role.kubernetes.io/control-plane"
-          operator: "Exists"
-          effect: "NoSchedule"
-        - key: "node-role.kubernetes.io/master"
-          operator: "Exists"
-          effect: "NoSchedule"
-        - key: "dedicated"
-          operator: "Equal"
-          value: "media"
-          effect: "NoSchedule"
         - key: "dedicated"
           operator: "Equal"
           value: "edge"
@@ -49,7 +45,7 @@ spec:
         externalTrafficPolicy: Local
         loadBalancerIP: 172.26.30.151
         annotations:
-          metallb.universe.tf/address-pool: pool-vlan30-public
+          metallb.io/address-pool: pool-vlan30-public
       publishService:
         enabled: true
       config:
