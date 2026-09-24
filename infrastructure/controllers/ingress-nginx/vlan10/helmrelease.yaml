@@ -16,6 +16,12 @@ spec:
         namespace: flux-system
   install:
     createNamespace: true
+  upgrade:
+    # The MetalLB pool (infrastructure/configs/metallb) is only applied after
+    # this HelmRelease is Ready (infra-controllers -> infra-configs dependsOn
+    # chain), so waiting for the LoadBalancer IP here would deadlock whenever
+    # the pool is created or renamed.
+    disableWait: true
   targetNamespace: ingress-10
   values:
     controller:
