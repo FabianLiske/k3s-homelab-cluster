@@ -30,6 +30,7 @@ data:
               - 'wk-3:9100'
               - 'wk-4:9100'
               - 'wk-5:9100'
+              - 'edge-1:9100'
         metric_relabel_configs:
           - source_labels: [__name__]
             regex: '^(go_.*|process_.*|promhttp_.*)$'
