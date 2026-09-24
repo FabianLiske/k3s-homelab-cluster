@@ -26,7 +26,13 @@ spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
       securityContext:
+        # Numeric UIDs are required because the image declares
+        # `USER unifi` (non-numeric); with runAsNonRoot the kubelet
+        # cannot verify non-numeric users. UID/GID match the image
+        # (useradd --uid 10001 unifi).
         runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
