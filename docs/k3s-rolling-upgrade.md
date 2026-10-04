@@ -10,6 +10,9 @@ wurde und sie die erwartete K3s-Version meldet, beginnt die naechste Node.
 - `kubectl` greift vom Admin-PC auf den richtigen Cluster zu.
 - Der SSH-Key `~/.ssh/id_ed25519` funktioniert fuer den User `faba`.
 - `faba` darf auf allen Nodes `sudo -n` (ohne Passwortabfrage) verwenden.
+  Auf den vorhandenen Nodes kommt das aus `/etc/sudoers.d/90-cloud-init-users`
+  (`faba ALL=(ALL) NOPASSWD:ALL`). Neue Nodes brauchen denselben Eintrag,
+  sonst stoppt das Skript im Preflight.
 - Die Ubuntu-Nodes erreichen `github.com` per HTTPS, um K3s samt offizieller
   SHA-256-Datei herunterzuladen.
 - Genuegend freie Cluster-Kapazitaet ist vorhanden, um immer eine Node zu
@@ -33,7 +36,7 @@ als Beispiel):
 
 ```bash
 ./tools/k3s-rolling-upgrade.sh \
-  --k3s-version v1.33.3+k3s1 \
+  --k3s-version v1.36.2+k3s1 \
   --dry-run
 ```
 
@@ -41,16 +44,17 @@ Wenn der Plan stimmt:
 
 ```bash
 ./tools/k3s-rolling-upgrade.sh \
-  --k3s-version v1.33.3+k3s1
+  --k3s-version v1.36.2+k3s1
 ```
 
 Das Skript fragt einmal nach Bestaetigung. Fuer einen bereits kontrollierten
 Plan kann `--yes` verwendet werden.
 
 Standardmaessig werden alle Kubernetes-Nodes eingeschlossen, in diesem Cluster
-also auch `media-1`. Vor dessen Reboot gegebenenfalls laufende Pelican-/Wings-
-Gameserver anwendungsspezifisch sauber stoppen. Kubernetes `drain` verwaltet
-keine direkt auf dem Host laufenden Prozesse.
+das sind `cp-1` bis `cp-3`, `edge-1` und `wk-1` bis `wk-5`. Vor dem Reboot von
+`wk-4` gegebenenfalls laufende Pelican-/Wings-Gameserver anwendungsspezifisch
+sauber stoppen, da sie hostseitig und nicht als Pod laufen. Kubernetes `drain`
+verwaltet keine direkt auf dem Host laufenden Prozesse.
 
 ## Ablauf und Sicherheitsmechanismen
 
@@ -89,7 +93,7 @@ Nur bestimmte Nodes, weiterhin mit Control Planes vor Agents:
 
 ```bash
 ./tools/k3s-rolling-upgrade.sh \
-  --k3s-version v1.33.3+k3s1 \
+  --k3s-version v1.36.2+k3s1 \
   --nodes cp-1,cp-2,cp-3
 ```
 
@@ -111,7 +115,7 @@ Nur Ubuntu-Pakete aktualisieren:
 Nur K3s aktualisieren:
 
 ```bash
-./tools/k3s-rolling-upgrade.sh --skip-os --k3s-version v1.33.3+k3s1
+./tools/k3s-rolling-upgrade.sh --skip-os --k3s-version v1.36.2+k3s1
 ```
 
 Alle Optionen zeigt `./tools/k3s-rolling-upgrade.sh --help`.

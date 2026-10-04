@@ -42,7 +42,7 @@ Aufruf:
   $PROGRAM [Optionen]
 
 Wichtige Optionen:
-  --k3s-version VERSION    Exakte Zielversion, z. B. v1.33.3+k3s1
+  --k3s-version VERSION    Exakte Zielversion, z. B. v1.36.2+k3s1
   --k3s-channel CHANNEL    K3s-Channel (Default: stable); wird nur verwendet,
                            wenn keine exakte Version angegeben wurde
   --nodes N1,N2            Nur diese Nodes aktualisieren
@@ -268,7 +268,8 @@ set -Eeuo pipefail
 for command in curl sha256sum systemctl apt-get find awk install; do
   command -v "$command" >/dev/null || { echo "Kommando fehlt: $command" >&2; exit 1; }
 done
-sudo -n true
+sudo -n true 2>/dev/null \
+  || { echo "Passwortloses sudo fehlt: fuer '$(id -un)' ist kein NOPASSWD-Eintrag in /etc/sudoers." >&2; exit 1; }
 if systemctl is-active --quiet k3s; then
   role=server
 elif systemctl is-active --quiet k3s-agent; then
