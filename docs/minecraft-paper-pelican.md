@@ -2,19 +2,21 @@
 
 ## Zielbild
 
-Ein Minecraft-Server laeuft als Pelican-verwalteter Container auf `media-1`.
+Ein Minecraft-Server laeuft als Pelican-verwalteter Container auf der
+Wings-Node (aktuell `wk-4`).
 Das Server-Backend ist **Paper** – das meistgenutzte Performance-optimierte Minecraft-Backend.
 Paper ist vollstaendig Vanilla-kompatibel, aber signifikant schneller und unterstuetzt das gesamte Bukkit/Spigot-Plugin-Oekosystem.
 
-Game-Traffic laeuft wie bei allen Spielservern auf `172.26.50.31` (vlan50).
+Game-Traffic laeuft wie bei allen Spielservern auf der Game-IP
+`172.26.50.24` (vlan50; Endstelle = Endstelle der Node).
 
 ---
 
 ## Voraussetzungen
 
 * Pelican-Panel laeuft intern unter `https://pelican.intern.rohrbom.be`
-* Wings ist auf `media-1` aktiv: `sudo systemctl status wings`
-* Node `media-1` ist im Panel angelegt und verbunden
+* Wings ist auf der Wings-Node (`wk-4`) aktiv: `sudo systemctl status wings`
+* Die Node ist im Panel angelegt und verbunden
 * Portforward auf dem Router steht noch aus (kommt in Phase 7)
 
 ---
@@ -60,15 +62,15 @@ Nach dem Import erscheint `Paper` in der Egg-Liste.
 
 ## Phase 2: Allokation anlegen
 
-Im Panel: **Admin → Nodes → media-1 → Allocations**
+Im Panel: **Admin → Nodes → wk-4 → Allocations**
 
-Pruefen ob `172.26.50.31:25565` bereits vorhanden ist.
+Pruefen ob `172.26.50.24:25565` bereits vorhanden ist.
 Falls nicht:
 
-* IP Address: `172.26.50.31`
+* IP Address: `172.26.50.24`
 * Ports: `25565`
 
-Wichtig: Immer die Game-IP `172.26.50.31` verwenden, nie die Management-IP `172.26.100.31`.
+Wichtig: Immer die Game-IP `172.26.50.24` verwenden, nie die Management-IP `172.26.100.24`.
 
 ---
 
@@ -83,8 +85,8 @@ Wichtig: Immer die Game-IP `172.26.50.31` verwenden, nie die Management-IP `172.
 | Server Name | `minecraft-paper` |
 | Owner | Admin-Account |
 | Egg | `Paper` |
-| Node | `media-1` |
-| Primary Allocation | `172.26.50.31:25565` |
+| Node | `wk-4` |
+| Primary Allocation | `172.26.50.24:25565` |
 | Memory | `4096` MB (Minimum 2048, empfohlen 4096–8192) |
 | Disk | `20480` MB |
 | CPU | `400` % (4 vCPUs) |
@@ -137,7 +139,7 @@ Done (X.XXXs)! For help, type "help"
 ## Phase 5: Performance-Plugins installieren
 
 Plugins werden in `/plugins/` abgelegt und werden nach einem Server-Neustart geladen.
-Dateien per SFTP hochladen (`172.26.50.31:2022`) oder ueber den Pelican-File-Manager.
+Dateien per SFTP hochladen (`172.26.50.24:2022`) oder ueber den Pelican-File-Manager.
 
 ### Spark (unverzichtbar)
 
@@ -232,7 +234,7 @@ simulation-distance=6     # Default 10; Mob-AI und Wasser nur in 6 Chunks
 
 Sobald der Server intern sauber laeuft:
 
-* WAN → TCP+UDP Port `25565` → `172.26.50.31:25565`
+* WAN → TCP+UDP Port `25565` → `172.26.50.24:25565`
 
 Optional: Cloudflare-SRV-Eintrag fuer einen sauberen Hostnamen:
 
@@ -253,13 +255,13 @@ tps
 memory
 ```
 
-### Allokation pruefen (auf media-1)
+### Allokation pruefen (auf wk-4)
 
 ```bash
 ss -tlnp | grep 25565
 ```
 
-Erwartung: Prozess lauscht auf `172.26.50.31:25565`.
+Erwartung: Prozess lauscht auf `172.26.50.24:25565`.
 
 ### Wings-Log
 
