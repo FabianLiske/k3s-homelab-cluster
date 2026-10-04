@@ -15,9 +15,5 @@ spec:
           effect: NoSchedule
         - key: dedicated
           operator: Equal
-          value: media
-          effect: NoSchedule
-        - key: dedicated
-          operator: Equal
           value: edge
           effect: NoSchedule
