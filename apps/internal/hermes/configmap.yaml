@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-config
+  namespace: svc-hermes
+data:
+  # Initial config.yaml for Hermes (HERMES_HOME=/opt/data).
+  #
+  # The deployment's seed-config init container copies this file to
+  # /opt/data/config.yaml exactly once (no-clobber). From then on the file on
+  # the PVC belongs to Hermes: image upgrades run non-interactive config
+  # schema migrations on it in place (with timestamped backups), and the
+  # dashboard / `hermes config set` write to it at runtime.
+  #
+  # To re-apply a changed seed: edit this ConfigMap, delete
+  # /opt/data/config.yaml on the volume, restart the pod. (See README,
+  # "Konfigurationsaenderungen".)
+  #
+  # Deliberately NOT included: _config_version (Hermes manages it) and any
+  # secret values (the LiteLLM key is referenced via key_env -> the
+  # LITELLM_API_KEY container env var, fed from the SOPS secret).
+  config.yaml: |
+    model:
+      # Main model slot, routed through the LiteLLM router (OpenAI-compatible
+      # chat completions). `local-chat` is the stable model alias the router
+      # serves (see apps/internal/llm/litellm).
+      provider: custom
+      default: local-chat
+      base_url: http://litellm.svc-llm.svc.cluster.local:4000/v1
+      api_key: "${LITELLM_API_KEY}"
+    dashboard:
+      # Public URL as seen through the internal ingress; used for the
+      # dashboard's own links and for trusting X-Forwarded-* headers.
+      public_url: "https://hermes.intern.rohrbom.be"
+      # Only the ingress-20 pod network is allowed to reach this pod at all
+      # (netpol-ingress.yaml), so trusting the cluster pod CIDR is bounded.
+      trusted_proxies:
+        - "10.42.0.0/16"
