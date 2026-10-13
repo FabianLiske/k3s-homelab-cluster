@@ -1,0 +1,230 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hermes
+  namespace: svc-hermes
+  labels:
+    app: hermes
+spec:
+  # Hermes keeps all mutable state (config, .env, SQLite session db, memories,
+  # skills, cron) under HERMES_HOME=/opt/data. That directory is a
+  # single-writer domain: never run two pods against it at once.
+  replicas: 1
+  # Recreate instead of RollingUpdate: the new pod would otherwise sit Pending
+  # on the ReadWriteOnce PVC while the old pod still holds it, and a brief
+  # overlap would let two gateways write the same SQLite db.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hermes
+  template:
+    metadata:
+      labels:
+        app: hermes
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      # The official image boots through s6-overlay's /init, which runs as
+      # root to chown /opt/data on first boot and then drops every supervised
+      # process to the `hermes` user (UID/GID 10000) via s6-setuidgid.
+      # runAsNonRoot would break that bootstrap, so the pod runs as root and
+      # only the setuid drop is what protects the runtime. fsGroup matches the
+      # hermes user so the freshly provisioned Longhorn volume is group-owned
+      # by it.
+      securityContext:
+        runAsUser: 0
+        runAsNonRoot: false
+        fsGroup: 10000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Seeds the initial config.yaml from the ConfigMap exactly once.
+        # No-clobber: if /opt/data/config.yaml already exists it is kept, so a
+        # restart / image upgrade never overwrites the (possibly migrated or
+        # user-edited) config Hermes now owns on the PVC. After seeding,
+        # Hermes has full write access to the file.
+        - name: seed-config
+          image: docker.io/library/busybox:1.38@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              dest=/opt/data/config.yaml
+              src=/etc/hermes-seed/config.yaml
+              if [ -e "$dest" ]; then
+                echo "seed-config: $dest already present - keeping existing (no clobber)"
+              else
+                cp "$src" "$dest"
+                # chmod must run BEFORE chown: once the file belongs to
+                # UID 10000, root with only CAP_CHOWN can no longer
+                # change its mode (no CAP_FOWNER).
+                chmod 0644 "$dest"
+                chown 10000:10000 "$dest"
+                echo "seed-config: seeded $dest from ConfigMap hermes-config"
+              fi
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: data
+              mountPath: /opt/data
+            - name: seed
+              mountPath: /etc/hermes-seed
+              readOnly: true
+      containers:
+        - name: hermes
+          # Pinned stable release, digest-locked multi-arch manifest list
+          # (amd64 + arm64, matching the mixed node pool). See README for the
+          # upgrade procedure.
+          image: docker.io/nousresearch/hermes-agent:v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
+          imagePullPolicy: IfNotPresent
+          # Keep the image's official entrypoint (docker/entrypoint-dispatch.sh).
+          # Under PID 1 it execs s6-overlay's /init, which runs the stage2
+          # bootstrap (chown, config migration, profile reconciliation) and
+          # supervises the gateway and the dashboard as s6 services. `gateway
+          # run` is passed as plain args; the main process is a sleep heartbeat
+          # while s6 runs the real services, so docker/kubectl logs still show
+          # the supervised gateway output and SIGTERM shuts everything down
+          # cleanly. Do NOT override the entrypoint: doing so drops the s6
+          # supervision tree (dashboard + per-profile gateways go unmanaged)
+          # and removes zombie reaping.
+          args:
+            - gateway
+            - run
+          env:
+            - name: TZ
+              value: Europe/Berlin
+            # Enable the supervised web dashboard (s6 service, port 9119).
+            - name: HERMES_DASHBOARD
+              value: "1"
+            # LiteLLM router (in-cluster service, see configmap.yaml). The
+            # key is a dedicated, non-admin LiteLLM virtual key, injected
+            # from the SOPS secret; the config references it via
+            # ${LITELLM_API_KEY} so no secret lives in the ConfigMap.
+            - name: LITELLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: LITELLM_API_KEY
+            # Expose the OpenAI-compatible API server beyond 127.0.0.1 so the
+            # in-cluster health probes (and future OpenAI-style frontends) can
+            # reach it. Auth is a bearer key (API_SERVER_KEY), required for
+            # every request.
+            - name: API_SERVER_ENABLED
+              value: "true"
+            - name: API_SERVER_HOST
+              value: "0.0.0.0"
+            - name: API_SERVER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: API_SERVER_KEY
+            # Dashboard auth gate. A non-loopback bind (default 0.0.0.0) always
+            # requires an auth provider; the bundled username/password provider
+            # is the zero-infra choice for a trusted internal network. The
+            # secret makes sessions stable across restarts.
+            - name: HERMES_DASHBOARD_BASIC_AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: HERMES_DASHBOARD_BASIC_AUTH_USERNAME
+            - name: HERMES_DASHBOARD_BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: HERMES_DASHBOARD_BASIC_AUTH_PASSWORD
+            - name: HERMES_DASHBOARD_BASIC_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: HERMES_DASHBOARD_BASIC_AUTH_SECRET
+          ports:
+            - name: dashboard
+              containerPort: 9119
+              protocol: TCP
+            - name: api
+              containerPort: 8642
+              protocol: TCP
+          # Probes hit the API server's public /health endpoint (port 8642),
+          # which returns {"status":"ok"} without auth and without triggering
+          # any model request. It is only up while the supervised gateway is
+          # running, so it doubles as a gateway-liveness backstop on top of the
+          # in-container s6 supervision. Readiness tracks the dashboard port
+          # (9119), which is the ingress-facing surface.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: api
+            periodSeconds: 5
+            timeoutSeconds: 3
+            # First boot does volume chown, config migration and profile
+            # reconciliation; allow up to ~10 minutes before giving up.
+            failureThreshold: 120
+          readinessProbe:
+            tcpSocket:
+              port: dashboard
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: api
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          securityContext:
+            # s6 /init + s6-setuidgid must start as root and drop
+            # privileges to the hermes user (UID/GID 10000). Beyond
+            # that, the root supervisor also needs normal file
+            # access to hermes-owned s6 supervisor directories,
+            # permission changes after chown (bootstrap scripts
+            # adjust modes following ownership transfers), and the
+            # right to signal the processes it supervises as UID
+            # 10000. A reduced capability set is not sufficient
+            # for that, so the container keeps the runtime's default
+            # capabilities (no drop/override).
+            # allowPrivilegeEscalation stays enabled for the setuid
+            # drop. No privileged: true, no host namespaces.
+            allowPrivilegeEscalation: true
+          volumeMounts:
+            - name: data
+              mountPath: /opt/data
+            # Chromium (Playwright) needs a large shared-memory segment; the
+            # container default /dev/shm (64Mi) makes the browser crash.
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: hermes-data
+        - name: seed
+          configMap:
+            name: hermes-config
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi

@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hermes
+  namespace: svc-hermes
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    # The dashboard streams chat (SSE) and keeps long-lived gateway
+    # connections: long timeouts, no response buffering.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx-internal
+  rules:
+    - host: hermes.intern.rohrbom.be
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hermes
+                port:
+                  number: 9119
+  tls:
+    - hosts:
+        - hermes.intern.rohrbom.be
+      secretName: hermes-tls
