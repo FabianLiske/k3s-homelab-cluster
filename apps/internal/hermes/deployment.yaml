@@ -60,8 +60,11 @@ spec:
                 echo "seed-config: $dest already present - keeping existing (no clobber)"
               else
                 cp "$src" "$dest"
-                chown 10000:10000 "$dest"
+                # chmod must run BEFORE chown: once the file belongs to
+                # UID 10000, root with only CAP_CHOWN can no longer
+                # change its mode (no CAP_FOWNER).
                 chmod 0644 "$dest"
+                chown 10000:10000 "$dest"
                 echo "seed-config: seeded $dest from ConfigMap hermes-config"
               fi
           securityContext:
@@ -110,10 +113,10 @@ spec:
             # Enable the supervised web dashboard (s6 service, port 9119).
             - name: HERMES_DASHBOARD
               value: "1"
-            # LiteLLM router (in-cluster service, see configmap.yaml). The key
-            # is the LiteLLM master key, injected from the SOPS secret; the
-            # config references it via key_env so no secret lives in the
-            # ConfigMap.
+            # LiteLLM router (in-cluster service, see configmap.yaml). The
+            # key is a dedicated, non-admin LiteLLM virtual key, injected
+            # from the SOPS secret; the config references it via
+            # ${LITELLM_API_KEY} so no secret lives in the ConfigMap.
             - name: LITELLM_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -194,14 +197,19 @@ spec:
               cpu: "2"
               memory: 4Gi
           securityContext:
-            # s6 /init + s6-setuidgid need to start as root and drop
-            # privileges; the runtime processes themselves run as the hermes
-            # user. CHOWN/SETUID/SETGID cover the first-boot chown and the
-            # setuid drop. No privileged: true, no host namespaces.
+            # s6 /init + s6-setuidgid must start as root and drop
+            # privileges to the hermes user (UID/GID 10000). Beyond
+            # that, the root supervisor also needs normal file
+            # access to hermes-owned s6 supervisor directories,
+            # permission changes after chown (bootstrap scripts
+            # adjust modes following ownership transfers), and the
+            # right to signal the processes it supervises as UID
+            # 10000. A reduced capability set is not sufficient
+            # for that, so the container keeps the runtime's default
+            # capabilities (no drop/override).
+            # allowPrivilegeEscalation stays enabled for the setuid
+            # drop. No privileged: true, no host namespaces.
             allowPrivilegeEscalation: true
-            capabilities:
-              drop: [ALL]
-              add: [CHOWN, SETUID, SETGID]
           volumeMounts:
             - name: data
               mountPath: /opt/data

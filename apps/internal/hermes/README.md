@@ -20,7 +20,7 @@ multi-arch amd64/arm64 — passt zur gemischten Node-Pool-Architektur).
 | `namespace.yaml` | Namespace `svc-hermes` |
 | `pvc-data.yaml` | 10 GiB Longhorn RWO (`longhorn-2r`) mit täglichen Backups + wöchentlichem Trim; `prune: disabled`, damit Flux das Volume nicht mitlöscht |
 | `configmap.yaml` | Start-`config.yaml` (nicht-vertraulich) — wird **einmalig** eingespielt |
-| `hermes-secret.yaml` / `.example` | SOPS+age-verschlüsselt: LiteLLM-Master-Key, API-Server-Key, Dashboard-Basic-Auth |
+| `hermes-secret.yaml` / `.example` | SOPS+age-verschlüsselt: LiteLLM-Virtual-Key, API-Server-Key, Dashboard-Basic-Auth |
 | `deployment.yaml` | Gateway + Dashboard + Agent in einem Container, s6-supervidiert |
 | `service.yaml` | ClusterIP `hermes` mit Ports `dashboard` (9119) und `api` (8642) |
 | `ingress.yaml` | `hermes.intern.rohrbom.be` → Port 9119 (nur Dashboard) |
@@ -77,11 +77,19 @@ droppt per `s6-setuidgid` auf `hermes` UID 10000). Konfiguriert daher:
 
 - Pod: `runAsUser: 0`, `runAsNonRoot: false`, `fsGroup: 10000`
   (`OnRootMismatch`), `seccompProfile: RuntimeDefault`
-- Hauptcontainer: Caps `drop: ALL` + `add: CHOWN, SETUID, SETGID`
-  (First-Boot-chown und setuid-Drop), `allowPrivilegeEscalation: true`
-  (notwendig für den s6-Bootstrap); **kein** `privileged: true`
+- Hauptcontainer: **normale Standard-Capabilities der Runtime** (kein
+  `capabilities:`-Block). Der Root-Supervisor braucht darüber hinaus
+  Dateizugriff auf hermes-eigene s6-Supervisor-Verzeichnisse,
+  Berechtigungsänderungen nach chown und Signal-Rechte für seine
+  Prozesse unter UID 10000 — eine individuelle Cap-Einschränkung
+  (`drop: ALL` + einzelne `add`) reicht dafür nicht.
+  `allowPrivilegeEscalation: true` (notwendig für den s6-Bootstrap);
+  **kein** `privileged: true`
 - Init-Container `seed-config` (BusyBox): nur Cap `CHOWN`, kein
-  Privilege-Escalation, spielt die ConfigMap-Config einmalig ein
+  Privilege-Escalation, spielt die ConfigMap-Config einmalig ein.
+  Reihenfolge im Skript: `cp` → `chmod 0644` → `chown 10000:10000`
+  (chmod muss **vor** chown, weil Root mit nur `CHOWN` nach dem
+  Eigentümerwechsel die Mode-Bits nicht mehr ändern darf)
 
 ## Secrets (SOPS)
 
@@ -96,15 +104,18 @@ sops --encrypt --in-place apps/internal/hermes/hermes-secret.yaml
 
 | Key | Wert / Herkunft |
 | --- | --- |
-| `LITELLM_API_KEY` | = `LITELLM_MASTER_KEY` aus Secret `litellm-secrets` (Namespace `svc-llm`); ohne Ableiten aus dem verschlüsselten Repo-File im Rancher-UI/`kubectl` in `svc-llm` ablesen (Secret nicht ins Repo kopieren) |
+| `LITELLM_API_KEY` | dedizierter LiteLLM-**Virtual-Key** (nicht der Master-Key), von dir in LiteLLM angelegt (Key-Verwaltung, s. `apps/internal/llm/litellm`). Berechtigungen: Modell `local-chat` + Modell-Abfragen/Chat-Completions; **keine** Admin-Rechte. Achtung: In einem Admin-Kontext angelegte Keys können Admin-Rechte über den Key-Owner erben — den Key entsprechend einem Nicht-Admin-Besitzer zuordnen. Automatische Key-Provisioning gibt es hier bewusst nicht |
 | `API_SERVER_KEY` | `printf '%s\n' "$(openssl rand -hex 32)"` |
 | `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` | z. B. `faba` |
 | `HERMES_DASHBOARD_BASIC_AUTH_PASSWORD` | starkes Passwort |
 | `HERMES_DASHBOARD_BASIC_AUTH_SECRET` | `openssl rand -base64 32` |
 
 Der interne Ingress ersetzt die Hermes-Auth **nicht**: Ohne
-Basic-Auth-Provider scheitert das Dashboard auf nicht-Loopback-Bind
+Auth-Provider scheitert das Dashboard auf nicht-Loopback-Bind
 fail-closed (Stand Juni 2026 ist `HERMES_DASHBOARD_INSECURE` ein No-op).
+Die `basic`-Credentials aktivieren den eingebauten
+Username-&-Password-Login (Login-Formular unter `/login` — **nicht**
+HTTP-Basic im Browser; Sessions sind HMAC-signierte Cookies).
 
 ## Erstkonfiguration
 
@@ -113,8 +124,8 @@ fail-closed (Stand Juni 2026 ist `HERMES_DASHBOARD_INSECURE` ein No-op).
    `local-chat` via LiteLLM, Dashboard public_url + trusted proxies).
 3. Optional einmalig per `kubectl -n svc-hermes port-forward
    svc/hermes 9119:9119` das Dashboard direkt prüfen (ohne Ingress-DNS),
-   dann über `https://hermes.intern.rohrbom.be` mit den
-   Basic-Auth-Credentials anmelden.
+   dann über `https://hermes.intern.rohrbom.be` per Login-Formular
+   mit den Dashboard-Credentials anmelden.
 4. Im Dashboard bei Bedarf noch: `SOUL.md` (Agent-Persönlichkeit)
    anpassen, Skills verwalten, ggf. Messaging-Plattformen anbinden.
    `hermes setup` (Wizard) ist in dieser Deployment-Form nicht
@@ -149,8 +160,8 @@ fail-closed (Stand Juni 2026 ist `HERMES_DASHBOARD_INSECURE` ein No-op).
 
 ## Offene Punkte / Container-Einschränkungen
 
-- **`LITELLM_API_KEY` & Dashboard-Credentials sind Platzhalter** — erst
-  befüllen, dann deployen (siehe Secrets).
+- **`LITELLM_API_KEY` (LiteLLM-Virtual-Key) & Dashboard-Credentials
+  sind Platzhalter** — erst befüllen, dann deployen (siehe Secrets).
 - **Terminal-Backend = lokal im Container** (Default). Die spätere
   Anbindung an die Dev-VM per SSH-Backend (`terminal.backend: ssh` in
   `config.yaml` inkl. Key-Mount) ist bewusst noch nicht eingerichtet;
@@ -177,7 +188,18 @@ fail-closed (Stand Juni 2026 ist `HERMES_DASHBOARD_INSECURE` ein No-op).
   (nicht vorhanden).
 - **Keine Chat-Plattformen** (Telegram/Discord/…) konfiguriert — Gateway
   läuft ohne Plattformen; Dashboard + API-Server sind die Oberflächen.
-- **Validierung:** statisch (Kustomize-Build, Server-Side-Dry-Run gegen
-  die API) geprüft; Laufzeitverhalten (Probe-Verhalten, s6-Bootstrap auf
-  Longhorn, Dashboard-Login, LiteLLM-Runde) erst nach Merge/Deploy
-  verifiziert (Checkliste in der PR/Below).
+- **Validierung (Stand des Feature-Branches):**
+  - *statisch:* Kustomize-Build (App + kompletter Flux-Pfad),
+    Manifest-Schema-Dry-Run gegen die API, SOPS-Roundtrip,
+    Cluster-Referenzen (StorageClass/IngressClass/Issuer) geprüft.
+  - *Laufzeit (Docker, gepinntes Image `v2026.9.24`/Digest,
+    root + Standard-Caps — wie im Deployment):* Init-Container-Skript
+    (Seeding, No-Clobber, chmod/chown-Reihenfolge unter CHOWN-only),
+    Erststart, sauberes SIGTERM-Stoppen (s6-Reihenfolge, ~4 s),
+    Restart mit bestehenden Daten (Config unverändert),
+    `${LITELLM_API_KEY}`-Interpolation im effektiven Gateway-Config,
+    Dashboard-Login (falsch → 401, richtig → Session, fail-closed),
+    API-Server-Key-Checks (`/health` public, `/v1/models` 401/200).
+  - *noch nicht getestet (erst im Cluster):* s6-Bootstrap auf Longhorn,
+    Probe-Verhalten, Ingress/DNS, echte LiteLLM-Chat-Runde mit
+    Virtual Key, Image-Pull auf arm64-Node.

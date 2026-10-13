@@ -17,8 +17,9 @@ data:
   # "Konfigurationsaenderungen".)
   #
   # Deliberately NOT included: _config_version (Hermes manages it) and any
-  # secret values (the LiteLLM key is referenced via key_env -> the
-  # LITELLM_API_KEY container env var, fed from the SOPS secret).
+  # secret values (the LiteLLM virtual key is referenced via
+  # ${LITELLM_API_KEY} -> the container env var of the same name, fed
+  # from the SOPS secret).
   config.yaml: |
     model:
       # Main model slot, routed through the LiteLLM router (OpenAI-compatible
