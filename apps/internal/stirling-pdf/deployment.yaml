@@ -12,6 +12,9 @@ spec:
   # would not be terminated until the new pod was ready.
   strategy:
     type: Recreate
+    # Required for an in-place transition from RollingUpdate: otherwise
+    # the API may retain the old rollingUpdate settings and reject Recreate.
+    rollingUpdate: null
   selector:
     matchLabels: { app: stirling-pdf }
   template:
