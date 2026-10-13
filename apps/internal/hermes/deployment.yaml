@@ -198,9 +198,10 @@ spec:
           resources:
             requests:
               cpu: 500m
-              # Request the realistic steady-state working set so the
-              # scheduler keeps the pod on a node with real headroom.
-              memory: 4Gi
+              # Reserve the full allowed working set. Kubernetes schedules
+              # from requests, not limits, so a lower request would let
+              # small workloads consume the headroom Hermes may need.
+              memory: 8Gi
             limits:
               cpu: "2"
               # 4 GiB was too low: Hermes' browser/agent workloads

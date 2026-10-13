@@ -223,10 +223,16 @@ kubectl get nodes -o wide
 kubectl taint nodes cp-X node-role.kubernetes.io/control-plane=:NoSchedule --overwrite
 ```
 
-## 6.2) Worker tainten
+## 6.2) Worker konfigurieren
 
 ```bash
 kubectl label node wk-1 wk-2 wk-3 node.longhorn.io/create-default-disk=true --overwrite
+
+# wk-4 fuer speicherintensive Dienste kennzeichnen. PreferNoSchedule haelt
+# kleine, ungebundene Workloads bevorzugt auf wk-1..3, laesst wk-4 aber als
+# Fallback zu, wenn die kleinen Worker nicht ausreichen.
+kubectl label node wk-4 node.rohrbom.be/heavy-compute=true --overwrite
+kubectl taint node wk-4 node.rohrbom.be/heavy-compute=true:PreferNoSchedule --overwrite
 ```
 
 # SOPS

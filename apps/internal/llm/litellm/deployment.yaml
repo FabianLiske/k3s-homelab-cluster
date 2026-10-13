@@ -21,6 +21,10 @@ spec:
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
+      # Keep the gateway on wk-4 for now. The heavy-compute node is only
+      # soft-tainted, so this hard selector remains schedulable there.
+      nodeSelector:
+        node.rohrbom.be/heavy-compute: "true"
       securityContext:
         seccompProfile:
           type: RuntimeDefault
