@@ -19,6 +19,19 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      # Prefer the small workers (wk-1..3) so the heavy-compute pool
+      # (wk-4) keeps headroom for memory-hungry services. Soft
+      # preference only: if no Pi has capacity, the pod may still
+      # schedule on wk-4.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [wk-1, wk-2, wk-3]
       containers:
         - name: qbittorrent
           image: ghcr.io/hotio/qbittorrent:latest

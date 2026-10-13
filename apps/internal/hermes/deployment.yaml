@@ -26,6 +26,12 @@ spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
       terminationGracePeriodSeconds: 60
+      # Hermes needs the heavy-compute node (wk-4, 24 GiB): the agent's
+      # working set regularly exceeds what the small workers (wk-1..3,
+      # 8 GiB each) can offer — with the previous 4 GiB limit the pod
+      # got OOMKilled. Same selector convention as jupyter/immich-ml.
+      nodeSelector:
+        node.rohrbom.be/heavy-compute: "true"
       # The official image boots through s6-overlay's /init, which runs as
       # root to chown /opt/data on first boot and then drops every supervised
       # process to the `hermes` user (UID/GID 10000) via s6-setuidgid.
@@ -192,10 +198,14 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 2Gi
+              # Request the realistic steady-state working set so the
+              # scheduler keeps the pod on a node with real headroom.
+              memory: 4Gi
             limits:
               cpu: "2"
-              memory: 4Gi
+              # 4 GiB was too low: Hermes' browser/agent workloads
+              # regularly exceed it (OOMKilled 2026-10-13).
+              memory: 8Gi
           securityContext:
             # s6 /init + s6-setuidgid must start as root and drop
             # privileges to the hermes user (UID/GID 10000). Beyond
