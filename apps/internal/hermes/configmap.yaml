@@ -29,6 +29,10 @@ data:
       default: local-chat
       base_url: http://litellm.svc-llm.svc.cluster.local:4000/v1
       api_key: "${LITELLM_API_KEY}"
+      # Total context window (input + output). Pinned explicitly because the
+      # LiteLLM proxy does not reliably expose the model window via
+      # /v1/models, so Hermes' auto-detection would be wrong here.
+      context_length: 200000
     dashboard:
       # Public URL as seen through the internal ingress; used for the
       # dashboard's own links and for trusting X-Forwarded-* headers.
