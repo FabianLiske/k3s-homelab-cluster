@@ -6,6 +6,12 @@ metadata:
   labels: { app: stirling-pdf }
 spec:
   replicas: 1
+  # Recreate: the pod uses RWO Longhorn PVCs; with the default
+  # RollingUpdate the new pod could never attach the volume while the
+  # old pod still holds it (multi-attach deadlock), and the old pod
+  # would not be terminated until the new pod was ready.
+  strategy:
+    type: Recreate
   selector:
     matchLabels: { app: stirling-pdf }
   template:
