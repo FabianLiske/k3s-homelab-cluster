@@ -3,3 +3,14 @@ kind: Kustomization
 resources:
   - ./public/
   - ./internal/
+
+# Keep lightweight workloads off the heavy-compute pool when one of the
+# Raspberry Pi workers has capacity. This remains a soft preference: wk-4 is
+# still a valid fallback when wk-1..3 cannot host a pod.
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: "^(actualbudget|actualbudget-legal-pages|calibre|jirafeau|kochen|lidarr|linkding|mampftracker|open-webui|paperless-tika|paperless-webserver|sonarr|trilium|vaultwarden|vaultwarden-admin-deny)$"
+    path: prefer-small-workers.yaml
