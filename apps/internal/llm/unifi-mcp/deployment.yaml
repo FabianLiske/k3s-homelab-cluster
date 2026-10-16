@@ -37,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: unifi-mcp
-          image: ghcr.io/fabianliske/unifi-mcp:sha-8197f05
+          image: ghcr.io/fabianliske/unifi-mcp:sha-cdd129a
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
