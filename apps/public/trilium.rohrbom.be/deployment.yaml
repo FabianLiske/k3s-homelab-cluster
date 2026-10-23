@@ -20,7 +20,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: trilium
-          image: triliumnext/trilium:v0.105.0
+          image: triliumnext/trilium:v0.106.0
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
