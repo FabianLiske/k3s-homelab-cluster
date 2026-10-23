@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: jirafeau
-          image: registry.gitlab.com/jirafeau/jirafeau:4.7.1
+          image: registry.gitlab.com/jirafeau/jirafeau:4.7.2@sha256:77dc96d6ab0f7974d9a28bb639a82fd30b3c216e1a330ba73317decdc2909a8e
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-ec"]
           args:
