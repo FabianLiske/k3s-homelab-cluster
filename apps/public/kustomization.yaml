@@ -4,7 +4,6 @@ resources:
   - ./kochen.mitschen.de/
   - ./immich.rohrbom.be/
   - ./vault.rohrbom.be/
-  - ./ntfy.rohrbom.be/
   - ./share.rohrbom.be/
   - ./mampf.rohrbom.be/
   - ./budget.rohrbom.be/
