@@ -30,8 +30,8 @@ Die Netztrennung ist dabei:
 | Wings-FQDN | `wings.cluster.rohrbom.be` → `172.26.100.24` |
 | Wings-Port | `8080` (TLS, Let's Encrypt via DNS-01) |
 | Wings-SFTP-Port | `2022` |
-| Wings-Version | `v1.0.0-beta27` |
-| Panel | `ghcr.io/pelican-dev/panel:latest` in `svc-games` |
+| Wings-Version | `v1.0.0-rc.1` |
+| Panel | `ghcr.io/pelican/panel:v1.0.0-rc.2` in `svc-games` |
 | Storage | NFS von `172.26.60.223` (NAS, `/mnt/fast/…`) |
 
 Merksaetze:
@@ -268,12 +268,12 @@ sudo docker run --rm hello-world
 
 ```bash
 sudo curl -L -o /usr/local/bin/wings \
-  https://github.com/pelican-dev/wings/releases/latest/download/wings_linux_amd64
+  https://github.com/pelican/wings/releases/latest/download/wings_linux_amd64
 sudo chmod 0755 /usr/local/bin/wings
 wings version
 ```
 
-Aktuell im Einsatz: `v1.0.0-beta27`.
+Aktuell im Einsatz: `v1.0.0-rc.1`.
 
 ### 2. Systemd-Unit
 

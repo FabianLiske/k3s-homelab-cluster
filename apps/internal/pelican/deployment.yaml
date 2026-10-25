@@ -21,7 +21,7 @@ spec:
         fsGroup: 82
       containers:
         - name: pelican
-          image: ghcr.io/pelican-dev/panel:latest
+          image: ghcr.io/pelican/panel:v1.0.0-rc.2
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
