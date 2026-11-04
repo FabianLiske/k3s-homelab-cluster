@@ -1,0 +1,2958 @@
+# Verbindliche Quellen für den Update-Checker. Details: docs/cluster-update-catalog.md
+schema_version: 1
+status: approved_for_checker
+description: 'Verbindlicher Prüfkatalog für Hermes Daily Cluster Update Check (18e7f87d24fa): feste Reihenfolge,
+  geprüfte Quellen, fertige Leseabfragen und sofortige gesperrte Tickets.'
+policy:
+  unknown_components: report_and_skip
+  current_versions: read_from_manifests_and_cluster
+  source_errors: record_and_continue
+  source_discovery: no_unlisted_fallbacks
+  write_scanner_code: false
+  max_attempts_per_source: 2
+  max_seconds_per_service: 180
+  max_seconds_per_run: 1800
+  progress: persist_after_each_service
+  tickets: create_blocked_immediately_after_each_verified_service_update
+  updates: require_explicit_user_approval
+  image_policy: preserve_image_publisher_variant_and_existing_release_channel
+  major_versions: separate_review_with_migration_plan
+  deduplicate_registry_requests: true
+  source_review: All configured version/release sources and all 51 checkable image tag endpoints were fetched successfully
+    on 2026-11-04T21:29:53.703044+01:00. Commands and source ownership are fixed; no source discovery or scanner
+    development during daily checks.
+  classification: 'category: application, custom_image, platform, cluster; management describes check/external/bundled
+    separately'
+  allowed_lookup_tools:
+  - provided read_commands using existing curl, jq, sed, awk and kubectl
+  - direct read of listed release-note URLs with existing web/browser tools; no web searches
+  forbidden_daily_work:
+  - Do not create, modify, debug or install scanners, Python/JS/shell helper scripts, parsers, packages or registry
+    clients.
+  - Do not enumerate all registry tags, paginate an entire registry, clone upstream repositories or pull full images.
+  - Do not search for alternative projects, registries or mirrors. Only use the URLs and explicit templates in this
+    file.
+  - Do not re-run a full inventory/scan because one component failed. Save its error and move on.
+  source_limits:
+    http_timeout_seconds: 20
+    connect_timeout_seconds: 5
+    max_pages_per_source: 1
+    max_candidate_tags_per_image: 2
+    max_http_requests_per_image: 6
+    on_401_403_429: record_source_error_and_continue_without_retry
+    on_timeout_or_5xx: at_most_one_retry_within_service_budget
+    missing_version_in_bounded_response: report_not_verifiable_and_continue; never walk historical releases/tags
+  context_limits: Read this catalog once. Keep the current component and its referenced source records. Reuse each
+    source response within a run. Output only selected version/digest/date fields; fetch detailed release notes
+    only for an actual candidate. Persist a result/ticket after each component.
+  mutable_image_check: Check only the configured tag (e.g. latest, 17 or alpine), not every tag. Prefer the listed
+    exact-tag metadata endpoint or HEAD. Compare digests of the same OS/architecture or the same manifest-index
+    type. A changed digest verifies an update without reverse-searching historical versions. Resolve a single index/config
+    only when required; never build a scanner.
+  source_order: 'For mutable/channel tags, read exactly that configured tag: Docker Hub exact-tag JSON metadata
+    where listed, otherwise manifest HEAD. Only immutable/versioned targets that need a newer version use a bounded
+    tag list or release feed. Read changelogs only for detected update candidates.'
+  execution_mode: 'Strictly sequential: one component at a time and at most one tool call per assistant turn. No
+    subagents, parallel tool batches, concurrent commands or background processes.'
+  component_order: Use check_order exactly, resume at the saved next_component_id after an incomplete cycle. Do
+    not reorder components or postpone ticket creation until the end.
+  checkpoint_path: /home/faba/.hermes/cron/state/cluster-update-check.json
+  completion_gate: 'Before advancing to the next component, save its result and, for a verified update, obtain a
+    blocked ticket ID. Board failure: save the pending proposal and end with a partial report, never silently continue
+    accumulating unticketed updates.'
+catalog_access:
+  instruction: Read policy and lookup_recipes once. Select one component plus its referenced source records with
+    the ready commands below. Do not repeatedly paste the complete catalog or raw feeds/indexes into the context.
+  routine_ids_command: 'awk ''/^- id: / { id=substr($0,7) } /^  update_track: routine$/ { print id }'' update-catalog.yaml'
+  component_command: 'awk -v wanted="${update_component_id}" ''$0 == "- id: " wanted { selected=1 } selected &&
+    /^- id: / && $0 != "- id: " wanted { exit } selected && /^[^ -]/ { exit } selected { print }'' update-catalog.yaml'
+  source_record_command: awk -v wanted="${update_record_id}" '$0 == "  " wanted ":" { selected=1; print; next }
+    selected && /^  [^ ]/ { exit } selected && /^[^ ]/ { exit } selected { print }' update-catalog.yaml
+  source_record_parameter: update_record_id is an exact key from sources (e.g. release:home-assistant) or image_sources
+    (e.g. docker.io/library/postgres).
+  check_order_command: sed -n "/^check_order:/,/^[^ -]/p" update-catalog.yaml
+lookup_recipes:
+  github_feed: Set update_source_url to sources[id].url and use its read_recipe from read_commands. GitHub feeds
+    need neither an API key nor API quota. Version tags are the final release-link segment; display titles can differ.
+  image_tags: Set update_source_url to image_sources[repository].tags_url, update_token_url when needed, then use
+    tags_read_recipe. An optional Docker Hub prefix lookup may substitute the current tag family into the explicit
+    URL template. No pagination.
+  image_digest: Substitute only the tag/digest into manifest_url_template; put the complete URL in update_manifest_url.
+    Set update_manifest_accept to manifest_accept below and update_token_url if present. Execute digest_read_recipe.
+    Use manifest_read_recipe only when OS/architecture resolution is needed.
+  manifest_accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json,
+    application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json
+  image_version_label: 'Only if needed: use the selected manifest config_digest in config_blob_url_template, set
+    update_config_blob_url, then execute version_label_read_recipe. This reads config labels only; never fetch filesystem
+    layers.'
+  helm_index: Set update_source_url and update_chart_name from sources[chart:<component>], then use read_recipe
+    helm_versions. Existing curl and awk return 10 chart versions/appVersions/digests. No YAML parser or installation
+    required.
+  k3s: Use release:k3s-channels to resolve the stable channel, then release:k3s for changes. Match current server
+    and all kubelet versions; do not independently probe every bundled component.
+  failure: A source failure ends only this component check. Persist component ID, URL, HTTP/error status and checked
+    time; continue to the next component without implementation work.
+  read_recipe_parameters: Each recipe is a ready-made shell command. Set its quoted update_* variables to literal
+    values from this catalog or the selected image reference. Do not generate scripts or functions. Use shell pipefail
+    so HTTP/parser failures remain visible; never print an anonymous token.
+  daily_sequence:
+  - Read the component with catalog_access.component_command. For external/bundled entries skip or use the named
+    parent immediately.
+  - Read only its image_sources records or chart/version sources. Current tags and digests come from the repo and
+    the one live inventory, not a fresh whole-cluster scan per service.
+  - 'For latest or another tracked channel, check only that exact tag: exact_tag_url_template/exact_tag_read_recipe
+    where present, otherwise digest_read_recipe (HEAD). Do not list tags first. For versioned images that need a
+    newer target, use the bounded listed tag source or release feed while preserving publisher, major and flavor.'
+  - If unchanged, persist the result and go to the next component without fetching upstream changelogs. If changed,
+    fetch only the listed release notes relevant to that candidate and assess it.
+  - Create or update the blocked ticket immediately for a verified update; otherwise save unchanged/not-verifiable
+    plus the concrete source error. Then proceed to the next component. Never write or repair code.
+  exact_tag: Substitute the actual configured tag into exact_tag_url_template, set update_source_url, then execute
+    exact_tag_read_recipe. Docker Hub JSON includes per-platform digests; this avoids both manifest GETs and listing
+    unrelated tags. For other registries use HEAD via image_digest. Never replace a pinned database major/channel
+    with global latest.
+  dockerhub_rate_limits: Official Docker documentation says GET manifest requests count toward the pull limit while
+    HEAD does not. Other request/abuse limits can still apply. Use exact-tag metadata or HEAD first; do not repeatedly
+    GET manifests or retry HTTP 429. https://docs.docker.com/docker-hub/usage/pulls/
+  live_inventory: Run the three cluster_*_snapshot commands once at startup, sequentially, with output paths under
+    the run data directory. Read filtered records for the current namespace/resource only; do not print the full
+    snapshot or start a new whole-cluster inventory per service. Snapshots contain no environment values or secret
+    bodies.
+read_commands:
+  github_atom_summary: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0
+    "${update_source_url}" | sed -n -E '/^[[:space:]]*<(title|updated)>/p; /^[[:space:]]*<link[^>]*href="https:\/\/github\.com\/[^\"]*\/releases\/tag\//p'
+  postgres_rss_summary: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0
+    "${update_source_url}" | sed 's/></>\n</g' | sed -n -E '/^[[:space:]]*<(title|link|pubDate)>/p'
+  gitlab_tags: 'curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0 "${update_source_url}"
+    | jq ''[.[] | {name, released_at: .commit.committed_date, release}]'''
+  k3s_stable_channel: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0 "${update_source_url}"
+    | jq '[.data[] | select(.name == "stable") | {name, latest}]'
+  helm_versions: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0 "${update_source_url}"
+    | awk -v chart="${update_chart_name}" '$0 == "  " chart ":" { selected=1; next } selected && /^  [^ -]/ { selected=0
+    } selected && /^    (appVersion|digest|version):/ && count < 30 { print; count++ }'
+  dockerhub_tags: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0 "${update_source_url}"
+    | jq '[.results[] | {name, digest, last_updated}]'
+  quay_tags: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0 "${update_source_url}"
+    | jq '[.tags[] | {name, manifest_digest, last_modified}]'
+  oci_tags_public: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0 "${update_source_url}"
+    | jq '.tags[:50]'
+  oci_tags_authenticated: 'update_lookup_token=$(curl --fail --silent --show-error --location --connect-timeout
+    5 --max-time 20 --retry 0 "${update_token_url}" | jq -er ''.token // .access_token'') && curl --fail --silent
+    --show-error --location --connect-timeout 5 --max-time 20 --retry 0 --header "Authorization: Bearer ${update_lookup_token}"
+    "${update_source_url}" | jq ''.tags[:50]'''
+  manifest_head_public: 'curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry
+    0 --head --header "Accept: ${update_manifest_accept}" "${update_manifest_url}" | sed -n -E ''/^HTTP\//p; /^[Dd]ocker-[Cc]ontent-[Dd]igest:/p;
+    /^[Cc]ontent-[Tt]ype:/p'''
+  manifest_summary_public: 'curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry
+    0 --header "Accept: ${update_manifest_accept}" "${update_manifest_url}" | jq ''{mediaType, config_digest: .config.digest,
+    manifests: [.manifests[]? | select(.platform.os == "linux" and (.platform.architecture == "amd64" or .platform.architecture
+    == "arm64")) | {digest, platform}]}'''
+  image_version_labels_public: 'curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry
+    0 --header "Accept: ${update_manifest_accept}" "${update_config_blob_url}" | jq ''{version: .config.Labels["org.opencontainers.image.version"],
+    revision: .config.Labels["org.opencontainers.image.revision"], source: .config.Labels["org.opencontainers.image.source"]}'''
+  manifest_head_authenticated: 'update_lookup_token=$(curl --fail --silent --show-error --location --connect-timeout
+    5 --max-time 20 --retry 0 "${update_token_url}" | jq -er ''.token // .access_token'') && curl --fail --silent
+    --show-error --location --connect-timeout 5 --max-time 20 --retry 0 --head --header "Authorization: Bearer ${update_lookup_token}"
+    --header "Accept: ${update_manifest_accept}" "${update_manifest_url}" | sed -n -E ''/^HTTP\//p; /^[Dd]ocker-[Cc]ontent-[Dd]igest:/p;
+    /^[Cc]ontent-[Tt]ype:/p'''
+  manifest_summary_authenticated: 'update_lookup_token=$(curl --fail --silent --show-error --location --connect-timeout
+    5 --max-time 20 --retry 0 "${update_token_url}" | jq -er ''.token // .access_token'') && curl --fail --silent
+    --show-error --location --connect-timeout 5 --max-time 20 --retry 0 --header "Authorization: Bearer ${update_lookup_token}"
+    --header "Accept: ${update_manifest_accept}" "${update_manifest_url}" | jq ''{mediaType, config_digest: .config.digest,
+    manifests: [.manifests[]? | select(.platform.os == "linux" and (.platform.architecture == "amd64" or .platform.architecture
+    == "arm64")) | {digest, platform}]}'''
+  image_version_labels_authenticated: 'update_lookup_token=$(curl --fail --silent --show-error --location --connect-timeout
+    5 --max-time 20 --retry 0 "${update_token_url}" | jq -er ''.token // .access_token'') && curl --fail --silent
+    --show-error --location --connect-timeout 5 --max-time 20 --retry 0 --header "Authorization: Bearer ${update_lookup_token}"
+    --header "Accept: ${update_manifest_accept}" "${update_config_blob_url}" | jq ''{version: .config.Labels["org.opencontainers.image.version"],
+    revision: .config.Labels["org.opencontainers.image.revision"], source: .config.Labels["org.opencontainers.image.source"]}'''
+  dockerhub_exact_tag: 'curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0
+    "${update_source_url}" | jq ''{name, digest, last_updated, images: [.images[] | select(.os == "linux" and (.architecture
+    == "amd64" or .architecture == "arm64")) | {architecture, os, digest}]}'''
+  cluster_pods_snapshot: 'kubectl get pods -A --request-timeout=15s -o json | jq ''[.items[] | {namespace: .metadata.namespace,
+    name: .metadata.name, node: .spec.nodeName, phase: .status.phase, owners: [.metadata.ownerReferences[]? | {kind,name}],
+    containers: [(.spec.containers[]?, .spec.initContainers[]?) | {name,image}], statuses: [(.status.containerStatuses[]?,
+    .status.initContainerStatuses[]?) | {name,image,imageID}]}]'' > "${update_pod_snapshot}"'
+  cluster_nodes_snapshot: 'kubectl get nodes --request-timeout=15s -o json | jq ''[.items[] | {name: .metadata.name,
+    architecture: .status.nodeInfo.architecture, kubelet_version: .status.nodeInfo.kubeletVersion}]'' > "${update_node_snapshot}"'
+  cluster_workloads_snapshot: 'kubectl get deployments,statefulsets,daemonsets,cronjobs,helmreleases.helm.toolkit.fluxcd.io
+    -A --request-timeout=15s -o json | jq ''[.items[] | {kind, namespace: .metadata.namespace, name: .metadata.name,
+    replicas: .spec.replicas, suspend: .spec.suspend, chart_spec: .spec.chart.spec, target_namespace: .spec.targetNamespace,
+    deployed_chart: (.status.history[0] // null | if . == null then null else {chartName,chartVersion,appVersion}
+    end), images: [(.spec.template.spec.containers[]?, .spec.template.spec.initContainers[]?, .spec.jobTemplate.spec.template.spec.containers[]?,
+    .spec.jobTemplate.spec.template.spec.initContainers[]?) | {name,image}]}]'' > "${update_workload_snapshot}"'
+check_order:
+- budget.rohrbom.be
+- calibre
+- embeddings
+- home-assistant
+- homepage
+- jellyfin
+- jupyter
+- lidarr
+- linkding
+- litellm
+- open-webui
+- paperless-ngx
+- pelican
+- prowlarr
+- qbittorrent
+- radarr
+- seerr
+- share.rohrbom.be
+- sonarr
+- stirling-pdf
+- trilium.rohrbom.be
+- vault.rohrbom.be
+- cloudflare-ddns
+- grafana
+- influxdb
+- kube-state-metrics
+- loki
+- node-exporter
+- ping-exporter
+- prometheus
+- promtail
+- speedtest-exporter
+- unpoller
+- xpu-smi-exporter
+- immich.rohrbom.be
+- vllm
+- cert-manager
+- flux
+- ingress-nginx
+- intel-gpu
+- longhorn
+- metallb
+- flannel
+- k3s
+- kube-vip
+components:
+- id: budget.rohrbom.be
+  category: application
+  management: check
+  update_track: routine
+  path: apps/public/budget.rohrbom.be
+  images:
+  - repository: docker.io/actualbudget/actual-server
+    manifests:
+    - apps/public/budget.rohrbom.be/deployment.yaml
+    source: image_sources[docker.io/actualbudget/actual-server]
+  - repository: docker.io/nginxinc/nginx-unprivileged
+    manifests:
+    - apps/public/budget.rohrbom.be/legal-pages-deployment.yaml
+    source: image_sources[docker.io/nginxinc/nginx-unprivileged]
+  release_sources:
+  - https://github.com/actualbudget/actual-server/releases.atom
+  - https://github.com/nginx/docker-nginx-unprivileged
+  - https://github.com/nginx/nginx/releases.atom
+  - https://nginx.org/en/CHANGES
+  lookup:
+    sources:
+    - release:budget.rohrbom.be
+    - notes:nginx-unprivileged
+    - release:nginx
+    - notes:nginx
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: calibre
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/calibre
+  images:
+  - repository: docker.io/library/busybox
+    manifests:
+    - apps/internal/media/calibre/deployment.yaml
+    source: image_sources[docker.io/library/busybox]
+  - repository: ghcr.io/crocodilestick/calibre-web-automated
+    manifests:
+    - apps/internal/media/calibre/deployment.yaml
+    source: image_sources[ghcr.io/crocodilestick/calibre-web-automated]
+  release_sources:
+  - https://busybox.net/
+  - https://github.com/crocodilestick/Calibre-Web-Automated/releases.atom
+  lookup:
+    sources:
+    - notes:busybox
+    - release:calibre
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: embeddings
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/llm/embeddings
+  images:
+  - repository: ghcr.io/huggingface/text-embeddings-inference
+    manifests:
+    - apps/internal/llm/embeddings/deployment.yaml
+    source: image_sources[ghcr.io/huggingface/text-embeddings-inference]
+  release_sources:
+  - https://github.com/huggingface/text-embeddings-inference/releases.atom
+  lookup:
+    sources:
+    - release:embeddings
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: home-assistant
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/home-assistant
+  images:
+  - repository: ghcr.io/home-assistant/home-assistant
+    manifests:
+    - apps/internal/home-assistant/deployment.yaml
+    source: image_sources[ghcr.io/home-assistant/home-assistant]
+  release_sources:
+  - https://github.com/home-assistant/core/releases.atom
+  lookup:
+    sources:
+    - release:home-assistant
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: homepage
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/homepage
+  images:
+  - repository: ghcr.io/gethomepage/homepage
+    manifests:
+    - apps/internal/homepage/deployment.yaml
+    source: image_sources[ghcr.io/gethomepage/homepage]
+  release_sources:
+  - https://github.com/gethomepage/homepage/releases.atom
+  lookup:
+    sources:
+    - release:homepage
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: immich.rohrbom.be
+  category: application
+  management: check
+  update_track: coordinated
+  update_track_reason: Server, Machine Learning und Datenbank-Kompatibilität gemeinsam prüfen.
+  path: apps/public/immich.rohrbom.be
+  images:
+  - repository: docker.io/valkey/valkey
+    manifests:
+    - apps/public/immich.rohrbom.be/deployment-redis.yaml
+    source: image_sources[docker.io/valkey/valkey]
+  - repository: ghcr.io/immich-app/immich-machine-learning
+    manifests:
+    - apps/public/immich.rohrbom.be/deployment-machine-learning.yaml
+    source: image_sources[ghcr.io/immich-app/immich-machine-learning]
+  - repository: ghcr.io/immich-app/immich-server
+    manifests:
+    - apps/public/immich.rohrbom.be/deployment-server.yaml
+    source: image_sources[ghcr.io/immich-app/immich-server]
+  - repository: ghcr.io/immich-app/postgres
+    manifests:
+    - apps/public/immich.rohrbom.be/deployment-database.yaml
+    source: image_sources[ghcr.io/immich-app/postgres]
+  release_sources:
+  - https://github.com/valkey-io/valkey/releases.atom
+  - https://github.com/immich-app/immich/releases.atom
+  - https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+  - https://github.com/immich-app/immich/releases.atom
+  coordination: Server, Machine Learning und Datenbank-Image nur nach Immich-Kompatibilitätsvorgaben gemeinsam planen;
+    keine unabhängigen Major-Upgrades.
+  lookup:
+    sources:
+    - release:valkey
+    - release:immich.rohrbom.be
+    - compatibility:immich-compose
+    - release:immich-postgres
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: jellyfin
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/jellyfin
+  images:
+  - repository: docker.io/jellyfin/jellyfin
+    manifests:
+    - apps/internal/media/jellyfin/deployment.yaml
+    source: image_sources[docker.io/jellyfin/jellyfin]
+  release_sources:
+  - https://github.com/jellyfin/jellyfin/releases.atom
+  lookup:
+    sources:
+    - release:jellyfin
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: jupyter
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/jupyter
+  images:
+  - repository: quay.io/jupyter/scipy-notebook
+    manifests:
+    - apps/internal/jupyter/deployment.yaml
+    source: image_sources[quay.io/jupyter/scipy-notebook]
+  release_sources:
+  - https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html
+  lookup:
+    sources:
+    - notes:jupyter
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: lidarr
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/lidarr
+  images:
+  - repository: ghcr.io/hotio/lidarr
+    manifests:
+    - apps/internal/media/lidarr/deployment.yaml
+    source: image_sources[ghcr.io/hotio/lidarr]
+  release_sources:
+  - https://hotio.dev/containers/lidarr/
+  - https://github.com/Lidarr/Lidarr/releases.atom
+  lookup:
+    sources:
+    - publisher:lidarr
+    - release:lidarr
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: linkding
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/linkding
+  images:
+  - repository: docker.io/sissbruecker/linkding
+    manifests:
+    - apps/internal/linkding/deployment.yaml
+    source: image_sources[docker.io/sissbruecker/linkding]
+  release_sources:
+  - https://github.com/sissbruecker/linkding/releases.atom
+  lookup:
+    sources:
+    - release:linkding
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: litellm
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/llm/litellm
+  images:
+  - repository: docker.io/library/postgres
+    manifests:
+    - apps/internal/llm/litellm/deployment.yaml
+    - apps/internal/llm/litellm/postgresql-deployment.yaml
+    source: image_sources[docker.io/library/postgres]
+  - repository: ghcr.io/berriai/litellm
+    manifests:
+    - apps/internal/llm/litellm/deployment.yaml
+    source: image_sources[ghcr.io/berriai/litellm]
+  release_sources:
+  - https://www.postgresql.org/versions.rss
+  - https://www.postgresql.org/docs/release/
+  - https://github.com/BerriAI/litellm/releases.atom
+  coordination: Datenbank-Major-Versionen benötigen einen eigenen Migrationsplan; Init-Container ebenfalls erfassen.
+  lookup:
+    sources:
+    - release:postgres
+    - notes:postgres
+    - release:litellm
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: open-webui
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/llm/open-webui
+  images:
+  - repository: docker.io/library/postgres
+    manifests:
+    - apps/internal/llm/open-webui/deployment.yaml
+    - apps/internal/llm/open-webui/postgresql-deployment.yaml
+    source: image_sources[docker.io/library/postgres]
+  - repository: ghcr.io/open-webui/open-webui
+    manifests:
+    - apps/internal/llm/open-webui/deployment.yaml
+    source: image_sources[ghcr.io/open-webui/open-webui]
+  release_sources:
+  - https://www.postgresql.org/versions.rss
+  - https://www.postgresql.org/docs/release/
+  - https://github.com/open-webui/open-webui/releases.atom
+  coordination: Datenbank-Major-Versionen benötigen einen eigenen Migrationsplan; Init-Container ebenfalls erfassen.
+  lookup:
+    sources:
+    - release:postgres
+    - notes:postgres
+    - release:open-webui
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: paperless-ngx
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/paperless-ngx
+  images:
+  - repository: docker.io/apache/tika
+    manifests:
+    - apps/internal/paperless-ngx/deployment-tika.yaml
+    source: image_sources[docker.io/apache/tika]
+  - repository: docker.io/gotenberg/gotenberg
+    manifests:
+    - apps/internal/paperless-ngx/deployment-gotenberg.yaml
+    source: image_sources[docker.io/gotenberg/gotenberg]
+  - repository: docker.io/library/busybox
+    manifests:
+    - apps/internal/paperless-ngx/deployment-broker.yaml
+    - apps/internal/paperless-ngx/deployment-db.yaml
+    source: image_sources[docker.io/library/busybox]
+  - repository: docker.io/library/postgres
+    manifests:
+    - apps/internal/paperless-ngx/deployment-db.yaml
+    source: image_sources[docker.io/library/postgres]
+  - repository: docker.io/library/redis
+    manifests:
+    - apps/internal/paperless-ngx/deployment-broker.yaml
+    source: image_sources[docker.io/library/redis]
+  - repository: ghcr.io/paperless-ngx/paperless-ngx
+    manifests:
+    - apps/internal/paperless-ngx/deployment-webserver.yaml
+    source: image_sources[ghcr.io/paperless-ngx/paperless-ngx]
+  release_sources:
+  - https://tika.apache.org/
+  - https://github.com/gotenberg/gotenberg/releases.atom
+  - https://busybox.net/
+  - https://www.postgresql.org/versions.rss
+  - https://www.postgresql.org/docs/release/
+  - https://github.com/redis/redis/releases.atom
+  - https://github.com/paperless-ngx/paperless-ngx/releases.atom
+  coordination: Datenbank-Major-Versionen benötigen einen eigenen Migrationsplan; Init-Container ebenfalls erfassen.
+  lookup:
+    sources:
+    - notes:tika
+    - release:gotenberg
+    - notes:busybox
+    - release:postgres
+    - notes:postgres
+    - release:redis
+    - release:paperless-ngx
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: pelican
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/pelican
+  images:
+  - repository: ghcr.io/pelican/panel
+    manifests:
+    - apps/internal/pelican/deployment.yaml
+    source: image_sources[ghcr.io/pelican/panel]
+  release_sources:
+  - https://github.com/pelican/panel/releases.atom
+  lookup:
+    sources:
+    - release:pelican
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: prowlarr
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/prowlarr
+  images:
+  - repository: ghcr.io/hotio/prowlarr
+    manifests:
+    - apps/internal/media/prowlarr/deployment.yaml
+    source: image_sources[ghcr.io/hotio/prowlarr]
+  release_sources:
+  - https://hotio.dev/containers/prowlarr/
+  - https://github.com/Prowlarr/Prowlarr/releases.atom
+  lookup:
+    sources:
+    - publisher:prowlarr
+    - release:prowlarr
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: qbittorrent
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/qbittorrent
+  images:
+  - repository: ghcr.io/hotio/qbittorrent
+    manifests:
+    - apps/internal/media/qbittorrent/deployment.yaml
+    source: image_sources[ghcr.io/hotio/qbittorrent]
+  release_sources:
+  - https://hotio.dev/containers/qbittorrent/
+  - https://github.com/qbittorrent/qBittorrent/releases.atom
+  lookup:
+    sources:
+    - publisher:qbittorrent
+    - release:qbittorrent
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: radarr
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/radarr
+  images:
+  - repository: ghcr.io/hotio/radarr
+    manifests:
+    - apps/internal/media/radarr/deployment.yaml
+    source: image_sources[ghcr.io/hotio/radarr]
+  release_sources:
+  - https://hotio.dev/containers/radarr/
+  - https://github.com/Radarr/Radarr/releases.atom
+  lookup:
+    sources:
+    - publisher:radarr
+    - release:radarr
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: seerr
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/seerr
+  images:
+  - repository: docker.io/fallenbagel/jellyseerr
+    manifests:
+    - apps/internal/media/seerr/deployment.yaml
+    source: image_sources[docker.io/fallenbagel/jellyseerr]
+  release_sources:
+  - https://github.com/seerr-team/seerr/releases.atom
+  lookup:
+    sources:
+    - release:seerr
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: share.rohrbom.be
+  category: application
+  management: check
+  update_track: routine
+  path: apps/public/share.rohrbom.be
+  images:
+  - repository: registry.gitlab.com/jirafeau/jirafeau
+    manifests:
+    - apps/public/share.rohrbom.be/deployment.yaml
+    source: image_sources[registry.gitlab.com/jirafeau/jirafeau]
+  release_sources:
+  - https://gitlab.com/api/v4/projects/jirafeau%2FJirafeau/repository/tags?per_page=10
+  lookup:
+    sources:
+    - release:jirafeau
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: sonarr
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/media/sonarr
+  images:
+  - repository: ghcr.io/hotio/sonarr
+    manifests:
+    - apps/internal/media/sonarr/deployment.yaml
+    source: image_sources[ghcr.io/hotio/sonarr]
+  release_sources:
+  - https://hotio.dev/containers/sonarr/
+  - https://github.com/Sonarr/Sonarr/releases.atom
+  lookup:
+    sources:
+    - publisher:sonarr
+    - release:sonarr
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: stirling-pdf
+  category: application
+  management: check
+  update_track: routine
+  path: apps/internal/stirling-pdf
+  images:
+  - repository: docker.stirlingpdf.com/stirlingtools/stirling-pdf
+    manifests:
+    - apps/internal/stirling-pdf/deployment.yaml
+    source: image_sources[docker.stirlingpdf.com/stirlingtools/stirling-pdf]
+  release_sources:
+  - https://github.com/Stirling-Tools/Stirling-PDF/releases.atom
+  lookup:
+    sources:
+    - release:stirling-pdf
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: trilium.rohrbom.be
+  category: application
+  management: check
+  update_track: routine
+  path: apps/public/trilium.rohrbom.be
+  images:
+  - repository: docker.io/triliumnext/trilium
+    manifests:
+    - apps/public/trilium.rohrbom.be/deployment.yaml
+    source: image_sources[docker.io/triliumnext/trilium]
+  release_sources:
+  - https://github.com/TriliumNext/Trilium/releases.atom
+  lookup:
+    sources:
+    - release:trilium.rohrbom.be
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: vault.rohrbom.be
+  category: application
+  management: check
+  update_track: routine
+  path: apps/public/vault.rohrbom.be
+  images:
+  - repository: docker.io/library/nginx
+    manifests:
+    - apps/public/vault.rohrbom.be/admin-deny-deployment.yaml
+    source: image_sources[docker.io/library/nginx]
+  - repository: docker.io/vaultwarden/server
+    manifests:
+    - apps/public/vault.rohrbom.be/deployment.yaml
+    source: image_sources[docker.io/vaultwarden/server]
+  release_sources:
+  - https://github.com/nginx/nginx/releases.atom
+  - https://nginx.org/en/CHANGES
+  - https://github.com/dani-garcia/vaultwarden/releases.atom
+  lookup:
+    sources:
+    - release:nginx
+    - notes:nginx
+    - release:vault.rohrbom.be
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: vllm
+  category: application
+  management: check
+  update_track: coordinated
+  update_track_reason: Kompatibilität des Intel/XPU-Images mit GPU-Treibern und Startparametern gesondert prüfen.
+  path: apps/internal/llm/vllm
+  images:
+  - repository: docker.io/intel/llm-scaler-vllm
+    manifests:
+    - apps/internal/llm/vllm/deployment.yaml
+    source: image_sources[docker.io/intel/llm-scaler-vllm]
+  release_sources:
+  - https://github.com/intel/llm-scaler/releases.atom
+  lookup:
+    sources:
+    - release:vllm
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: flannel
+  category: cluster
+  management: check
+  update_track: cluster_maintenance
+  installation: outside_repository
+  images:
+  - repository: docker.io/flannel/flannel
+    source: image_sources[docker.io/flannel/flannel]
+  - repository: docker.io/flannel/flannel-cni-plugin
+    source: image_sources[docker.io/flannel/flannel-cni-plugin]
+  live_resources:
+  - kind: DaemonSet
+    namespace: kube-flannel
+    name: kube-flannel-ds
+  release_sources:
+  - https://github.com/flannel-io/flannel/releases.atom
+  - https://github.com/flannel-io/cni-plugin/releases.atom
+  coordination: Eigenständiger live installierter DaemonSet einschließlich CNI-Init-Container; kein entsprechendes
+    aktives Manifest in diesem Repo gefunden. K3s-Netzwerkkonfiguration vor Änderungen prüfen; nicht als ausschließlich
+    eingebautes Flannel behandeln.
+  update_gate: Vor Umsetzung Installationsquelle klären und versionierte Manifeste ins Repo übernehmen; ein Update-Ticket
+    darf diese Vorarbeit benennen.
+  lookup:
+    sources:
+    - release:flannel
+    - release:flannel-cni
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: k3s
+  category: cluster
+  management: check
+  update_track: cluster_maintenance
+  release_sources:
+  - https://update.k3s.io/v1-release/channels
+  - https://github.com/k3s-io/k3s/releases.atom
+  - https://docs.k3s.io/release-notes/v1.36.X
+  channel: stable
+  current_version_source: Kubernetes-Serverversion und kubeletVersion aller Nodes; keine Versionskopie im Katalog.
+  upgrade_procedure: docs/k3s-rolling-upgrade.md
+  coordination: Eigener Cluster-Upgrade-Vorschlag; Node-Reihenfolge, Versions-Skew und tatsächlich gebündelte Komponenten
+    beachten. Separat installiertes Flannel und kube-vip gesondert auf Kompatibilität prüfen.
+  lookup:
+    sources:
+    - release:k3s-channels
+    - release:k3s
+    - notes:k3s
+    workflow: check_k3s_channel
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: k3s-bundled-components
+  category: cluster
+  management: bundled
+  update_track: bundled
+  managed_by: k3s
+  components:
+  - kubernetes
+  - coredns
+  - containerd
+  - runc
+  - etcd
+  - metrics-server
+  - k3s-helm-controller
+  - local-path-provisioner
+  release_sources:
+  - https://docs.k3s.io/release-notes
+  reason: Nur tatsächlich aktivierte Komponenten berücksichtigen. Versions- und Sicherheitshinweise dem K3s-Ticket
+    zuordnen; keine eigenständigen Updates. Traefik ist laut Setup deaktiviert.
+  runtime_inventory:
+    namespaces:
+    - kube-system
+    image_repositories:
+    - docker.io/rancher/local-path-provisioner
+    - docker.io/rancher/mirrored-coredns-coredns
+    - docker.io/rancher/mirrored-metrics-server
+    resources:
+    - kind: Deployment
+      namespace: kube-system
+      name: coredns
+    - kind: Deployment
+      namespace: kube-system
+      name: local-path-provisioner
+    - kind: Deployment
+      namespace: kube-system
+      name: metrics-server
+  lookup:
+    action: use_parent
+    component: k3s
+    reason: No separate release/image scan.
+- id: kube-vip
+  category: cluster
+  management: check
+  update_track: cluster_maintenance
+  installation: outside_repository
+  images:
+  - repository: ghcr.io/kube-vip/kube-vip
+    source: image_sources[ghcr.io/kube-vip/kube-vip]
+  live_resources:
+  - kind: DaemonSet
+    namespace: kube-system
+    name: kube-vip-ds
+  release_sources:
+  - https://github.com/kube-vip/kube-vip/releases.atom
+  coordination: Live installierter DaemonSet für die Control-Plane-VIP; Installation in docs/setup.md erwähnt, aber
+    kein aktives Manifest in diesem Repo gefunden.
+  update_gate: Vor Umsetzung Installationsquelle klären und versionierte Manifeste ins Repo übernehmen; ein Update-Ticket
+    darf diese Vorarbeit benennen.
+  lookup:
+    sources:
+    - release:kube-vip
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: image-compressor
+  category: custom_image
+  management: external
+  update_track: external
+  path: apps/internal/image-compressor
+  reason: Eigenes Image; Updates gehören in den Entwicklungs-/Build-Workflow, nicht in den Cluster-Update-Checker.
+  images:
+  - repository: ghcr.io/fabianliske/k3s-homelab-cluster/image-compressor
+    manifests:
+    - apps/internal/image-compressor/deployment.yaml
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
+- id: kochen.mitschen.de
+  category: custom_image
+  management: external
+  update_track: external
+  path: apps/public/kochen.mitschen.de
+  reason: Eigenes Image; Updates gehören in den Entwicklungs-/Build-Workflow, nicht in den Cluster-Update-Checker.
+  images:
+  - repository: ghcr.io/fabianliske/kochenmitschen
+    manifests:
+    - apps/public/kochen.mitschen.de/deployment.yaml
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
+- id: mampf.rohrbom.be
+  category: custom_image
+  management: external
+  update_track: external
+  path: apps/public/mampf.rohrbom.be
+  reason: Eigenes Image; Updates gehören in den Entwicklungs-/Build-Workflow, nicht in den Cluster-Update-Checker.
+  images:
+  - repository: ghcr.io/fabianliske/mampftracker
+    manifests:
+    - apps/public/mampf.rohrbom.be/deployment.yaml
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
+- id: pi-oled
+  category: custom_image
+  management: external
+  update_track: external
+  path: monitoring/controllers/pi-oled
+  reason: Eigenes Image; Updates gehören in den Entwicklungs-/Build-Workflow, nicht in den Cluster-Update-Checker.
+  images:
+  - repository: ghcr.io/fabianliske/pi-sysinfo-oled
+    manifests:
+    - monitoring/controllers/pi-oled/daemonset.yaml
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
+- id: telegraf
+  category: custom_image
+  management: external
+  update_track: external
+  path: monitoring/controllers/telegraf
+  reason: Eigenes Image; Updates gehören in den Entwicklungs-/Build-Workflow, nicht in den Cluster-Update-Checker.
+  images:
+  - repository: ghcr.io/fabianliske/k3s-homelab-cluster/telegraf-custom
+    manifests:
+    - monitoring/controllers/telegraf/deployment.yaml
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
+- id: unifi-mcp
+  category: custom_image
+  management: external
+  update_track: external
+  path: apps/internal/llm/unifi-mcp
+  reason: Eigenes Image; Updates gehören in den Entwicklungs-/Build-Workflow, nicht in den Cluster-Update-Checker.
+  images:
+  - repository: ghcr.io/fabianliske/unifi-mcp
+    manifests:
+    - apps/internal/llm/unifi-mcp/deployment.yaml
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
+- id: cert-manager
+  category: platform
+  management: check
+  update_track: coordinated
+  update_track_reason: Clusterweite Zertifikatsversorgung und CRDs; eigener abgestimmter Rollout.
+  path: infrastructure/controllers/cert-manager
+  chart:
+    name: cert-manager
+    repository: https://charts.jetstack.io
+    manifests:
+    - infrastructure/controllers/cert-manager/helmrelease.yaml
+    index_url: https://charts.jetstack.io/index.yaml
+  release_sources:
+  - https://charts.jetstack.io/index.yaml
+  - https://github.com/cert-manager/cert-manager/releases.atom
+  coordination: Chart ist die Update-Einheit; enthaltene Controller-/Hilfsimages nicht separat aktualisieren. Aufgelöste
+    Live-Chart-Version prüfen, insbesondere bei Wildcards.
+  runtime_inventory:
+    namespaces:
+    - cert-manager
+    image_repositories:
+    - quay.io/jetstack/cert-manager-cainjector
+    - quay.io/jetstack/cert-manager-controller
+    - quay.io/jetstack/cert-manager-webhook
+    resources:
+    - kind: Deployment
+      namespace: cert-manager
+      name: cert-manager-cert-manager
+    - kind: Deployment
+      namespace: cert-manager
+      name: cert-manager-cert-manager-cainjector
+    - kind: Deployment
+      namespace: cert-manager
+      name: cert-manager-cert-manager-webhook
+    release_lookup: Only use this component lookup; do not check bundled/Helm-managed helper images independently.
+  lookup:
+    sources:
+    - chart:cert-manager
+    - release:cert-manager
+    workflow: check_chart
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: cloudflare-ddns
+  category: platform
+  management: check
+  update_track: routine
+  path: infrastructure/controllers/cloudflare-ddns
+  images:
+  - repository: docker.io/favonia/cloudflare-ddns
+    manifests:
+    - infrastructure/controllers/cloudflare-ddns/deployment.yaml
+    source: image_sources[docker.io/favonia/cloudflare-ddns]
+  release_sources:
+  - https://github.com/favonia/cloudflare-ddns/releases.atom
+  lookup:
+    sources:
+    - release:cloudflare-ddns
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: diagnostic-netprobe
+  category: platform
+  management: external
+  update_track: external
+  installation: temporary_diagnostic
+  live_resources:
+  - kind: Pod
+    namespace: ops-monitoring
+    name: netprobe-wk-1
+  images:
+  - repository: docker.io/library/nginx
+  reason: Abgeschlossener einzelner Diagnose-Pod ohne Controller; kein dauerhaft betriebener Dienst und kein Update-Auftrag.
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
+- id: flux
+  category: platform
+  management: check
+  update_track: coordinated
+  update_track_reason: GitOps-Controller, generierte Ressourcen und CRDs gemeinsam aktualisieren.
+  path: clusters/k3s-homelab/flux-system
+  bundle:
+    repository: https://github.com/fluxcd/flux2
+    manifest: clusters/k3s-homelab/flux-system/gotk-components.yaml
+  release_sources:
+  - https://github.com/fluxcd/flux2/releases.atom
+  coordination: Generierte Manifeste für eine Flux-Release neu erzeugen; Controller und CRDs als zusammengehörige
+    Einheit behandeln.
+  runtime_inventory:
+    namespaces:
+    - flux-system
+    image_repositories:
+    - ghcr.io/fluxcd/helm-controller
+    - ghcr.io/fluxcd/kustomize-controller
+    - ghcr.io/fluxcd/notification-controller
+    - ghcr.io/fluxcd/source-controller
+    resources:
+    - kind: Deployment
+      namespace: flux-system
+      name: helm-controller
+    - kind: Deployment
+      namespace: flux-system
+      name: kustomize-controller
+    - kind: Deployment
+      namespace: flux-system
+      name: notification-controller
+    - kind: Deployment
+      namespace: flux-system
+      name: source-controller
+    release_lookup: Only use this component lookup; do not check bundled/Helm-managed helper images independently.
+  lookup:
+    sources:
+    - release:flux
+    workflow: check_release_bundle
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: grafana
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/grafana
+  images:
+  - repository: docker.io/grafana/grafana
+    manifests:
+    - monitoring/controllers/grafana/deployment.yaml
+    source: image_sources[docker.io/grafana/grafana]
+  release_sources:
+  - https://github.com/grafana/grafana/releases.atom
+  lookup:
+    sources:
+    - release:grafana
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: influxdb
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/influxdb
+  images:
+  - repository: docker.io/library/busybox
+    manifests:
+    - monitoring/configs/influxdb/init-buckets-job.yaml
+    source: image_sources[docker.io/library/busybox]
+  - repository: docker.io/library/influxdb
+    manifests:
+    - monitoring/configs/influxdb/init-buckets-job.yaml
+    - monitoring/controllers/influxdb/deployment.yaml
+    source: image_sources[docker.io/library/influxdb]
+  release_sources:
+  - https://busybox.net/
+  - https://github.com/influxdata/influxdb/releases.atom
+  - https://docs.influxdata.com/influxdb/v2/reference/release-notes/influxdb/
+  lookup:
+    sources:
+    - notes:busybox
+    - release:influxdb
+    - notes:influxdb
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: ingress-nginx
+  category: platform
+  management: check
+  update_track: coordinated
+  update_track_reason: Clusterweiter Ingress-Datenpfad; eigener abgestimmter Rollout.
+  path: infrastructure/controllers/ingress-nginx
+  chart:
+    name: ingress-nginx
+    repository: https://kubernetes.github.io/ingress-nginx
+    manifests:
+    - infrastructure/controllers/ingress-nginx/vlan10/helmrelease.yaml
+    - infrastructure/controllers/ingress-nginx/vlan20/helmrelease.yaml
+    - infrastructure/controllers/ingress-nginx/vlan30/helmrelease.yaml
+    - infrastructure/controllers/ingress-nginx/vlan100/helmrelease.yaml
+    index_url: https://kubernetes.github.io/ingress-nginx/index.yaml
+  release_sources:
+  - https://kubernetes.github.io/ingress-nginx/index.yaml
+  - https://github.com/kubernetes/ingress-nginx/releases.atom
+  coordination: Chart ist die Update-Einheit; enthaltene Controller-/Hilfsimages nicht separat aktualisieren. Aufgelöste
+    Live-Chart-Version prüfen, insbesondere bei Wildcards.
+  runtime_inventory:
+    namespaces:
+    - ingress-10
+    - ingress-100
+    - ingress-20
+    - ingress-30
+    image_repositories:
+    - registry.k8s.io/ingress-nginx/controller
+    resources:
+    - kind: DaemonSet
+      namespace: ingress-10
+      name: ingress-10-ingress-10-ingress-nginx-controller
+    - kind: DaemonSet
+      namespace: ingress-100
+      name: ingress-100-ingress-100-ingress-nginx-controller
+    - kind: DaemonSet
+      namespace: ingress-20
+      name: ingress-20-ingress-20-ingress-nginx-controller
+    - kind: DaemonSet
+      namespace: ingress-30
+      name: ingress-30-ingress-30-ingress-nginx-controller
+    release_lookup: Only use this component lookup; do not check bundled/Helm-managed helper images independently.
+  lookup:
+    sources:
+    - chart:ingress-nginx
+    - release:ingress-nginx
+    workflow: check_chart
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: intel-gpu
+  category: platform
+  management: check
+  update_track: coordinated
+  update_track_reason: GPU-Zuteilung und davon abhängige Workloads gemeinsam berücksichtigen.
+  path: infrastructure/controllers/intel-gpu
+  images:
+  - repository: docker.io/intel/intel-gpu-plugin
+    manifests:
+    - infrastructure/controllers/intel-gpu/daemonset.yaml
+    source: image_sources[docker.io/intel/intel-gpu-plugin]
+  release_sources:
+  - https://github.com/intel/intel-device-plugins-for-kubernetes/releases.atom
+  lookup:
+    sources:
+    - release:intel-gpu
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: kube-state-metrics
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/kube-state-metrics
+  images:
+  - repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
+    manifests:
+    - monitoring/controllers/kube-state-metrics/deployment.yaml
+    source: image_sources[registry.k8s.io/kube-state-metrics/kube-state-metrics]
+  release_sources:
+  - https://github.com/kubernetes/kube-state-metrics/releases.atom
+  lookup:
+    sources:
+    - release:kube-state-metrics
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: loki
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/loki
+  images:
+  - repository: docker.io/grafana/loki
+    manifests:
+    - monitoring/controllers/loki/deployment.yaml
+    source: image_sources[docker.io/grafana/loki]
+  release_sources:
+  - https://github.com/grafana/loki/releases.atom
+  lookup:
+    sources:
+    - release:loki
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: longhorn
+  category: platform
+  management: check
+  update_track: coordinated
+  update_track_reason: Persistenter Storage und laufende Engines/CSI-Komponenten; eigener abgestimmter Rollout.
+  path: infrastructure/controllers/longhorn
+  chart:
+    name: longhorn
+    repository: https://charts.longhorn.io
+    manifests:
+    - infrastructure/controllers/longhorn/helmrelease.yaml
+    index_url: https://charts.longhorn.io/index.yaml
+  release_sources:
+  - https://charts.longhorn.io/index.yaml
+  - https://github.com/longhorn/longhorn/releases.atom
+  coordination: Chart ist die Update-Einheit; enthaltene Controller-/Hilfsimages nicht separat aktualisieren. Aufgelöste
+    Live-Chart-Version prüfen, insbesondere bei Wildcards.
+  runtime_inventory:
+    namespaces:
+    - longhorn-system
+    image_repositories:
+    - docker.io/longhornio/csi-attacher
+    - docker.io/longhornio/csi-node-driver-registrar
+    - docker.io/longhornio/csi-provisioner
+    - docker.io/longhornio/csi-resizer
+    - docker.io/longhornio/csi-snapshotter
+    - docker.io/longhornio/livenessprobe
+    - docker.io/longhornio/longhorn-engine
+    - docker.io/longhornio/longhorn-instance-manager
+    - docker.io/longhornio/longhorn-manager
+    - docker.io/longhornio/longhorn-share-manager
+    - docker.io/longhornio/longhorn-ui
+    resources:
+    - kind: CronJob
+      namespace: longhorn-system
+      name: backup-daily
+    - kind: CronJob
+      namespace: longhorn-system
+      name: backup-hourly
+    - kind: CronJob
+      namespace: longhorn-system
+      name: trim-daily
+    - kind: CronJob
+      namespace: longhorn-system
+      name: trim-weekly
+    - kind: DaemonSet
+      namespace: longhorn-system
+      name: engine-image-ei-2f3240cb
+    - kind: DaemonSet
+      namespace: longhorn-system
+      name: engine-image-ei-3154f3aa
+    - kind: DaemonSet
+      namespace: longhorn-system
+      name: engine-image-ei-493e04e7
+    - kind: DaemonSet
+      namespace: longhorn-system
+      name: engine-image-ei-75a03ec3
+    - kind: DaemonSet
+      namespace: longhorn-system
+      name: engine-image-ei-a4d05f02
+    - kind: DaemonSet
+      namespace: longhorn-system
+      name: longhorn-csi-plugin
+    - kind: DaemonSet
+      namespace: longhorn-system
+      name: longhorn-manager
+    - kind: Deployment
+      namespace: longhorn-system
+      name: csi-attacher
+    - kind: Deployment
+      namespace: longhorn-system
+      name: csi-provisioner
+    - kind: Deployment
+      namespace: longhorn-system
+      name: csi-resizer
+    - kind: Deployment
+      namespace: longhorn-system
+      name: csi-snapshotter
+    - kind: Deployment
+      namespace: longhorn-system
+      name: longhorn-driver-deployer
+    - kind: Deployment
+      namespace: longhorn-system
+      name: longhorn-global-manager
+    - kind: Deployment
+      namespace: longhorn-system
+      name: longhorn-ui
+    generated_owner_kinds:
+    - InstanceManager
+    - EngineImage
+    - RecurringJob
+    release_lookup: Only use this component lookup; do not check bundled/Helm-managed helper images independently.
+  lookup:
+    sources:
+    - chart:longhorn
+    - release:longhorn
+    workflow: check_chart
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: metallb
+  category: platform
+  management: check
+  update_track: coordinated
+  update_track_reason: Service-Erreichbarkeit und Speaker/Controller gemeinsam berücksichtigen.
+  path: infrastructure/controllers/metallb
+  git_source:
+    repository: https://github.com/metallb/metallb
+    subdirectory: config/native
+    manifest: infrastructure/controllers/metallb/kustomization.yaml
+  release_sources:
+  - https://github.com/metallb/metallb/releases.atom
+  coordination: Die Git-Referenz der Kustomize-Ressource gemeinsam aktualisieren; keine unabhängigen Speaker-/Controller-Updates.
+  runtime_inventory:
+    namespaces:
+    - metallb-system
+    image_repositories:
+    - quay.io/metallb/controller
+    - quay.io/metallb/speaker
+    resources:
+    - kind: DaemonSet
+      namespace: metallb-system
+      name: speaker
+    - kind: Deployment
+      namespace: metallb-system
+      name: controller
+    release_lookup: Only use this component lookup; do not check bundled/Helm-managed helper images independently.
+  lookup:
+    sources:
+    - release:metallb
+    workflow: check_release_bundle
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: node-exporter
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/node-exporter
+  images:
+  - repository: docker.io/prom/node-exporter
+    manifests:
+    - monitoring/controllers/node-exporter/daemonset.yaml
+    source: image_sources[docker.io/prom/node-exporter]
+  release_sources:
+  - https://github.com/prometheus/node_exporter/releases.atom
+  lookup:
+    sources:
+    - release:node-exporter
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: ping-exporter
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/ping-exporter
+  images:
+  - repository: docker.io/czerwonk/ping_exporter
+    manifests:
+    - monitoring/controllers/ping-exporter/deployment.yaml
+    source: image_sources[docker.io/czerwonk/ping_exporter]
+  release_sources:
+  - https://github.com/czerwonk/ping_exporter/releases.atom
+  lookup:
+    sources:
+    - release:ping-exporter
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: prometheus
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/prometheus
+  images:
+  - repository: docker.io/prom/prometheus
+    manifests:
+    - monitoring/controllers/prometheus/deployment.yaml
+    source: image_sources[docker.io/prom/prometheus]
+  release_sources:
+  - https://github.com/prometheus/prometheus/releases.atom
+  lookup:
+    sources:
+    - release:prometheus
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: promtail
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/promtail
+  images:
+  - repository: docker.io/curlimages/curl
+    manifests:
+    - monitoring/controllers/promtail/daemonset.yaml
+    source: image_sources[docker.io/curlimages/curl]
+  - repository: docker.io/grafana/promtail
+    manifests:
+    - monitoring/controllers/promtail/daemonset.yaml
+    source: image_sources[docker.io/grafana/promtail]
+  release_sources:
+  - https://github.com/curl/curl/releases.atom
+  - https://github.com/grafana/loki/releases.atom
+  - https://grafana.com/docs/loki/latest/send-data/promtail/
+  lookup:
+    sources:
+    - release:curl
+    - release:loki
+    - notes:promtail
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: speedtest-exporter
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/speedtest-exporter
+  images:
+  - repository: ghcr.io/miguelndecarvalho/speedtest-exporter
+    manifests:
+    - monitoring/controllers/speedtest-exporter/deployment.yaml
+    source: image_sources[ghcr.io/miguelndecarvalho/speedtest-exporter]
+  release_sources:
+  - https://github.com/MiguelNdeCarvalho/speedtest-exporter/releases.atom
+  lookup:
+    sources:
+    - release:speedtest-exporter
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: unpoller
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/unpoller
+  images:
+  - repository: ghcr.io/unpoller/unpoller
+    manifests:
+    - monitoring/controllers/unpoller/deployment.yaml
+    source: image_sources[ghcr.io/unpoller/unpoller]
+  release_sources:
+  - https://github.com/unpoller/unpoller/releases.atom
+  lookup:
+    sources:
+    - release:unpoller
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+- id: xpu-smi-exporter
+  category: platform
+  management: check
+  update_track: routine
+  path: monitoring/controllers/xpu-smi-exporter
+  images:
+  - repository: ghcr.io/intel/xpumanager/xpumd
+    manifests:
+    - monitoring/controllers/xpu-smi-exporter/daemonset.yaml
+    source: image_sources[ghcr.io/intel/xpumanager/xpumd]
+  release_sources:
+  - https://github.com/intel/xpumanager/releases.atom
+  lookup:
+    sources:
+    - release:xpu-smi-exporter
+    workflow: check_images
+    on_error: record_and_continue; never develop or repair a scanner
+    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+sources:
+  release:budget.rohrbom.be:
+    url: https://github.com/actualbudget/actual-server/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:calibre:
+    url: https://github.com/crocodilestick/Calibre-Web-Automated/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:embeddings:
+    url: https://github.com/huggingface/text-embeddings-inference/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:home-assistant:
+    url: https://github.com/home-assistant/core/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:homepage:
+    url: https://github.com/gethomepage/homepage/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:immich.rohrbom.be:
+    url: https://github.com/immich-app/immich/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:jellyfin:
+    url: https://github.com/jellyfin/jellyfin/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:linkding:
+    url: https://github.com/sissbruecker/linkding/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:litellm:
+    url: https://github.com/BerriAI/litellm/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:open-webui:
+    url: https://github.com/open-webui/open-webui/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:paperless-ngx:
+    url: https://github.com/paperless-ngx/paperless-ngx/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:pelican:
+    url: https://github.com/pelican/panel/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:seerr:
+    url: https://github.com/seerr-team/seerr/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:stirling-pdf:
+    url: https://github.com/Stirling-Tools/Stirling-PDF/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:trilium.rohrbom.be:
+    url: https://github.com/TriliumNext/Trilium/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:vault.rohrbom.be:
+    url: https://github.com/dani-garcia/vaultwarden/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:vllm:
+    url: https://github.com/intel/llm-scaler/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:flannel:
+    url: https://github.com/flannel-io/flannel/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:k3s:
+    url: https://github.com/k3s-io/k3s/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:kube-vip:
+    url: https://github.com/kube-vip/kube-vip/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:cloudflare-ddns:
+    url: https://github.com/favonia/cloudflare-ddns/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:flux:
+    url: https://github.com/fluxcd/flux2/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:ingress-nginx:
+    url: https://github.com/kubernetes/ingress-nginx/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:intel-gpu:
+    url: https://github.com/intel/intel-device-plugins-for-kubernetes/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:kube-state-metrics:
+    url: https://github.com/kubernetes/kube-state-metrics/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:loki:
+    url: https://github.com/grafana/loki/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:longhorn:
+    url: https://github.com/longhorn/longhorn/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:metallb:
+    url: https://github.com/metallb/metallb/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:node-exporter:
+    url: https://github.com/prometheus/node_exporter/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:ping-exporter:
+    url: https://github.com/czerwonk/ping_exporter/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:prometheus:
+    url: https://github.com/prometheus/prometheus/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:speedtest-exporter:
+    url: https://github.com/MiguelNdeCarvalho/speedtest-exporter/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:unpoller:
+    url: https://github.com/unpoller/unpoller/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:xpu-smi-exporter:
+    url: https://github.com/intel/xpumanager/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:nginx:
+    url: https://github.com/nginx/nginx/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:redis:
+    url: https://github.com/redis/redis/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:valkey:
+    url: https://github.com/valkey-io/valkey/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:gotenberg:
+    url: https://github.com/gotenberg/gotenberg/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:flannel-cni:
+    url: https://github.com/flannel-io/cni-plugin/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:curl:
+    url: https://github.com/curl/curl/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:grafana:
+    url: https://github.com/grafana/grafana/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:influxdb:
+    url: https://github.com/influxdata/influxdb/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:cert-manager:
+    url: https://github.com/cert-manager/cert-manager/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:immich-postgres:
+    url: https://github.com/immich-app/immich/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:lidarr:
+    url: https://github.com/Lidarr/Lidarr/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:radarr:
+    url: https://github.com/Radarr/Radarr/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:sonarr:
+    url: https://github.com/Sonarr/Sonarr/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:prowlarr:
+    url: https://github.com/Prowlarr/Prowlarr/releases.atom
+    format: github_atom
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; Atom feed with entries
+    read_recipe: github_atom_summary
+  release:postgres:
+    url: https://www.postgresql.org/versions.rss
+    format: rss
+    use_for: PostgreSQL release announcements; restrict to installed major version
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: postgres_rss_summary
+  notes:postgres:
+    url: https://www.postgresql.org/docs/release/
+    format: documentation
+    use_for: database migration and patch-release notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:busybox:
+    url: https://busybox.net/
+    format: documentation
+    use_for: BusyBox changelog; available container versions come from the registry
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:tika:
+    url: https://tika.apache.org/
+    format: documentation
+    use_for: Apache Tika releases; available container versions come from the registry
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:nginx:
+    url: https://nginx.org/en/CHANGES
+    format: documentation
+    use_for: nginx changelog; preserve mainline/stable and image variant
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:nginx-unprivileged:
+    url: https://github.com/nginx/docker-nginx-unprivileged
+    format: documentation
+    use_for: image-specific changes; container tags are authoritative
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  release:jirafeau:
+    url: https://gitlab.com/api/v4/projects/jirafeau%2FJirafeau/repository/tags?per_page=10
+    format: gitlab_tags
+    use_for: versions_and_release_notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: gitlab_tags
+  compatibility:immich-compose:
+    url: https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+    format: compose
+    use_for: Read image versions and compatibility from the published compose file; never execute it
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  release:k3s-channels:
+    url: https://update.k3s.io/v1-release/channels
+    format: k3s_channels
+    use_for: Resolve the official stable K3s channel
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: k3s_stable_channel
+  chart:longhorn:
+    url: https://charts.longhorn.io/index.yaml
+    format: helm_index
+    use_for: Chart versions and published chart digests; the chart is the update unit
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: helm_versions
+    chart_name: longhorn
+  chart:cert-manager:
+    url: https://charts.jetstack.io/index.yaml
+    format: helm_index
+    use_for: Chart versions and published chart digests; the chart is the update unit
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: helm_versions
+    chart_name: cert-manager
+  chart:ingress-nginx:
+    url: https://kubernetes.github.io/ingress-nginx/index.yaml
+    format: helm_index
+    use_for: Chart versions and published chart digests; the chart is the update unit
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: helm_versions
+    chart_name: ingress-nginx
+  notes:jupyter:
+    url: https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  publisher:lidarr:
+    url: https://hotio.dev/containers/lidarr/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  publisher:prowlarr:
+    url: https://hotio.dev/containers/prowlarr/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  publisher:qbittorrent:
+    url: https://hotio.dev/containers/qbittorrent/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  publisher:radarr:
+    url: https://hotio.dev/containers/radarr/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:share.rohrbom.be:
+    url: https://gitlab.com/jirafeau/Jirafeau/-/tags
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  publisher:sonarr:
+    url: https://hotio.dev/containers/sonarr/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:cert-manager:
+    url: https://cert-manager.io/docs/releases/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:grafana:
+    url: https://grafana.com/docs/grafana/latest/whatsnew/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:influxdb:
+    url: https://docs.influxdata.com/influxdb/v2/reference/release-notes/influxdb/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  notes:promtail:
+    url: https://grafana.com/docs/loki/latest/send-data/promtail/
+    format: documentation
+    use_for: publisher documentation and compatibility notes
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; response body received
+    read_recipe: direct_read_existing_web_or_browser
+  release:qbittorrent:
+    url: https://github.com/qbittorrent/qBittorrent/releases.atom
+    format: github_atom
+    read_recipe: github_atom_summary
+    use_for: qBittorrent upstream changes; published hotio image remains authoritative
+    verified_at: '2026-11-04T21:40:26.903773+01:00'
+    verification: HTTP 200; Atom feed with 10 entries
+  notes:k3s:
+    url: https://docs.k3s.io/release-notes/v1.36.X
+    url_template: https://docs.k3s.io/release-notes/v{kubernetes_minor}.X
+    format: documentation
+    read_recipe: direct_read_existing_web_or_browser
+    use_for: Component matrix and upgrade notes for the installed/target Kubernetes minor; template example verified
+      for 1.36
+    verified_at: '2026-11-04T21:40:26.903773+01:00'
+    verification: HTTP 200; release-notes HTML retrieved
+image_sources:
+  docker.io/actualbudget/actual-server:
+    tags_url: https://hub.docker.com/v2/repositories/actualbudget/actual-server/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/actualbudget/actual-server/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/actualbudget/actual-server/blobs/{config_digest}
+    release_sources:
+    - release:budget.rohrbom.be
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aactualbudget%2Factual-server%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/actualbudget/actual-server/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/actualbudget/actual-server/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/apache/tika:
+    tags_url: https://hub.docker.com/v2/repositories/apache/tika/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/apache/tika/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/apache/tika/blobs/{config_digest}
+    release_sources:
+    - notes:tika
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aapache%2Ftika%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/apache/tika/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/apache/tika/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/curlimages/curl:
+    tags_url: https://hub.docker.com/v2/repositories/curlimages/curl/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/curlimages/curl/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/curlimages/curl/blobs/{config_digest}
+    release_sources:
+    - release:curl
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Acurlimages%2Fcurl%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/curlimages/curl/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/curlimages/curl/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/czerwonk/ping_exporter:
+    tags_url: https://hub.docker.com/v2/repositories/czerwonk/ping_exporter/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/czerwonk/ping_exporter/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/czerwonk/ping_exporter/blobs/{config_digest}
+    release_sources:
+    - release:ping-exporter
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aczerwonk%2Fping_exporter%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/czerwonk/ping_exporter/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/czerwonk/ping_exporter/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/fallenbagel/jellyseerr:
+    tags_url: https://hub.docker.com/v2/repositories/fallenbagel/jellyseerr/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/fallenbagel/jellyseerr/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/fallenbagel/jellyseerr/blobs/{config_digest}
+    release_sources:
+    - release:seerr
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Afallenbagel%2Fjellyseerr%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/fallenbagel/jellyseerr/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    selection_rule: Upstream feed now redirects to seerr-team/seerr. Preserve the configured image publisher. A
+      move to another image/project is a separate migration proposal, not a routine update.
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/fallenbagel/jellyseerr/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/favonia/cloudflare-ddns:
+    tags_url: https://hub.docker.com/v2/repositories/favonia/cloudflare-ddns/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/favonia/cloudflare-ddns/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/favonia/cloudflare-ddns/blobs/{config_digest}
+    release_sources:
+    - release:cloudflare-ddns
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Afavonia%2Fcloudflare-ddns%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/favonia/cloudflare-ddns/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/favonia/cloudflare-ddns/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/flannel/flannel:
+    tags_url: https://hub.docker.com/v2/repositories/flannel/flannel/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/flannel/flannel/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/flannel/flannel/blobs/{config_digest}
+    release_sources:
+    - release:flannel
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aflannel%2Fflannel%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/flannel/flannel/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/flannel/flannel/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/flannel/flannel-cni-plugin:
+    tags_url: https://hub.docker.com/v2/repositories/flannel/flannel-cni-plugin/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/flannel/flannel-cni-plugin/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/flannel/flannel-cni-plugin/blobs/{config_digest}
+    release_sources:
+    - release:flannel-cni
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aflannel%2Fflannel-cni-plugin%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/flannel/flannel-cni-plugin/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/flannel/flannel-cni-plugin/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/gotenberg/gotenberg:
+    tags_url: https://hub.docker.com/v2/repositories/gotenberg/gotenberg/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/gotenberg/gotenberg/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/gotenberg/gotenberg/blobs/{config_digest}
+    release_sources:
+    - release:gotenberg
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Agotenberg%2Fgotenberg%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/gotenberg/gotenberg/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/gotenberg/gotenberg/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/grafana/grafana:
+    tags_url: https://hub.docker.com/v2/repositories/grafana/grafana/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/grafana/grafana/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/grafana/grafana/blobs/{config_digest}
+    release_sources:
+    - release:grafana
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Agrafana%2Fgrafana%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/grafana/grafana/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/grafana/grafana/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/grafana/loki:
+    tags_url: https://hub.docker.com/v2/repositories/grafana/loki/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/grafana/loki/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/grafana/loki/blobs/{config_digest}
+    release_sources:
+    - release:loki
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Agrafana%2Floki%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/grafana/loki/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/grafana/loki/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/grafana/promtail:
+    tags_url: https://hub.docker.com/v2/repositories/grafana/promtail/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/grafana/promtail/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/grafana/promtail/blobs/{config_digest}
+    release_sources:
+    - release:loki
+    - notes:promtail
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Agrafana%2Fpromtail%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/grafana/promtail/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/grafana/promtail/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/intel/intel-gpu-plugin:
+    tags_url: https://hub.docker.com/v2/repositories/intel/intel-gpu-plugin/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/intel/intel-gpu-plugin/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/intel/intel-gpu-plugin/blobs/{config_digest}
+    release_sources:
+    - release:intel-gpu
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aintel%2Fintel-gpu-plugin%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/intel/intel-gpu-plugin/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/intel/intel-gpu-plugin/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/intel/llm-scaler-vllm:
+    tags_url: https://hub.docker.com/v2/repositories/intel/llm-scaler-vllm/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/intel/llm-scaler-vllm/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/intel/llm-scaler-vllm/blobs/{config_digest}
+    release_sources:
+    - release:vllm
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aintel%2Fllm-scaler-vllm%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/intel/llm-scaler-vllm/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/intel/llm-scaler-vllm/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/jellyfin/jellyfin:
+    tags_url: https://hub.docker.com/v2/repositories/jellyfin/jellyfin/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/jellyfin/jellyfin/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/jellyfin/jellyfin/blobs/{config_digest}
+    release_sources:
+    - release:jellyfin
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Ajellyfin%2Fjellyfin%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/jellyfin/jellyfin/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/jellyfin/jellyfin/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/library/busybox:
+    tags_url: https://hub.docker.com/v2/repositories/library/busybox/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/library/busybox/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/library/busybox/blobs/{config_digest}
+    release_sources:
+    - notes:busybox
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Alibrary%2Fbusybox%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/library/busybox/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/library/busybox/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/library/influxdb:
+    tags_url: https://hub.docker.com/v2/repositories/library/influxdb/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/library/influxdb/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/library/influxdb/blobs/{config_digest}
+    release_sources:
+    - release:influxdb
+    - notes:influxdb
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Alibrary%2Finfluxdb%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/library/influxdb/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/library/influxdb/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/library/nginx:
+    tags_url: https://hub.docker.com/v2/repositories/library/nginx/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/library/nginx/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/library/nginx/blobs/{config_digest}
+    release_sources:
+    - release:nginx
+    - notes:nginx
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Alibrary%2Fnginx%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/library/nginx/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/library/nginx/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/library/postgres:
+    tags_url: https://hub.docker.com/v2/repositories/library/postgres/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/library/postgres/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/library/postgres/blobs/{config_digest}
+    release_sources:
+    - release:postgres
+    - notes:postgres
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Alibrary%2Fpostgres%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/library/postgres/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/library/postgres/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/library/redis:
+    tags_url: https://hub.docker.com/v2/repositories/library/redis/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/library/redis/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/library/redis/blobs/{config_digest}
+    release_sources:
+    - release:redis
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Alibrary%2Fredis%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/library/redis/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/library/redis/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/nginxinc/nginx-unprivileged:
+    tags_url: https://hub.docker.com/v2/repositories/nginxinc/nginx-unprivileged/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/nginxinc/nginx-unprivileged/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/nginxinc/nginx-unprivileged/blobs/{config_digest}
+    release_sources:
+    - notes:nginx-unprivileged
+    - release:nginx
+    - notes:nginx
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Anginxinc%2Fnginx-unprivileged%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/nginxinc/nginx-unprivileged/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/nginxinc/nginx-unprivileged/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/prom/node-exporter:
+    tags_url: https://hub.docker.com/v2/repositories/prom/node-exporter/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/prom/node-exporter/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/prom/node-exporter/blobs/{config_digest}
+    release_sources:
+    - release:node-exporter
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aprom%2Fnode-exporter%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/prom/node-exporter/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/prom/node-exporter/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/prom/prometheus:
+    tags_url: https://hub.docker.com/v2/repositories/prom/prometheus/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/prom/prometheus/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/prom/prometheus/blobs/{config_digest}
+    release_sources:
+    - release:prometheus
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aprom%2Fprometheus%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/prom/prometheus/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/prom/prometheus/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/sissbruecker/linkding:
+    tags_url: https://hub.docker.com/v2/repositories/sissbruecker/linkding/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/sissbruecker/linkding/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/sissbruecker/linkding/blobs/{config_digest}
+    release_sources:
+    - release:linkding
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Asissbruecker%2Flinkding%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/sissbruecker/linkding/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/sissbruecker/linkding/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/triliumnext/trilium:
+    tags_url: https://hub.docker.com/v2/repositories/triliumnext/trilium/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/triliumnext/trilium/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/triliumnext/trilium/blobs/{config_digest}
+    release_sources:
+    - release:trilium.rohrbom.be
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Atriliumnext%2Ftrilium%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/triliumnext/trilium/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/triliumnext/trilium/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/valkey/valkey:
+    tags_url: https://hub.docker.com/v2/repositories/valkey/valkey/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/valkey/valkey/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/valkey/valkey/blobs/{config_digest}
+    release_sources:
+    - release:valkey
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Avalkey%2Fvalkey%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/valkey/valkey/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/valkey/valkey/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.io/vaultwarden/server:
+    tags_url: https://hub.docker.com/v2/repositories/vaultwarden/server/tags?page_size=5&ordering=last_updated
+    tags_format: dockerhub_tags
+    manifest_url_template: https://registry-1.docker.io/v2/vaultwarden/server/manifests/{reference}
+    config_blob_url_template: https://registry-1.docker.io/v2/vaultwarden/server/blobs/{config_digest}
+    release_sources:
+    - release:vault.rohrbom.be
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Avaultwarden%2Fserver%3Apull
+    tags_by_prefix_url_template: https://hub.docker.com/v2/repositories/vaultwarden/server/tags?page_size=5&name={tag_prefix}&ordering=last_updated
+    tags_read_recipe: dockerhub_tags
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/vaultwarden/server/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+  docker.stirlingpdf.com/stirlingtools/stirling-pdf:
+    tags_url: https://docker.stirlingpdf.com/v2/stirlingtools/stirling-pdf/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://docker.stirlingpdf.com/v2/stirlingtools/stirling-pdf/manifests/{reference}
+    config_blob_url_template: https://docker.stirlingpdf.com/v2/stirlingtools/stirling-pdf/blobs/{config_digest}
+    release_sources:
+    - release:stirling-pdf
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Astirlingtools%2Fstirling-pdf%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    manifest_probe_result: Configured registry manifest requests returned HTTP 429. The explicitly listed Docker
+      Hub exact-tag metadata request for latest returned HTTP 200 with amd64/arm64 digests; use that for the routine
+      check.
+    exact_tag_url_template: https://hub.docker.com/v2/repositories/stirlingtools/stirling-pdf/tags/{tag}
+    exact_tag_read_recipe: dockerhub_exact_tag
+    mutable_tag_lookup: Read exactly the configured tag using exact_tag_url_template. It includes index and per-platform
+      digests; no tag listing or registry manifest GET is needed for the normal comparison.
+    metadata_source_relationship: The configured Stirling registry authenticates against Docker Hub for this exact
+      repository. This explicit Docker Hub metadata source reads the same published image without changing its deployment
+      publisher.
+  ghcr.io/berriai/litellm:
+    tags_url: https://ghcr.io/v2/berriai/litellm/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/berriai/litellm/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/berriai/litellm/blobs/{config_digest}
+    release_sources:
+    - release:litellm
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Aberriai%2Flitellm%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/crocodilestick/calibre-web-automated:
+    tags_url: https://ghcr.io/v2/crocodilestick/calibre-web-automated/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/crocodilestick/calibre-web-automated/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/crocodilestick/calibre-web-automated/blobs/{config_digest}
+    release_sources:
+    - release:calibre
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Acrocodilestick%2Fcalibre-web-automated%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/gethomepage/homepage:
+    tags_url: https://ghcr.io/v2/gethomepage/homepage/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/gethomepage/homepage/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/gethomepage/homepage/blobs/{config_digest}
+    release_sources:
+    - release:homepage
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Agethomepage%2Fhomepage%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/home-assistant/home-assistant:
+    tags_url: https://ghcr.io/v2/home-assistant/home-assistant/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/home-assistant/home-assistant/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/home-assistant/home-assistant/blobs/{config_digest}
+    release_sources:
+    - release:home-assistant
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Ahome-assistant%2Fhome-assistant%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/hotio/lidarr:
+    tags_url: https://ghcr.io/v2/hotio/lidarr/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/hotio/lidarr/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/hotio/lidarr/blobs/{config_digest}
+    release_sources:
+    - publisher:lidarr
+    - release:lidarr
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Ahotio%2Flidarr%3Apull
+    selection_rule: Published hotio image is authoritative. Compare the running current-channel digest first; upstream
+      release notes do not prove the hotio image is available. Preserve VPN/release/architecture variants.
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/hotio/prowlarr:
+    tags_url: https://ghcr.io/v2/hotio/prowlarr/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/hotio/prowlarr/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/hotio/prowlarr/blobs/{config_digest}
+    release_sources:
+    - publisher:prowlarr
+    - release:prowlarr
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Ahotio%2Fprowlarr%3Apull
+    selection_rule: Published hotio image is authoritative. Compare the running current-channel digest first; upstream
+      release notes do not prove the hotio image is available. Preserve VPN/release/architecture variants.
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/hotio/qbittorrent:
+    tags_url: https://ghcr.io/v2/hotio/qbittorrent/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/hotio/qbittorrent/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/hotio/qbittorrent/blobs/{config_digest}
+    release_sources:
+    - publisher:qbittorrent
+    - release:qbittorrent
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Ahotio%2Fqbittorrent%3Apull
+    selection_rule: Published hotio image is authoritative. Compare the running current-channel digest first; upstream
+      release notes do not prove the hotio image is available. Preserve VPN/release/architecture variants.
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/hotio/radarr:
+    tags_url: https://ghcr.io/v2/hotio/radarr/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/hotio/radarr/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/hotio/radarr/blobs/{config_digest}
+    release_sources:
+    - publisher:radarr
+    - release:radarr
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Ahotio%2Fradarr%3Apull
+    selection_rule: Published hotio image is authoritative. Compare the running current-channel digest first; upstream
+      release notes do not prove the hotio image is available. Preserve VPN/release/architecture variants.
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/hotio/sonarr:
+    tags_url: https://ghcr.io/v2/hotio/sonarr/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/hotio/sonarr/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/hotio/sonarr/blobs/{config_digest}
+    release_sources:
+    - publisher:sonarr
+    - release:sonarr
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Ahotio%2Fsonarr%3Apull
+    selection_rule: Published hotio image is authoritative. Compare the running current-channel digest first; upstream
+      release notes do not prove the hotio image is available. Preserve VPN/release/architecture variants.
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/huggingface/text-embeddings-inference:
+    tags_url: https://ghcr.io/v2/huggingface/text-embeddings-inference/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/huggingface/text-embeddings-inference/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/huggingface/text-embeddings-inference/blobs/{config_digest}
+    release_sources:
+    - release:embeddings
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Ahuggingface%2Ftext-embeddings-inference%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/immich-app/immich-machine-learning:
+    tags_url: https://ghcr.io/v2/immich-app/immich-machine-learning/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/immich-app/immich-machine-learning/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/immich-app/immich-machine-learning/blobs/{config_digest}
+    release_sources:
+    - release:immich.rohrbom.be
+    - compatibility:immich-compose
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Aimmich-app%2Fimmich-machine-learning%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/immich-app/immich-server:
+    tags_url: https://ghcr.io/v2/immich-app/immich-server/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/immich-app/immich-server/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/immich-app/immich-server/blobs/{config_digest}
+    release_sources:
+    - release:immich.rohrbom.be
+    - compatibility:immich-compose
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Aimmich-app%2Fimmich-server%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/immich-app/postgres:
+    tags_url: https://ghcr.io/v2/immich-app/postgres/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/immich-app/postgres/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/immich-app/postgres/blobs/{config_digest}
+    release_sources:
+    - release:immich-postgres
+    - compatibility:immich-compose
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Aimmich-app%2Fpostgres%3Apull
+    selection_rule: Use the image specified by the matching Immich release/compose documentation; never use vanilla
+      PostgreSQL tags or independently upgrade its PostgreSQL/vector extension majors.
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/intel/xpumanager/xpumd:
+    tags_url: https://ghcr.io/v2/intel/xpumanager/xpumd/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/intel/xpumanager/xpumd/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/intel/xpumanager/xpumd/blobs/{config_digest}
+    release_sources:
+    - release:xpu-smi-exporter
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Aintel%2Fxpumanager%2Fxpumd%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/kube-vip/kube-vip:
+    tags_url: https://ghcr.io/v2/kube-vip/kube-vip/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/kube-vip/kube-vip/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/kube-vip/kube-vip/blobs/{config_digest}
+    release_sources:
+    - release:kube-vip
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Akube-vip%2Fkube-vip%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/miguelndecarvalho/speedtest-exporter:
+    tags_url: https://ghcr.io/v2/miguelndecarvalho/speedtest-exporter/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/miguelndecarvalho/speedtest-exporter/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/miguelndecarvalho/speedtest-exporter/blobs/{config_digest}
+    release_sources:
+    - release:speedtest-exporter
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Amiguelndecarvalho%2Fspeedtest-exporter%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/open-webui/open-webui:
+    tags_url: https://ghcr.io/v2/open-webui/open-webui/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/open-webui/open-webui/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/open-webui/open-webui/blobs/{config_digest}
+    release_sources:
+    - release:open-webui
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Aopen-webui%2Fopen-webui%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/paperless-ngx/paperless-ngx:
+    tags_url: https://ghcr.io/v2/paperless-ngx/paperless-ngx/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/paperless-ngx/paperless-ngx/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/paperless-ngx/paperless-ngx/blobs/{config_digest}
+    release_sources:
+    - release:paperless-ngx
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Apaperless-ngx%2Fpaperless-ngx%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/pelican/panel:
+    tags_url: https://ghcr.io/v2/pelican/panel/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/pelican/panel/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/pelican/panel/blobs/{config_digest}
+    release_sources:
+    - release:pelican
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Apelican%2Fpanel%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  ghcr.io/unpoller/unpoller:
+    tags_url: https://ghcr.io/v2/unpoller/unpoller/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://ghcr.io/v2/unpoller/unpoller/manifests/{reference}
+    config_blob_url_template: https://ghcr.io/v2/unpoller/unpoller/blobs/{config_digest}
+    release_sources:
+    - release:unpoller
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://ghcr.io/token?service=ghcr.io&scope=repository%3Aunpoller%2Funpoller%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  quay.io/jupyter/scipy-notebook:
+    tags_url: https://quay.io/api/v1/repository/jupyter/scipy-notebook/tag/?limit=5&onlyActiveTags=true
+    tags_format: quay_tags
+    manifest_url_template: https://quay.io/v2/jupyter/scipy-notebook/manifests/{reference}
+    config_blob_url_template: https://quay.io/v2/jupyter/scipy-notebook/blobs/{config_digest}
+    release_sources:
+    - notes:jupyter
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    tags_read_recipe: quay_tags
+    digest_read_recipe: manifest_head_public
+    manifest_read_recipe: manifest_summary_public
+    version_label_read_recipe: image_version_labels_public
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  registry.gitlab.com/jirafeau/jirafeau:
+    tags_url: https://registry.gitlab.com/v2/jirafeau/jirafeau/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://registry.gitlab.com/v2/jirafeau/jirafeau/manifests/{reference}
+    config_blob_url_template: https://registry.gitlab.com/v2/jirafeau/jirafeau/blobs/{config_digest}
+    release_sources:
+    - release:jirafeau
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    anonymous_token_url: https://gitlab.com/jwt/auth?service=container_registry&scope=repository%3Ajirafeau%2Fjirafeau%3Apull
+    tags_read_recipe: oci_tags_authenticated
+    digest_read_recipe: manifest_head_authenticated
+    manifest_read_recipe: manifest_summary_authenticated
+    version_label_read_recipe: image_version_labels_authenticated
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+  registry.k8s.io/kube-state-metrics/kube-state-metrics:
+    tags_url: https://registry.k8s.io/v2/kube-state-metrics/kube-state-metrics/tags/list?n=5
+    tags_format: oci_tags
+    manifest_url_template: https://registry.k8s.io/v2/kube-state-metrics/kube-state-metrics/manifests/{reference}
+    config_blob_url_template: https://registry.k8s.io/v2/kube-state-metrics/kube-state-metrics/blobs/{config_digest}
+    release_sources:
+    - release:kube-state-metrics
+    verified_at: '2026-11-04T21:29:53.703044+01:00'
+    verification: HTTP 200; non-empty image tag list
+    tags_read_recipe: oci_tags_public
+    digest_read_recipe: manifest_head_public
+    manifest_read_recipe: manifest_summary_public
+    version_label_read_recipe: image_version_labels_public
+    mutable_tag_lookup: HEAD only the configured tag using digest_read_recipe. If index/platform digests differ
+      in type, resolve that one manifest index only; never enumerate tags to discover what latest means.
+coverage_snapshot:
+  checked_at: '2026-11-04T21:12:39.559593+01:00'
+  running_pods: 166
+  completed_pods: 5
+  deployments: 67
+  daemonsets: 19
+  cronjobs: 4
+  jobs: 5
+  unassigned_workloads: 0
+  running_pods_by_category:
+    platform: 106
+    cluster: 15
+    custom_image: 11
+    application: 34
+  scope: Kubernetes workload/image coverage; no exhaustive audit of host processes or application plugins
