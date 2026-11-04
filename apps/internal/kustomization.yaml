@@ -11,4 +11,5 @@ resources:
   - ./image-compressor/
   - ./jupyter/
   - ./llm/
-  - ./hermes/
+  # Retain the archived Hermes instance's namespace and data only.
+  - ./hermes-data/

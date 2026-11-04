@@ -1,5 +1,13 @@
 # Hermes Agent
 
+Archived on 2026-11-04 for a fresh installation on the Dev-VM. This directory
+is not referenced by Flux. The documentation below describes the former
+deployment; `apps/internal/hermes/` paths refer to its original location.
+
+Namespace `svc-hermes` and PVC `hermes-data` are retained separately under
+`apps/internal/hermes-data/`, including Longhorn backup labels and Flux
+prune protection. Do not delete the namespace: that would also delete the PVC.
+
 [Hermes Agent](https://hermes-agent.nousresearch.com/docs/) (Nous Research)
 läuft zentral in **einem Pod** (`svc-hermes`, eine Replica, `Recreate`) mit
 Gateway, Agent und Web-Dashboard. Offizielles Container-Image,
