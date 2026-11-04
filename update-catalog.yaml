@@ -10,9 +10,8 @@ policy:
   source_discovery: no_unlisted_fallbacks
   write_scanner_code: false
   max_attempts_per_source: 2
-  max_seconds_per_service: 180
-  max_seconds_per_run: 1800
-  progress: persist_after_each_service
+  progress: Append one short JSON event per completed/deferred component. Never regenerate the entire journal/checkpoint,
+    previous results or previous tickets.
   tickets: create_blocked_immediately_after_each_verified_service_update
   updates: require_explicit_user_approval
   image_policy: preserve_image_publisher_variant_and_existing_release_channel
@@ -40,7 +39,7 @@ policy:
     max_candidate_tags_per_image: 2
     max_http_requests_per_image: 6
     on_401_403_429: record_source_error_and_continue_without_retry
-    on_timeout_or_5xx: at_most_one_retry_within_service_budget
+    on_timeout_or_5xx: at_most_one_retry; no component or run wall-clock deadline
     missing_version_in_bounded_response: report_not_verifiable_and_continue; never walk historical releases/tags
   context_limits: Read this catalog once. Keep the current component and its referenced source records. Reuse each
     source response within a run. Output only selected version/digest/date fields; fetch detailed release notes
@@ -54,15 +53,32 @@ policy:
     tag list or release feed. Read changelogs only for detected update candidates.'
   execution_mode: 'Strictly sequential: one component at a time and at most one tool call per assistant turn. No
     subagents, parallel tool batches, concurrent commands or background processes.'
-  component_order: Use check_order exactly, resume at the saved next_component_id after an incomplete cycle. Do
-    not reorder components or postpone ticket creation until the end.
-  checkpoint_path: /home/faba/.hermes/cron/state/cluster-update-check.json
-  completion_gate: 'Before advancing to the next component, save its result and, for a verified update, obtain a
-    blocked ticket ID. Board failure: save the pending proposal and end with a partial report, never silently continue
-    accumulating unticketed updates.'
+  component_order: Use check_order sequentially after excluding components with open tickets and already completed
+    results of an unfinished cycle. Preserve original result times.
+  completion_gate: Once a verified update has its blocked ticket ID, append a short result event and move to the
+    NEXT COMPONENT. No further images from that component while its ticket is open. On board failure append pending_ticket
+    and end with a partial report.
+  journal_path: /home/faba/.hermes/cron/state/cluster-update-check/events.jsonl
+  run_time_limit: none; no run/component wall-clock deadline. Keep individual HTTP/kubectl timeouts and bounded
+    requests.
+  reasoning: Cron job reasoning_effort=low; dedicated custom:cluster-update-check provider passes chat_template_kwargs.reasoning_effort=low
+    through LiteLLM to Qwen. No global model changes.
+  skip_open_tickets: Before any image/registry/release lookup, skip the whole component if ANY task for its component_id
+    in cluster-updates is not done or archived. Includes blocked, ready, running and review. No new-version hunting
+    or ticket expansion while a task is open.
+  component_gate: Use the compact open-ticket recipe at startup and refresh it for the current component. After
+    creating the first new blocked ticket, defer remaining images of that component until the task is closed.
+  output_limits:
+    ticket_title_chars: 110
+    ticket_body_chars: 1200
+    journal_event_chars: 400
+    report_lines: 20
+    reasoning: brief; no repeated plans, long self-explanations or speculation
 catalog_access:
-  instruction: Read policy and lookup_recipes once. Select one component plus its referenced source records with
-    the ready commands below. Do not repeatedly paste the complete catalog or raw feeds/indexes into the context.
+  instruction: 'Read policy and recipes once. At startup use read_commands.open_update_tasks (compact metadata,
+    no ticket bodies). For one component set update_component_id and run component_context_command: fresh open-task
+    gate followed by its small catalog entry. Open task: skip sources immediately. Never repeatedly read the full
+    catalog.'
   routine_ids_command: 'awk ''/^- id: / { id=substr($0,7) } /^  update_track: routine$/ { print id }'' update-catalog.yaml'
   component_command: 'awk -v wanted="${update_component_id}" ''$0 == "- id: " wanted { selected=1 } selected &&
     /^- id: / && $0 != "- id: " wanted { exit } selected && /^[^ -]/ { exit } selected { print }'' update-catalog.yaml'
@@ -71,6 +87,13 @@ catalog_access:
   source_record_parameter: update_record_id is an exact key from sources (e.g. release:home-assistant) or image_sources
     (e.g. docker.io/library/postgres).
   check_order_command: sed -n "/^check_order:/,/^[^ -]/p" update-catalog.yaml
+  component_context_command: 'hermes kanban --board cluster-updates list --json | jq --arg component_id "${update_component_id}"
+    ''[.[] | select(.status != "done" and .status != "archived") | {id,status,component_id: ((try (.idempotency_key
+    // "" | capture("^cluster-update:(?<component>[^:]+):").component) catch null) // (try (.body // "" | capture("(?m)^component_id:
+    *(?<component>[^\r\n ]+)").component) catch null) // (try (.body // "" | capture("(?m)^- Komponente: *(?<component>[^
+    (\\r\\n]+)").component) catch null) // null), title}] | map(select(.component_id == $component_id))'' && awk
+    -v wanted="${update_component_id}" ''$0 == "- id: " wanted { selected=1 } selected && /^- id: / && $0 != "-
+    id: " wanted { exit } selected && /^[^ -]/ { exit } selected { print }'' update-catalog.yaml'
 lookup_recipes:
   github_feed: Set update_source_url to sources[id].url and use its read_recipe from read_commands. GitHub feeds
     need neither an API key nor API quota. Version tags are the final release-link segment; display titles can differ.
@@ -96,8 +119,9 @@ lookup_recipes:
     values from this catalog or the selected image reference. Do not generate scripts or functions. Use shell pipefail
     so HTTP/parser failures remain visible; never print an anonymous token.
   daily_sequence:
-  - Read the component with catalog_access.component_command. For external/bundled entries skip or use the named
-    parent immediately.
+  - At startup read compact open_update_tasks, then exclude every component with an open task BEFORE inventory/research.
+    Select one remaining check_order component via component_context_command; it refreshes the board gate. No source
+    calls for skipped components.
   - Read only its image_sources records or chart/version sources. Current tags and digests come from the repo and
     the one live inventory, not a fresh whole-cluster scan per service.
   - 'For latest or another tracked channel, check only that exact tag: exact_tag_url_template/exact_tag_read_recipe
@@ -105,8 +129,9 @@ lookup_recipes:
     newer target, use the bounded listed tag source or release feed while preserving publisher, major and flavor.'
   - If unchanged, persist the result and go to the next component without fetching upstream changelogs. If changed,
     fetch only the listed release notes relevant to that candidate and assess it.
-  - Create or update the blocked ticket immediately for a verified update; otherwise save unchanged/not-verifiable
-    plus the concrete source error. Then proceed to the next component. Never write or repair code.
+  - On first verified update, immediately create a blocked ticket (body <=1200 characters), append ONE result event,
+    then move to the next COMPONENT. Defer any remaining images of this component until its open task is done/archived.
+    Unchanged/no-update results append one short event, never the whole state.
   exact_tag: Substitute the actual configured tag into exact_tag_url_template, set update_source_url, then execute
     exact_tag_read_recipe. Docker Hub JSON includes per-platform digests; this avoids both manifest GETs and listing
     unrelated tags. For other registries use HEAD via image_digest. Never replace a pinned database major/channel
@@ -118,6 +143,16 @@ lookup_recipes:
     the run data directory. Read filtered records for the current namespace/resource only; do not print the full
     snapshot or start a new whole-cluster inventory per service. Snapshots contain no environment values or secret
     bodies.
+  progress: 'Use journal_summary once, then journal_append with a SINGLE one-line JSON object in update_event_json
+    (<=400 characters). Events: cycle_start (cycle_id,at,catalog_sha256), result (cycle_id,at,component_id,status,ticket_ids),
+    pending_ticket (cycle_id,at,component_id,source_ref,target), cycle_end (cycle_id,at). Tickets hold full details;
+    results are never copied into the journal. No full-file rewrite.'
+  open_ticket_gate: 'Open means any state except done/archived. Match canonical component_id from idempotency_key
+    prefix cluster-update:<id>: or body marker component_id: <id>. An unknown mapping requires reading that card
+    once; never silently ignore it. While ANY task is open, skip every image and dependency of that component. The
+    board is authoritative; a stale local journal cannot remove this gate. The current Hermes CLI omits idempotency_key
+    in list JSON; its full body is filtered locally for component_id: or legacy - Komponente: markers, never printed
+    to model context.'
 read_commands:
   github_atom_summary: curl --fail --silent --show-error --location --connect-timeout 5 --max-time 20 --retry 0
     "${update_source_url}" | sed -n -E '/^[[:space:]]*<(title|updated)>/p; /^[[:space:]]*<link[^>]*href="https:\/\/github\.com\/[^\"]*\/releases\/tag\//p'
@@ -181,6 +216,26 @@ read_commands:
     deployed_chart: (.status.history[0] // null | if . == null then null else {chartName,chartVersion,appVersion}
     end), images: [(.spec.template.spec.containers[]?, .spec.template.spec.initContainers[]?, .spec.jobTemplate.spec.template.spec.containers[]?,
     .spec.jobTemplate.spec.template.spec.initContainers[]?) | {name,image}]}]'' > "${update_workload_snapshot}"'
+  open_update_tasks: 'hermes kanban --board cluster-updates list --json | jq ''[.[] | select(.status != "done" and
+    .status != "archived") | {id,status,component_id: ((try (.idempotency_key // "" | capture("^cluster-update:(?<component>[^:]+):").component)
+    catch null) // (try (.body // "" | capture("(?m)^component_id: *(?<component>[^\r\n ]+)").component) catch null)
+    // (try (.body // "" | capture("(?m)^- Komponente: *(?<component>[^ (\\r\\n]+)").component) catch null) // null),
+    title}]'''
+  open_component_tasks: 'hermes kanban --board cluster-updates list --json | jq --arg component_id "${update_component_id}"
+    ''[.[] | select(.status != "done" and .status != "archived") | {id,status,component_id: ((try (.idempotency_key
+    // "" | capture("^cluster-update:(?<component>[^:]+):").component) catch null) // (try (.body // "" | capture("(?m)^component_id:
+    *(?<component>[^\r\n ]+)").component) catch null) // (try (.body // "" | capture("(?m)^- Komponente: *(?<component>[^
+    (\\r\\n]+)").component) catch null) // null), title}] | map(select(.component_id == $component_id))'''
+  journal_append: '[ "${#update_event_json}" -le 400 ] && printf ''%s\n'' "${update_event_json}" | jq -e -c ''if
+    type == "object" and (.event | type == "string") and (.cycle_id | type == "string") then . else error("invalid
+    journal event") end'' >> "${update_journal_path}"'
+  journal_summary: if [ -f "${update_journal_path}" ]; then jq -s '(. | map(select(.event == "cycle_start")) | last)
+    as $start | if $start == null then {cycle:null,completed_components:[]} else [.[] | select(.cycle_id == $start.cycle_id)]
+    as $events | ($events | [.[] | select(.event == "pending_ticket")] | last) as $pending | {cycle:$start, complete:($events
+    | any(.event == "cycle_end")), completed_components:($events | [.[] | select(.event == "result") | .component_id]
+    | unique), pending_ticket:(if $pending == null or ($events | any(.event == "result" and .component_id == $pending.component_id
+    and .at >= $pending.at)) then null else $pending end)} end' "${update_journal_path}"; else printf '%s\n' '{"cycle":null,"completed_components":[]}';
+    fi
 check_order:
 - budget.rohrbom.be
 - calibre
@@ -256,6 +311,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: calibre
   category: application
   management: check
@@ -280,6 +336,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: embeddings
   category: application
   management: check
@@ -298,6 +355,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: home-assistant
   category: application
   management: check
@@ -316,6 +374,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: homepage
   category: application
   management: check
@@ -334,6 +393,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: immich.rohrbom.be
   category: application
   management: check
@@ -373,6 +433,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: jellyfin
   category: application
   management: check
@@ -391,6 +452,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: jupyter
   category: application
   management: check
@@ -409,6 +471,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: lidarr
   category: application
   management: check
@@ -429,6 +492,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: linkding
   category: application
   management: check
@@ -447,6 +511,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: litellm
   category: application
   management: check
@@ -475,6 +540,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: open-webui
   category: application
   management: check
@@ -503,6 +569,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: paperless-ngx
   category: application
   management: check
@@ -555,6 +622,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: pelican
   category: application
   management: check
@@ -573,6 +641,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: prowlarr
   category: application
   management: check
@@ -593,6 +662,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: qbittorrent
   category: application
   management: check
@@ -613,6 +683,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: radarr
   category: application
   management: check
@@ -633,6 +704,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: seerr
   category: application
   management: check
@@ -651,6 +723,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: share.rohrbom.be
   category: application
   management: check
@@ -669,6 +742,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: sonarr
   category: application
   management: check
@@ -689,6 +763,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: stirling-pdf
   category: application
   management: check
@@ -707,6 +782,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: trilium.rohrbom.be
   category: application
   management: check
@@ -725,6 +801,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: vault.rohrbom.be
   category: application
   management: check
@@ -751,6 +828,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: vllm
   category: application
   management: check
@@ -770,6 +848,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: flannel
   category: cluster
   management: check
@@ -799,6 +878,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: k3s
   category: cluster
   management: check
@@ -820,6 +900,7 @@ components:
     workflow: check_k3s_channel
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: k3s-bundled-components
   category: cluster
   management: bundled
@@ -883,6 +964,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: image-compressor
   category: custom_image
   management: external
@@ -1003,6 +1085,7 @@ components:
     workflow: check_chart
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: cloudflare-ddns
   category: platform
   management: check
@@ -1021,6 +1104,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: diagnostic-netprobe
   category: platform
   management: external
@@ -1077,6 +1161,7 @@ components:
     workflow: check_release_bundle
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: grafana
   category: platform
   management: check
@@ -1095,6 +1180,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: influxdb
   category: platform
   management: check
@@ -1122,6 +1208,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: ingress-nginx
   category: platform
   management: check
@@ -1171,6 +1258,7 @@ components:
     workflow: check_chart
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: intel-gpu
   category: platform
   management: check
@@ -1190,6 +1278,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: kube-state-metrics
   category: platform
   management: check
@@ -1208,6 +1297,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: loki
   category: platform
   management: check
@@ -1226,6 +1316,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: longhorn
   category: platform
   management: check
@@ -1325,6 +1416,7 @@ components:
     workflow: check_chart
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: metallb
   category: platform
   management: check
@@ -1358,6 +1450,7 @@ components:
     workflow: check_release_bundle
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: node-exporter
   category: platform
   management: check
@@ -1376,6 +1469,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: ping-exporter
   category: platform
   management: check
@@ -1394,6 +1488,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: prometheus
   category: platform
   management: check
@@ -1412,6 +1507,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: promtail
   category: platform
   management: check
@@ -1438,6 +1534,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: speedtest-exporter
   category: platform
   management: check
@@ -1456,6 +1553,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: unpoller
   category: platform
   management: check
@@ -1474,6 +1572,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: xpu-smi-exporter
   category: platform
   management: check
@@ -1492,6 +1591,7 @@ components:
     workflow: check_images
     on_error: record_and_continue; never develop or repair a scanner
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
+    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 sources:
   release:budget.rohrbom.be:
     url: https://github.com/actualbudget/actual-server/releases.atom

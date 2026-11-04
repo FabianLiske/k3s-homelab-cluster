@@ -17,7 +17,8 @@ im Katalog und im überarbeiteten Cron-Prompt:
 
 Der Checker bearbeitet einen Dienst und dessen Images nacheinander. Sobald ein
 Update belegt ist, erzeugt er unmittelbar ein gesperrtes Ticket und sichert
-seinen Arbeitsstand. Bei Quellenfehlern geht er weiter; bei fehlender Möglichkeit,
+seinen Arbeitsstand inkrementell als kurze JSONL-Zeile. Dienste mit offenen Karten
+werden vollständig übersprungen. Bei Quellenfehlern geht er weiter; bei fehlender Möglichkeit,
 ein Ticket sicher anzulegen, speichert er den Vorschlag und beendet den Lauf
 mit einem Teilbericht. Er entwickelt keine Skripte oder neuen Prüfwerkzeuge.
 
@@ -29,3 +30,10 @@ Noch separat auszuarbeiten ist der spätere Update-Worker: Erst nach Betreiber-G
 soll er Änderungen pinnen, validieren, committen/pushen und den Flux-Rollout sowie
 die Dienstfunktion prüfen. RSS-/Advisory-Abos und automatische Notfallmaßnahmen
 sind ebenfalls kein Teil des jetzigen Update-Checkers.
+
+Nach dem zweiten Testlauf sind lange Tickettexte und vollständige Checkpoint-
+Neuschreibungen durch knappe Karten und ein append-only Journal ersetzt.
+Reasoning wird nur für diesen Job wirksam auf `low` gesetzt. Die weichen
+Zeitlimits für Dienste und den Gesamtlauf wurden auf Betreiberwunsch entfernt;
+technische HTTP-Timeouts bleiben bestehen. Acht gesperrte Karten bleiben
+erhalten. Der Lauf wurde gestoppt und nicht neu gestartet.

@@ -8,9 +8,19 @@ Der Status ist `approved_for_checker`. Der gespeicherte Prompt von
 Der Job läuft täglich um 08:00 Uhr und liefert seinen Bericht nach WhatsApp.
 Flux wertet den Katalog nicht aus; der Cron-Agent verwendet ihn ausdrücklich.
 
-Der alte Testlauf wurde am 2026-11-04 auf Betreiberwunsch abgebrochen. Bei dieser
-Umstellung wurde kein neuer Lauf ausgelöst. Der Prompt enthält die Anweisung,
-keine alten Prüfskripte oder ungeprüften Resultate dieses Testlaufs zu übernehmen.
+Nur dieser Job nutzt `reasoning_effort: low` und die Provider-Route
+`custom:cluster-update-check`. Sie verwendet denselben LiteLLM-Endpunkt, Zugang
+und Modellnamen wie der normale Chat, ergänzt aber ausdrücklich
+`extra_body.chat_template_kwargs.reasoning_effort: low`. LiteLLM verwirft bei
+diesem Modellnamen den normalen OpenAI-Parameter; das lokale Qwen-Template
+verwendet ohne Template-Vorgabe standardmäßig `xhigh`. Die Weiterleitung der
+Template-Vorgabe wurde mit einem simulierten HTTP-Client ohne Modellgenerierung
+geprüft. Die normale Hermes-Chat-Konfiguration bleibt unverändert.
+
+Die Testläufe vom 2026-11-04 wurden auf Betreiberwunsch abgebrochen. Der zweite
+Lauf erzeugte acht gesperrte Tickets für sechs Dienste. Diese Karten bleiben
+erhalten. Nach der Umstellung auf den knappen Ablauf wurde kein neuer Run gestartet.
+Der Prompt verbietet alte Prüfskripte und ungeprüfte Scratch-Daten.
 
 ## Zuständigkeit und Update-Einheiten
 
@@ -67,6 +77,27 @@ Dienste muss die Zuständigkeit ausdrücklich pro Komponente aufgeteilt werden.
 
 Zusätzlich ist der bereits abgeschlossene einzelne Diagnose-Pod `netprobe-wk-1`
 als temporäre Plattform-Ressource ausdrücklich vom Update-Auftrag ausgeschlossen.
+
+## Offene Tickets schließen weitere Prüfungen aus
+
+Vor Quellenzugriffen wird das Board `cluster-updates` geprüft. Solange irgendeine
+Karte einer Komponente weder `done` noch `archived` ist, wird der gesamte Dienst
+übersprungen, einschließlich seiner übrigen Images und Abhängigkeiten. Das gilt
+auch für `blocked`, `running`, `scheduled` und `review`. Es werden weder neuere
+Versionen gesucht noch weitere Karten oder Erweiterungen für diesen Dienst erzeugt.
+Der Board-Zustand ist maßgeblich, unabhängig von Datum, Katalog-Hash oder Journal.
+
+Die Zuordnung erfolgt über `cluster-update:<component-id>:` im Idempotenzschlüssel
+oder die erste Body-Zeile `component_id: <id>`. Die acht vorhandenen Karten haben
+bereits zuordenbare Schlüssel und Legacy-Zeilen `- Komponente: <id>`. Da die
+aktuelle CLI-Liste den Schlüssel nicht ausgibt, wertet die fertige Abfrage
+zusätzlich diese alten Body-Zeilen aus. `open_update_tasks` und `open_component_tasks`
+liefern nur kleine Metadaten, keine vollständigen Bodies. Die fertige Abfrage
+`component_context_command` prüft den Gate vor jeder neuen Komponente erneut.
+
+Nach dem ersten neuen gesperrten Ticket wird ebenfalls zum nächsten Dienst
+gewechselt. Weitere Images dieses Dienstes werden bis zur Erledigung der Karte
+zurückgestellt und nicht als bereits vollständig geprüft ausgegeben.
 
 ## Quellen und Versionen
 
@@ -157,7 +188,7 @@ Fehlerschleife wiederholt.
 Pro HTTP-Aufruf gelten fünf Sekunden Verbindungs- und zwanzig Sekunden
 Gesamt-Timeout. Es wird keine komplette Registry paginiert. HTTP 401/403/429
 beendet die Prüfung dieser Quelle ohne Wiederholung; bei Timeouts/5xx ist
-höchstens eine Wiederholung innerhalb des Dienstbudgets erlaubt. Das Schreiben,
+höchstens eine Wiederholung erlaubt. Das Schreiben,
 Reparieren oder Installieren von Scannern, Hilfsskripten oder Parsern ist im
 täglichen Run ausdrücklich verboten. Ein Fehler stoppt nur die betroffene
 Einheit, keinen vollständigen Gesamtscan.
@@ -200,31 +231,30 @@ Ausgeschlossene eigene Images und gebündelte Einträge sind kein eigener
 Prüfauftrag. Alle 45 Prüfaufträge werden strikt nacheinander bearbeitet; keine
 Subagenten, parallelen Tool-Aufrufe oder Hintergrundprozesse.
 
-1. Katalog-Kopf und Arbeitsstand laden, Versionsstand von Repo und Cluster erfassen.
-   Die drei vorgegebenen `cluster_*_snapshot`-Abfragen werden einmal nacheinander
-   ausgeführt und speichern ausschließlich benötigte Image-/Versionsmetadaten.
-2. Genau eine Einheit mit ihren festgelegten Quellen prüfen. Gleiche
-   Registry-Abfragen innerhalb des Runs zwischenspeichern, etwa für PostgreSQL.
-3. Sobald ein Update belegt ist, unmittelbar ein gesperrtes Ticket anlegen.
-   Erst danach weitere Images bzw. den nächsten Dienst prüfen. Ergebnis und
-   tatsächliche Ticket-IDs als JSON unter
-   `/home/faba/.hermes/cron/state/cluster-update-check.json` sichern.
-   Bei einem Board-Fehler den Vorschlag als `pending_ticket` speichern und mit
-   Teilbericht beenden, statt weitere Updates ohne Tickets zu sammeln.
-4. Nach höchstens zwei Versuchen pro Quelle oder drei Minuten pro Einheit
-   zum nächsten Eintrag gehen. Bei 401/429 keine unbeschränkten Wiederholungen.
-5. Nach insgesamt 30 Minuten einen Teilbericht liefern. Arbeitsstand und nächste
-   Einheit dauerhaft speichern, damit spätere Runs keine bereits erfolgreichen
-   Prüfungen desselben Runs wiederholen und die hinteren Einträge nicht verhungern.
+1. Katalog-Kopf, kompakten Board-Zustand und Journal-Zusammenfassung laden.
+   Offene Dienste vor Recherche ausschließen. Versionsstand von Repo und Cluster
+   mit den drei fertigen Snapshot-Abfragen einmal nacheinander erfassen.
+2. Eine verbleibende Einheit mit ihren festen Quellen prüfen. Gleiche Abfragen
+   innerhalb des Runs wiederverwenden, etwa für PostgreSQL.
+3. Ein belegtes Update sofort als gesperrtes Ticket sichern. Ticket-ID und Status
+   als eine kurze JSON-Zeile an
+   `/home/faba/.hermes/cron/state/cluster-update-check/events.jsonl` anhängen.
+   Danach zum nächsten Dienst wechseln. Bei Board-Fehler einen knappen
+   `pending_ticket`-Eintrag anhängen und mit Teilbericht beenden.
+4. Bei Quellenfehlern nach den begrenzten Versuchen weitergehen; bei 401/429
+   nicht wiederholen. Keine Zeitgrenze für einzelne Dienste oder den gesamten Run.
+5. Nach Queue-Ende `cycle_end` anhängen und knapp berichten. Bei Unterbrechung
+   denselben Zyklus mit gleichem Katalog-Hash aus dem Journal fortsetzen.
 
-Die Budgets sind Startwerte für die spätere Umsetzung. Bei Zeitüberschreitungen
-muss auch der verwendete Tool-Aufruf begrenzt werden; ein Prompt allein stoppt
-keinen lang laufenden Unterprozess. Recherchefehler oder ein nicht erreichbares
-Board dürfen keine Updates auslösen. Gesperrte Tickets warten weiter auf ein
-ausdrückliches Go.
+`journal_append` validiert und kompaktifiziert genau ein Ereignis (höchstens
+400 Zeichen). `journal_summary` liest vorhandene Daten mit `jq`; der Agent
+regeneriert sie nicht. Die frühere Datei `cluster-update-check.json` bleibt
+als Legacy-Stand erhalten und wird nicht weitergeschrieben. Ticket-Bodies sind
+auf 1200 Zeichen und Titel auf 110 Zeichen begrenzt. Der Bericht hat höchstens
+20 Zeilen. Ausführliche Ticket-Inhalte und der anwachsende Fortschritt müssen
+nicht bei jeder Komponente erneut vom Modell erzeugt werden.
 
-Ab Minute 27 soll der Agent keine neue Komponente beginnen. Diese Zeitgrenzen
-sind Agent-Anweisungen, kein zusätzlicher externer Watchdog. Die HTTP- und
-kubectl-Timeouts sind Bestandteil der tatsächlichen Leseabfragen. Die vorhandene
-Hermes-Turn-Grenze bleibt zusätzlich wirksam; andere Agent-Konfigurationen
-werden für diesen Job nicht global verändert.
+HTTP-/kubectl-Timeouts und die vorhandene globale Hermes-Turn-Grenze bleiben
+wirksam. Es gibt weder einen Gesamt-/Dienst-Timer noch einen zusätzlichen
+Watchdog. Recherchefehler oder ein nicht erreichbares Board dürfen keine Updates
+auslösen; gesperrte Tickets warten weiter auf ein ausdrückliches Go.
