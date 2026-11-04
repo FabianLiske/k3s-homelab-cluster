@@ -63,5 +63,6 @@ The in-cluster endpoint for LiteLLM is:
 http://vllm.svc-llm.svc.cluster.local:8000/v1
 ```
 
-LiteLLM intentionally continues to expose the stable `local-chat` alias, so
-existing consumers do not need a model-name or endpoint change.
+LiteLLM exposes this backend publicly as `local/qwen-3.8-27b` at
+`https://llm.intern.rohrbom.be/v1`. The `local-chat` name above is an internal
+vLLM compatibility ID; clients of LiteLLM use the explicit public name.

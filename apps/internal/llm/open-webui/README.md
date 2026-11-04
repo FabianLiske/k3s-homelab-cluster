@@ -8,7 +8,7 @@ Intel GPU.
 
 Replace every placeholder in `open-webui-secret.yaml`:
 
-- `OPENAI_API_KEY`: the LiteLLM virtual key restricted to `local-chat`
+- `OPENAI_API_KEY`: the LiteLLM virtual key restricted to `local/qwen-3.8-27b`
 - `WEBUI_SECRET_KEY`: output of `openssl rand -hex 32`
 - `WEBUI_ADMIN_EMAIL`: email used to sign in
 - `WEBUI_ADMIN_PASSWORD`: a strong initial admin password

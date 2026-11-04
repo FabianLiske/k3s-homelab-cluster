@@ -5,9 +5,9 @@ metadata:
 data:
   config.yaml: |
     model_list:
-      - model_name: local-chat
+      - model_name: local/qwen-3.8-27b
         litellm_params:
-          # Keep the LiteLLM alias stable while addressing Qwen explicitly.
+          # Public names identify the local model; upstream IDs stay independent.
           model: openai/Qwen/Qwen3.8-27B-FP8
           api_base: http://vllm.svc-llm.svc.cluster.local:8000/v1
           api_key: not-needed
@@ -18,7 +18,7 @@ data:
           input_cost_per_token: 0.00000030
           output_cost_per_token: 0.00000320
 
-      - model_name: local-embedding
+      - model_name: local/qwen-3-embedding-0.6b
         litellm_params:
           model: openai/local-embedding
           api_base: http://embeddings.svc-llm.svc.cluster.local:8080/v1
