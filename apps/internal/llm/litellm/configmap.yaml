@@ -12,6 +12,7 @@ data:
           api_base: http://vllm.svc-llm.svc.cluster.local:8000/v1
           api_key: not-needed
           use_chat_completions_api: true
+          presence_penalty: 0.5
         model_info:
           # TODO: reference pricing carried over from Qwen3.6-27B (checked 2026-09-04).
           # No confirmed SiliconFlow listing for Qwen3.8-27B yet; re-check and update.

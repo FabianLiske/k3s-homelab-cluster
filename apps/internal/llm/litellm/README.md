@@ -8,6 +8,10 @@ LiteLLM exposes the OpenAI-compatible gateway at
 | `local/qwen-3.8-27b` | `Qwen/Qwen3.8-27B-FP8` | vLLM on `wk-5` |
 | `local/qwen-3-embedding-0.6b` | `Qwen/Qwen3-Embedding-0.6B` | CPU Text Embeddings Inference on `wk-5` |
 
+The Qwen chat route defaults to `presence_penalty: 0.5`. Clients can override
+this per request. This default is applied by LiteLLM; direct requests to vLLM
+bypass it. Other sampling parameters retain the backend defaults.
+
 Use `local/<model-family-and-version>-<size>` for future local models, with
 `embedding` in the name for embedding models. The old public aliases
 `local-chat` and `local-embedding` were retired on 2026-11-04. Clients and
