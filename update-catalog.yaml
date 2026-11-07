@@ -237,7 +237,6 @@ read_commands:
     and .at >= $pending.at)) then null else $pending end)} end' "${update_journal_path}"; else printf '%s\n' '{"cycle":null,"completed_components":[]}';
     fi
 check_order:
-- budget.rohrbom.be
 - calibre
 - embeddings
 - home-assistant
@@ -283,35 +282,6 @@ check_order:
 - k3s
 - kube-vip
 components:
-- id: budget.rohrbom.be
-  category: application
-  management: check
-  update_track: routine
-  path: apps/public/budget.rohrbom.be
-  images:
-  - repository: docker.io/actualbudget/actual-server
-    manifests:
-    - apps/public/budget.rohrbom.be/deployment.yaml
-    source: image_sources[docker.io/actualbudget/actual-server]
-  - repository: docker.io/nginxinc/nginx-unprivileged
-    manifests:
-    - apps/public/budget.rohrbom.be/legal-pages-deployment.yaml
-    source: image_sources[docker.io/nginxinc/nginx-unprivileged]
-  release_sources:
-  - https://github.com/actualbudget/actual-server/releases.atom
-  - https://github.com/nginx/docker-nginx-unprivileged
-  - https://github.com/nginx/nginx/releases.atom
-  - https://nginx.org/en/CHANGES
-  lookup:
-    sources:
-    - release:budget.rohrbom.be
-    - notes:nginx-unprivileged
-    - release:nginx
-    - notes:nginx
-    workflow: check_images
-    on_error: record_and_continue; never develop or repair a scanner
-    source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
-    before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 - id: calibre
   category: application
   management: check
@@ -1593,13 +1563,6 @@ components:
     source_order: exact_configured_tag_metadata_or_HEAD_first_for_mutable_tags; bounded_version_sources_only_when_needed
     before_sources: Skip entire component while any of its cluster-updates tasks is not done/archived.
 sources:
-  release:budget.rohrbom.be:
-    url: https://github.com/actualbudget/actual-server/releases.atom
-    format: github_atom
-    use_for: versions_and_release_notes
-    verified_at: '2026-11-04T21:29:53.703044+01:00'
-    verification: HTTP 200; Atom feed with entries
-    read_recipe: github_atom_summary
   release:calibre:
     url: https://github.com/crocodilestick/Calibre-Web-Automated/releases.atom
     format: github_atom
@@ -2116,7 +2079,6 @@ image_sources:
     manifest_url_template: https://registry-1.docker.io/v2/actualbudget/actual-server/manifests/{reference}
     config_blob_url_template: https://registry-1.docker.io/v2/actualbudget/actual-server/blobs/{config_digest}
     release_sources:
-    - release:budget.rohrbom.be
     verified_at: '2026-11-04T21:29:53.703044+01:00'
     verification: HTTP 200; non-empty image tag list
     anonymous_token_url: https://auth.docker.io/token?service=registry.docker.io&scope=repository%3Aactualbudget%2Factual-server%3Apull

@@ -79,8 +79,6 @@ alte Engine-Versionen zu entfernen oder deren Verwendung zu ändern.
 | ops-monitoring | Deployment | speedtest-exporter | speedtest-exporter | platform |
 | ops-monitoring | Deployment | telegraf | telegraf | custom_image |
 | ops-monitoring | Deployment | unpoller | unpoller | platform |
-| svc-actualbudget | Deployment | actualbudget | budget.rohrbom.be | application |
-| svc-actualbudget | Deployment | actualbudget-legal-pages | budget.rohrbom.be | application |
 | svc-ddns | Deployment | cloudflare-ddns | cloudflare-ddns | platform |
 | svc-games | Deployment | pelican | pelican | application |
 | svc-home-assistant | Deployment | home-assistant | home-assistant | application |

@@ -12,5 +12,5 @@ patches:
       group: apps
       version: v1
       kind: Deployment
-      name: "^(actualbudget|actualbudget-legal-pages|calibre|jirafeau|kochen|lidarr|linkding|mampftracker|open-webui|paperless-tika|paperless-webserver|sonarr|trilium|vaultwarden|vaultwarden-admin-deny)$"
+      name: "^(calibre|jirafeau|kochen|lidarr|linkding|mampftracker|open-webui|paperless-tika|paperless-webserver|sonarr|trilium|vaultwarden|vaultwarden-admin-deny)$"
     path: prefer-small-workers.yaml
