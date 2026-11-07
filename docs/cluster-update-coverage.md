@@ -99,7 +99,6 @@ alte Engine-Versionen zu entfernen oder deren Verwendung zu ändern.
 | svc-llm | Deployment | open-webui-postgresql | open-webui | application |
 | svc-llm | Deployment | unifi-mcp | unifi-mcp | custom_image |
 | svc-llm | Deployment | vllm | vllm | application |
-| svc-mampftracker | Deployment | mampftracker | mampf.rohrbom.be | custom_image |
 | svc-media | Deployment | calibre | calibre | application |
 | svc-media | Deployment | jellyfin | jellyfin | application |
 | svc-media | Deployment | lidarr | lidarr | application |
