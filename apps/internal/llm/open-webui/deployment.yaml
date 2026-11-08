@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: wait-for-postgresql
-          image: docker.io/library/postgres:17
+          image: docker.io/library/postgres:17.11
           imagePullPolicy: IfNotPresent
           command:
             - sh
