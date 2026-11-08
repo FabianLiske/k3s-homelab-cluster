@@ -63,8 +63,10 @@ data:
     # token on every /mcp request; the token is injected as an env var
     # from trilium-mcp-secret (SOPS-encrypted).
     mcp_servers:
+      # Preserve the generated IDs used before the v1.108.3 upgrade.
+      # Existing virtual-key permissions reference these IDs; keep them stable.
       trilium:
-        server_id: "trilium"
+        server_id: "3443536f864b3d65b442c264ce89fdb1"
         available_on_public_internet: false
         url: http://trilium-svc.svc-trilium.svc.cluster.local:80/mcp
         transport: "http"
@@ -74,7 +76,7 @@ data:
       # Read-only UniFi Network MCP server (own deployment in this namespace).
       # Bearer token is injected as env var from unifi-mcp-secret (SOPS-encrypted).
       unifi:
-        server_id: "unifi"
+        server_id: "3181b9c1beb0e557065efba1b66fa71e"
         available_on_public_internet: false
         url: http://unifi-mcp.svc-llm.svc.cluster.local:8000/mcp
         transport: "http"
