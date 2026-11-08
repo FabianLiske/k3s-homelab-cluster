@@ -27,6 +27,12 @@ data:
         model_info:
           mode: embedding
 
+      - model_name: external/jev-1.14
+        litellm_params:
+          # Decision model: call /v1/systemone or /v1/decisions.
+          model: openrouter/typesafe/jev-1.14
+          api_key: os.environ/OPENROUTER_API_KEY
+
     general_settings:
       master_key: os.environ/LITELLM_MASTER_KEY
       database_url: os.environ/DATABASE_URL

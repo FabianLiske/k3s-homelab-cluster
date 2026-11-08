@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        llm.rohrbom.be/config-revision: "qwen-presence-penalty-0.5-v1"
+        llm.rohrbom.be/config-revision: "openrouter-jev-1.14-v1"
         llm.rohrbom.be/secret-revision: "2026-09-05-rotate-1"
       labels:
         app.kubernetes.io/name: litellm
@@ -53,7 +53,7 @@ spec:
                 - ALL
       containers:
         - name: litellm
-          image: ghcr.io/berriai/litellm:v1.98.0
+          image: ghcr.io/berriai/litellm:v1.108.3
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -68,6 +68,11 @@ spec:
                 secretKeyRef:
                   name: litellm-secrets
                   key: LITELLM_MASTER_KEY
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: OPENROUTER_API_KEY
             - name: LITELLM_DISABLE_NO_REDIS_WARNING
               value: "true"
             - name: POSTGRES_PASSWORD
