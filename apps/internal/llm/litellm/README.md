@@ -96,6 +96,40 @@ embedding routes keep their existing backends; no fallback to OpenRouter is
 configured. Additional OpenRouter models can reuse the same secret through
 explicit entries in `model_list`.
 
+## Internal gateway and MCP access
+
+Consumers use LiteLLM's ClusterIP service inside the cluster, or
+`https://llm.intern.rohrbom.be` through the internal ingress at `172.26.20.151`.
+The ingress accepts the routed LANs (`172.26.0.0/16`) and cluster pod network
+(`10.42.0.0/16`). API-key authentication and MCP key/team permissions still
+apply. New VPN or LAN source networks need an explicit update to the ingress
+allowlist and, for MCP access, `mcp_internal_ip_ranges`.
+
+Both `trilium` and `unifi` explicitly set `available_on_public_internet: false`.
+LiteLLM considers the above LAN/pod networks and loopback internal. It trusts
+forwarded client IPs only from the edge node's pod network (`10.42.10.0/24`),
+where `ingress-20` runs. That ingress overwrites `X-Forwarded-For` with its
+actual peer address; `mcp_xff_num_trusted_hops: 1` selects the rightmost entry.
+`trusted_proxy_ranges` configures the same proxy boundary for Admin UI sign-in
+rate limiting. If ingress scheduling or header handling changes, review these
+ranges and the hop count together. Do not expand proxy trust to all pod/private
+networks. `PROXY_BASE_URL` declares the canonical HTTPS origin for generated
+URLs and secure-cookie detection, including for clients using the ClusterIP.
+
+The MCP backends keep their bearer-token authentication and existing ingress
+NetworkPolicies. UniFi MCP permits only LiteLLM pods in `svc-llm`. Trilium
+permits LiteLLM plus the public ingress for its web UI; Kubernetes network
+rules cannot distinguish HTTP paths on their shared port. The public Trilium
+ingress therefore returns 404 for `/mcp`, case variants, trailing slashes and
+subpaths using NGINX's normalized URI. LiteLLM reaches `/mcp` directly through
+the in-cluster Trilium service.
+
+After applying changes, check that LAN clients can still use LiteLLM and both
+MCPs with their existing keys, and requests without a key return 401. Verify
+that the public Trilium UI loads while `/mcp`, `/mcp/`, `/MCP` and
+`/mcp/anything` all return 404. Forwarding headers supplied by a caller must
+not allow a public client IP to be classified as internal.
+
 ## PostgreSQL
 
 LiteLLM uses PostgreSQL for its admin UI, virtual keys and persistent usage

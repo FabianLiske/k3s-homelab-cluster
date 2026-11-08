@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        llm.rohrbom.be/config-revision: "openrouter-jev-1.14-v1"
+        llm.rohrbom.be/config-revision: "mcp-private-proxy-trust-v1"
         llm.rohrbom.be/secret-revision: "2026-09-05-rotate-1"
       labels:
         app.kubernetes.io/name: litellm
@@ -75,6 +75,8 @@ spec:
                   key: OPENROUTER_API_KEY
             - name: LITELLM_DISABLE_NO_REDIS_WARNING
               value: "true"
+            - name: PROXY_BASE_URL
+              value: https://llm.intern.rohrbom.be
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

@@ -36,6 +36,21 @@ data:
     general_settings:
       master_key: os.environ/LITELLM_MASTER_KEY
       database_url: os.environ/DATABASE_URL
+      # ingress-20 overwrites forwarding headers. Trust the edge node's
+      # pod subnet, not all cluster pods or arbitrary private addresses.
+      use_x_forwarded_for: true
+      mcp_trusted_proxy_ranges:
+        - "10.42.10.0/24"
+      mcp_xff_num_trusted_hops: 1
+      # Admin sign-in rate limiting uses this separate proxy allowlist.
+      trusted_proxy_ranges:
+        - "10.42.10.0/24"
+      # MCP consumers are cluster workloads or clients on our routed LANs.
+      mcp_internal_ip_ranges:
+        - "10.42.0.0/16"
+        - "172.26.0.0/16"
+        - "127.0.0.0/8"
+        - "::1/128"
 
     litellm_settings:
       drop_params: true
@@ -50,6 +65,7 @@ data:
     mcp_servers:
       trilium:
         server_id: "trilium"
+        available_on_public_internet: false
         url: http://trilium-svc.svc-trilium.svc.cluster.local:80/mcp
         transport: "http"
         description: "Trilium knowledge base (in-cluster, Streamable HTTP)"
@@ -59,6 +75,7 @@ data:
       # Bearer token is injected as env var from unifi-mcp-secret (SOPS-encrypted).
       unifi:
         server_id: "unifi"
+        available_on_public_internet: false
         url: http://unifi-mcp.svc-llm.svc.cluster.local:8000/mcp
         transport: "http"
         description: "UniFi Network management and diagnostics (read-only)"

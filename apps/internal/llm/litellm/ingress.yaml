@@ -6,6 +6,9 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-dns
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # LAN clients and cluster workloads only, including when a caller
+    # reaches the ingress through an unintended network route.
+    nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.0.0/16,10.42.0.0/16"
 spec:
   ingressClassName: nginx-internal
   rules:
