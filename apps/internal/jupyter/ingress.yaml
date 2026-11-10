@@ -12,7 +12,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: jupyter.intern.rohrbom.be
+    - host: jupyter.liske.cc
       http:
         paths:
           - path: /
@@ -24,5 +24,5 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - jupyter.intern.rohrbom.be
+        - jupyter.liske.cc
       secretName: jupyter-tls

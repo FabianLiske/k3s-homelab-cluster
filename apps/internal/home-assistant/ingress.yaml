@@ -10,7 +10,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: ha.intern.rohrbom.be
+    - host: ha.liske.cc
       http:
         paths:
           - path: /
@@ -22,5 +22,5 @@ spec:
                   number: 8123
   tls:
     - hosts:
-        - ha.intern.rohrbom.be
+        - ha.liske.cc
       secretName: ha-tls
