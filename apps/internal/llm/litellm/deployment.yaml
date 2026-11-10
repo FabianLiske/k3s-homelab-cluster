@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        llm.rohrbom.be/config-revision: "mcp-private-proxy-trust-stable-ids-v2"
+        llm.rohrbom.be/config-revision: "mcp-add-pricecheck-v3"
         llm.rohrbom.be/secret-revision: "2026-09-05-rotate-1"
       labels:
         app.kubernetes.io/name: litellm

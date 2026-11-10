@@ -1,0 +1,17 @@
+# ClusterIP only: LiteLLM (same namespace) is the sole MCP client.
+# No ingress by design.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pricecheck-mcp
+  labels:
+    app.kubernetes.io/name: pricecheck-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: pricecheck-mcp
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

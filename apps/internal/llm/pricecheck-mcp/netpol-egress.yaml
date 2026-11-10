@@ -1,0 +1,26 @@
+# Egress allowlist for pricecheck-mcp: DNS plus public web (HTTPS/HTTP).
+# The server scrapes shop sites whose CDN/domain landscape changes over
+# time, so a domain-level allowlist is not maintainable. Unlike unifi-mcp
+# this MCP holds no credentials, so open web egress is acceptable.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pricecheck-mcp-egress
+  namespace: svc-llm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: pricecheck-mcp
+  policyTypes: [Egress]
+  egress:
+    # DNS
+    - ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    # Public web (shop sites, CDNs)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - { protocol: TCP, port: 80 }
+        - { protocol: TCP, port: 443 }

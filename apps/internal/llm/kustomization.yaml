@@ -13,3 +13,4 @@ resources:
   - litellm/
   - open-webui/
   - unifi-mcp/
+  - pricecheck-mcp/
