@@ -11,7 +11,7 @@ metadata:
 spec:
   ingressClassName: nginx-mon
   rules:
-    - host: influx.mon.rohrbom.be
+    - host: influx.liske.cc
       http:
         paths:
           - path: /
@@ -19,5 +19,5 @@ spec:
             backend:
               service: { name: influxdb, port: { number: 8086 } }
   tls:
-    - hosts: [influx.mon.rohrbom.be]
+    - hosts: [influx.liske.cc]
       secretName: influxdb-tls

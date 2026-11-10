@@ -11,7 +11,7 @@ metadata:
 spec:
   ingressClassName: nginx-mon
   rules:
-    - host: grafana.mon.rohrbom.be
+    - host: grafana.liske.cc
       http:
         paths:
           - path: /
@@ -19,5 +19,5 @@ spec:
             backend:
               service: { name: grafana, port: { number: 3000 } }
   tls:
-    - hosts: [grafana.mon.rohrbom.be]
+    - hosts: [grafana.liske.cc]
       secretName: grafana-tls
