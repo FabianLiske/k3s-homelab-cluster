@@ -30,7 +30,7 @@ spec:
             - name: XDG_DATA_HOME
               value: /pelican-data
             - name: APP_URL
-              value: https://pelican.intern.rohrbom.be
+              value: https://pelican.liske.cc
             - name: BEHIND_PROXY
               value: "true"
             - name: TRUSTED_PROXIES

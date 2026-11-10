@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: pelican.intern.rohrbom.be
+    - host: pelican.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - pelican.intern.rohrbom.be
+        - pelican.liske.cc
       secretName: pelican-tls
