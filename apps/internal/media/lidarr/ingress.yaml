@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: lidarr.intern.rohrbom.be
+    - host: lidarr.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 8686
   tls:
     - hosts:
-        - lidarr.intern.rohrbom.be
+        - lidarr.liske.cc
       secretName: lidarr-tls

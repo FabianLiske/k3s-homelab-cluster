@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: radarr.intern.rohrbom.be
+    - host: radarr.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 7878
   tls:
     - hosts:
-        - radarr.intern.rohrbom.be
+        - radarr.liske.cc
       secretName: radarr-tls

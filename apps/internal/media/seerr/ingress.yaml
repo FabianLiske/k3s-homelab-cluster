@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: seerr.intern.rohrbom.be
+    - host: seerr.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 5055
   tls:
     - hosts:
-        - seerr.intern.rohrbom.be
+        - seerr.liske.cc
       secretName: seerr-tls

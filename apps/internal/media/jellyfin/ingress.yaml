@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: jellyfin.intern.rohrbom.be
+    - host: jellyfin.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 8096
   tls:
     - hosts:
-        - jellyfin.intern.rohrbom.be
+        - jellyfin.liske.cc
       secretName: jellyfin-tls

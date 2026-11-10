@@ -11,7 +11,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: calibre.intern.rohrbom.be
+    - host: calibre.liske.cc
       http:
         paths:
           - path: /
@@ -23,5 +23,5 @@ spec:
                   number: 8083
   tls:
     - hosts:
-        - calibre.intern.rohrbom.be
+        - calibre.liske.cc
       secretName: calibre-tls

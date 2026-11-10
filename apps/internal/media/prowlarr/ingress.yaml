@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: prowlarr.intern.rohrbom.be
+    - host: prowlarr.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 9696
   tls:
     - hosts:
-        - prowlarr.intern.rohrbom.be
+        - prowlarr.liske.cc
       secretName: prowlarr-tls

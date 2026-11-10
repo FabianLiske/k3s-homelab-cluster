@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: sonarr.intern.rohrbom.be
+    - host: sonarr.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 8989
   tls:
     - hosts:
-        - sonarr.intern.rohrbom.be
+        - sonarr.liske.cc
       secretName: sonarr-tls
