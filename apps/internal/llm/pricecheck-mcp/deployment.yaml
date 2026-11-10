@@ -1,11 +1,12 @@
 # Price-check MCP server (current product prices at the online shops from
-# the bundled config/shops.yaml; browser-based lookups run in headless
+# the bundled config/shops.yaml; browser-based lookups use
 # Chromium under Xvfb).
 #
-# Stateless Streamable HTTP MCP endpoint under /mcp, plus /healthz
+# Streamable HTTP MCP endpoint under /mcp, plus /healthz
 # (liveness and readiness). The image ships its own configuration
 # (MCP_CONFIG_DIR=/app/config) and binds 0.0.0.0:8000 (MCP_BIND_HOST), so
-# no ConfigMap or Secret is needed. Access control relies on the
+# no runtime ConfigMap or Secret is needed. The encrypted ghcr-cred
+# Secret is used only for image pulls. Access control relies on the
 # ClusterIP-only service and the network policies (LiteLLM pods only);
 # the MCP endpoint itself has no token authentication.
 # The image is built multi-arch (amd64/arm64) by GitHub Actions and pinned
@@ -30,6 +31,8 @@ spec:
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-cred
       securityContext:
         # Numeric UIDs are required because the image declares
         # `USER pricecheck` (non-numeric); with runAsNonRoot the kubelet

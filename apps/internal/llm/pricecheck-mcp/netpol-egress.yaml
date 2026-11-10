@@ -1,7 +1,8 @@
-# Egress allowlist for pricecheck-mcp: DNS plus public web (HTTPS/HTTP).
+# Egress allowlist for pricecheck-mcp: cluster DNS plus public IPv4 web.
 # The server scrapes shop sites whose CDN/domain landscape changes over
-# time, so a domain-level allowlist is not maintainable. Unlike unifi-mcp
-# this MCP holds no credentials, so open web egress is acceptable.
+# time, so allow HTTP/HTTPS while excluding private and special-use ranges.
+# IPv6 has no allow rule. Standard NetworkPolicy cannot isolate loopback
+# or the pod's own node; this is not a replacement for host isolation.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -13,14 +14,41 @@ spec:
       app.kubernetes.io/name: pricecheck-mcp
   policyTypes: [Egress]
   egress:
-    # DNS
-    - ports:
+    # Only CoreDNS pods in kube-system may receive DNS queries.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
         - { protocol: UDP, port: 53 }
         - { protocol: TCP, port: 53 }
     # Public web (shop sites, CDNs)
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
+            # Conservative exclusions based on the IANA IPv4
+            # Special-Purpose Address Registry, plus multicast.
+            # 10/8 also covers our pod and service networks; 172.16/12
+            # covers our LAN and node networks.
+            except:
+              - 0.0.0.0/8       # This network
+              - 10.0.0.0/8      # Private-use (pods/services included)
+              - 100.64.0.0/10   # Shared address space (CGNAT)
+              - 127.0.0.0/8     # Loopback (subject to Kubernetes limits)
+              - 169.254.0.0/16  # Link-local / metadata endpoints
+              - 172.16.0.0/12   # Private-use (LAN/nodes included)
+              - 192.0.0.0/24    # IETF protocol assignments
+              - 192.0.2.0/24    # Documentation (TEST-NET-1)
+              - 192.88.99.0/24  # Deprecated relay anycast
+              - 192.168.0.0/16  # Private-use
+              - 198.18.0.0/15   # Benchmarking
+              - 198.51.100.0/24 # Documentation (TEST-NET-2)
+              - 203.0.113.0/24  # Documentation (TEST-NET-3)
+              - 224.0.0.0/4     # Multicast
+              - 240.0.0.0/4     # Reserved / limited broadcast
       ports:
         - { protocol: TCP, port: 80 }
         - { protocol: TCP, port: 443 }

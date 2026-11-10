@@ -1,8 +1,9 @@
-# No secret: the price-check MCP holds no credentials, and its runtime
-# settings (bind host/port, config dir) are baked into the image.
+# Runtime settings are baked into the image; the encrypted registry
+# secret is used only by the kubelet to pull the private image.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - ghcr-cred-secret.yaml
   - deployment.yaml
   - service.yaml
   - netpol-ingress-llm.yaml
