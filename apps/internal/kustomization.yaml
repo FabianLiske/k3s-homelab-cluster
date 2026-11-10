@@ -5,7 +5,6 @@ resources:
   - ./home-assistant/
   - ./stirling-pdf/
   - ./linkding/
-  - ./paperless-ngx/
   - ./media/
   - ./pelican/
   - ./image-compressor/
