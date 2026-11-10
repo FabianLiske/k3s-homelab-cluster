@@ -987,6 +987,19 @@ components:
   lookup:
     action: skip
     reason: Excluded update ownership; do not query registries or releases.
+- id: pricecheck-mcp
+  category: custom_image
+  management: external
+  update_track: external
+  path: apps/internal/llm/pricecheck-mcp
+  reason: Eigenes Image; Updates gehören in den Entwicklungs-/Build-Workflow, nicht in den Cluster-Update-Checker.
+  images:
+  - repository: ghcr.io/fabianliske/price-check-mcp
+    manifests:
+    - apps/internal/llm/pricecheck-mcp/deployment.yaml
+  lookup:
+    action: skip
+    reason: Excluded update ownership; do not query registries or releases.
 - id: telegraf
   category: custom_image
   management: external

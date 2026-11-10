@@ -1,0 +1,108 @@
+# Price-check MCP server (current product prices at the online shops from
+# the bundled config/shops.yaml; browser-based lookups use
+# Chromium under Xvfb).
+#
+# Streamable HTTP MCP endpoint under /mcp, plus /healthz
+# (liveness and readiness). The image ships its own configuration
+# (MCP_CONFIG_DIR=/app/config) and binds 0.0.0.0:8000 (MCP_BIND_HOST), so
+# no runtime ConfigMap or Secret is needed. The encrypted ghcr-cred
+# Secret is used only for image pulls. Access control relies on the
+# ClusterIP-only service and the network policies (LiteLLM pods only);
+# the MCP endpoint itself has no token authentication.
+# The image is built multi-arch (amd64/arm64) by GitHub Actions and pinned
+# by commit sha (no "latest" tag by design).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pricecheck-mcp
+  labels:
+    app.kubernetes.io/name: pricecheck-mcp
+    app.kubernetes.io/component: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pricecheck-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pricecheck-mcp
+        app.kubernetes.io/component: mcp-server
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-cred
+      securityContext:
+        # Numeric UIDs are required because the image declares
+        # `USER pricecheck` (non-numeric); with runAsNonRoot the kubelet
+        # cannot verify non-numeric users. UID/GID match the image
+        # (useradd --uid 10001 pricecheck).
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: pricecheck-mcp
+          image: ghcr.io/fabianliske/price-check-mcp:sha-b053421
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          # Only /healthz exists (no /readyz); it answers once the HTTP
+          # server is up. The browser backend starts lazily on the first
+          # browser-based search and never blocks the probes.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            # Chromium + Xvfb peak well above the Python server baseline;
+            # raise the limits before running more than one replica.
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            # HOME=/tmp in the image; Xvfb sockets/authority and Chromium
+            # temp profiles are written here (root filesystem is read-only).
+            - name: tmp
+              mountPath: /tmp
+            # Chromium uses shared memory for IPC; the default 64Mi
+            # /dev/shm is too small for real shop pages.
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 512Mi
