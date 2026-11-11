@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: home.rohrbom.be
+    - host: home.liske.cc
       http:
         paths:
           - path: /
@@ -20,5 +20,5 @@ spec:
                   number: 3000
   tls:
     - hosts:
-        - home.rohrbom.be
+        - home.liske.cc
       secretName: homepage-tls
