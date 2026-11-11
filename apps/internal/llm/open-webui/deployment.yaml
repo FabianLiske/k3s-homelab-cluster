@@ -55,7 +55,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: WEBUI_URL
-              value: https://chat.intern.rohrbom.be
+              value: https://chat.liske.cc
             - name: ENABLE_OLLAMA_API
               value: "false"
             - name: ENABLE_OPENAI_API

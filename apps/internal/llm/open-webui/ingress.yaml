@@ -10,7 +10,7 @@ metadata:
 spec:
   ingressClassName: nginx-internal
   rules:
-    - host: chat.intern.rohrbom.be
+    - host: chat.liske.cc
       http:
         paths:
           - path: /
@@ -22,5 +22,5 @@ spec:
                   number: 8080
   tls:
     - hosts:
-        - chat.intern.rohrbom.be
+        - chat.liske.cc
       secretName: open-webui-tls

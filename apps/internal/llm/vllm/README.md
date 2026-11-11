@@ -64,5 +64,5 @@ http://vllm.svc-llm.svc.cluster.local:8000/v1
 ```
 
 LiteLLM exposes this backend publicly as `local/qwen-3.8-27b` at
-`https://llm.intern.rohrbom.be/v1`. The `local-chat` name above is an internal
+`https://llm.liske.cc/v1`. The `local-chat` name above is an internal
 vLLM compatibility ID; clients of LiteLLM use the explicit public name.

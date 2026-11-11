@@ -76,7 +76,7 @@ spec:
             - name: LITELLM_DISABLE_NO_REDIS_WARNING
               value: "true"
             - name: PROXY_BASE_URL
-              value: https://llm.intern.rohrbom.be
+              value: https://llm.liske.cc
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

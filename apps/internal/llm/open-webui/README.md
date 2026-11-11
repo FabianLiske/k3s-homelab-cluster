@@ -1,6 +1,6 @@
 # Open WebUI
 
-Open WebUI is available at `https://chat.intern.rohrbom.be` and uses LiteLLM
+Open WebUI is available at `https://chat.liske.cc` and uses LiteLLM
 as its only model backend. It runs on a regular worker and does not request the
 Intel GPU.
 

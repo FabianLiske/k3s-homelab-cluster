@@ -1,7 +1,7 @@
 # LiteLLM
 
 LiteLLM exposes the OpenAI-compatible gateway at
-`https://llm.intern.rohrbom.be` with explicit names for local and external models:
+`https://llm.liske.cc` with explicit names for local and external models:
 
 | Public model name | Backend model | Service |
 | --- | --- | --- |
@@ -76,7 +76,7 @@ See [LiteLLM's OpenRouter decision integration](https://docs.litellm.ai/docs/pro
 After deployment, test with a LiteLLM key allowed to use `external/jev-1.14`:
 
 ```bash
-curl --fail-with-body -sS https://llm.intern.rohrbom.be/v1/systemone \
+curl --fail-with-body -sS https://llm.liske.cc/v1/systemone \
   -H "Authorization: Bearer ${LITELLM_API_KEY}" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -99,7 +99,7 @@ explicit entries in `model_list`.
 ## Internal gateway and MCP access
 
 Consumers use LiteLLM's ClusterIP service inside the cluster, or
-`https://llm.intern.rohrbom.be` through the internal ingress at `172.26.20.151`.
+`https://llm.liske.cc` through the internal ingress at `172.26.20.151`.
 The ingress accepts the routed LANs (`172.26.0.0/16`) and cluster pod network
 (`10.42.0.0/16`). API-key authentication and MCP key/team permissions still
 apply. New VPN or LAN source networks need an explicit update to the ingress
@@ -176,12 +176,12 @@ only exposed inside the cluster.
 ## API test
 
 ```bash
-curl -s https://llm.intern.rohrbom.be/v1/models \
+curl -s https://llm.liske.cc/v1/models \
   -H 'Authorization: Bearer <LITELLM_MASTER_KEY>' | jq
 ```
 
 ```bash
-curl -s https://llm.intern.rohrbom.be/v1/chat/completions \
+curl -s https://llm.liske.cc/v1/chat/completions \
   -H 'Authorization: Bearer <LITELLM_MASTER_KEY>' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -194,7 +194,7 @@ curl -s https://llm.intern.rohrbom.be/v1/chat/completions \
 Test the embedding route and verify Qwen's 1024-dimensional output:
 
 ```bash
-curl -s https://llm.intern.rohrbom.be/v1/embeddings \
+curl -s https://llm.liske.cc/v1/embeddings \
   -H 'Authorization: Bearer <LITELLM_MASTER_KEY>' \
   -H 'Content-Type: application/json' \
   -d '{
