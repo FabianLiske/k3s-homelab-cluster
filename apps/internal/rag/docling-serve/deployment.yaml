@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docling-serve
+  namespace: svc-rag
+  labels:
+    app: docling-serve
+spec:
+  replicas: 1
+  # Keine parallelen Modellinstanzen bei Updates; Unterbrechung bis zum Warmup.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: docling-serve
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      # LLM-Node wk-5 (Scheduling-Muster des Embeddings-Deployments). Kein
+      # PVC: Das Image bringt die Modelle mit, und wk-5 hat nur Local-PVs.
+      nodeSelector:
+        node.rohrbom.be/workload: llm
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: llm
+          effect: NoSchedule
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: docling-serve
+          # CPU-Variante (kein GPU-Request, keine GPU-Device-Mounts);
+          # arm64+amd64. Modelle sind im Image unter
+          # /opt/app-root/src/.cache/docling/models enthalten — kein
+          # Download beim Erststart, daher kein Modell-PVC.
+          image: ghcr.io/docling-project/docling-serve-cpu:v1.38.2
+          imagePullPolicy: IfNotPresent
+          env:
+            # API-Key-Authentifizierung (Header "X-Api-Key"). Die
+            # Health-Endpunkte /health, /ready, /readyz, /livez sind
+            # auth-frei — Probes brauchen keinen Header. Die Web-UI unter
+            # /ui nimmt den Key in einem Eingabefeld an (sessionStorage,
+            # wird als X-Api-Key gesendet) — siehe README.
+            - name: DOCLING_SERVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: docling-serve-secret
+                  key: api_key
+            # Ein API-Prozess
+            - name: UVICORN_WORKERS
+              value: "1"
+            # Konvertierungs-Worker explizit begrenzen: Der Standard sind
+            # 2 lokale Worker ohne Modell-Sharing (doppelte
+            # Modellinstanzen im RAM). Startkonfiguration zum Messen —
+            # nicht als final betrachtet.
+            - name: DOCLING_SERVE_ENG_LOC_NUM_WORKERS
+              value: "1"
+            # Torch-CPU-Threads passend zum Vier-CPU-Limit (docling-Kern-
+            # Umgebungsvariable, Default 4)
+            - name: DOCLING_NUM_THREADS
+              value: "4"
+            # Web-UI unter /ui (via nginx-internal Ingress)
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: "1"
+            # Ein Converter-Cache-Eintrag (Startkonfiguration)
+            - name: DOCLING_SERVE_OPTIONS_CACHE_SIZE
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          # /readyz gibt 503, bis die Modelle geladen sind (im Image
+          # mitgeliefert, Laden dauert auf CPU einige Minuten): 30min Grace
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            # Limit als Puffer gegen RAM-Zuwachs waehrend des Processings.
+            # Ein OOM-Restart heilt den Pod, garantiert aber NICHT die
+            # erfolgreiche Verarbeitung des Dokuments.
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

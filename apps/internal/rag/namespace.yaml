@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: svc-rag
+  labels:
+    gitops: flux
+  annotations:
+    # Flux darf den Namespace bei Stack-Entfernung (Prune) nicht mit loeschen:
+    # Die Daten-PVCs (Longhorn, reclaimPolicy Delete) sollen bei einem
+    # automatischen Prune bewusst ueberleben. Eine explizite manuelle
+    # Namespace-Loeschung umgeht diesen Schutz weiterhin — siehe README.
+    kustomize.toolkit.fluxcd.io/prune: disabled

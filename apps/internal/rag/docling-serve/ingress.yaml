@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: docling-serve
+  namespace: svc-rag
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    nginx.ingress.kubernetes.io/enable-access-log: "false"
+    # Document-Uploads (UI + /v1/convert/*)
+    nginx.ingress.kubernetes.io/proxy-body-size: "1g"
+    # Konversionen dauern auf CPU Minuten
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Die Firewall regelt normalen Client-Zugriff; die Allowlist begrenzt
+    # zusaetzlich die Quellnetze. Die UI ist oeffentlich ladbar; geschuetzte
+    # API-Aufrufe benoetigen den API-Key aus dem SOPS-Secret.
+    nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.0.0/16,10.42.0.0/16"
+spec:
+  ingressClassName: nginx-internal
+  rules:
+    - host: docling.liske.cc
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: docling-serve
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - docling.liske.cc
+      secretName: docling-tls

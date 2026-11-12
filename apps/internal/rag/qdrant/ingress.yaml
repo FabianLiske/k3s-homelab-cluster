@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qdrant
+  namespace: svc-rag
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    nginx.ingress.kubernetes.io/enable-access-log: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1g"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Die Firewall regelt normalen Client-Zugriff; die Allowlist begrenzt
+    # zusaetzlich die Quellnetze. Geschuetzte API-Aufrufe (auch aus dem
+    # Dashboard) benoetigen den API-Key aus dem SOPS-Secret.
+    nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.0.0/16,10.42.0.0/16"
+spec:
+  ingressClassName: nginx-internal
+  rules:
+    - host: qdrant.liske.cc
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qdrant
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - qdrant.liske.cc
+      secretName: qdrant-tls
