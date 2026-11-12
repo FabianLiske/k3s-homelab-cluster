@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  # Modell-Cache (Layout/Tableformer/OCR-Modelle, ~2-4Gi). Bewusst ohne
+  # Longhorn-Backup-Labels: Inhalt ist re-downloadbar, kein State.
+  name: docling-models
+  namespace: svc-rag
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-2r
+  resources:
+    requests:
+      storage: 10Gi
