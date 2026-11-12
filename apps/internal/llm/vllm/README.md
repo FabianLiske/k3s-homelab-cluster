@@ -66,3 +66,41 @@ http://vllm.svc-llm.svc.cluster.local:8000/v1
 LiteLLM exposes this backend publicly as `local/qwen-3.8-27b` at
 `https://llm.liske.cc/v1`. The `local-chat` name above is an internal
 vLLM compatibility ID; clients of LiteLLM use the explicit public name.
+
+## Reasoning effort through LiteLLM
+
+The pinned [Qwen chat template](https://huggingface.co/Qwen/Qwen3.8-27B-FP8/blob/017b9c7af6b5689d5dd426a76e0bc077eb5ca20a/chat_template.jinja)
+accepts only `low`, `medium`, and `xhigh` while thinking is enabled. vLLM
+passes the top-level OpenAI-compatible `reasoning_effort` to this template;
+LiteLLM forwards it from Hermes, OpenCode, and other clients. `high` and
+`minimal` previously failed with HTTP 400 inside the template, not at the
+LiteLLM ingress. The existing LiteLLM `drop_params: true` is not a remedy.
+
+The deployment mounts a copy of that exact pinned template from
+`chat-template.jinja`; the only change is a compatibility mapping before its
+existing effort validation: `minimal -> low`, `high -> medium`, and
+`max -> xhigh`. Native `low`, `medium`, and `xhigh` retain their behavior.
+`none` disables thinking in vLLM (by setting `enable_thinking=false`) and is
+not remapped. The default without an explicit effort is still `xhigh`.
+This maps to the nearest non-stronger Qwen tier where possible; `minimal`
+uses the lowest thinking tier rather than silently turning thinking off.
+When changing the pinned Qwen revision, compare its upstream chat template
+against this copy and re-apply the small mapping rather than retaining an
+outdated full template.
+
+Send `reasoning_effort` at the **top level** of `/v1/chat/completions`, for
+example `"reasoning_effort": "high"`; the mapping turns it into Qwen's
+`medium` tier. To disable thinking explicitly through vLLM, send
+`"reasoning_effort": "none"` or
+`"chat_template_kwargs": {"enable_thinking": false}` (for clients using
+OpenAI SDKs, the latter belongs in `extra_body`). The latter has precedence
+if both are present. Do not set `enable_thinking` as a standalone OpenAI field.
+LiteLLM's route continues to use the existing `openai/` backend: live tests
+confirmed that it passes the top-level effort through; no global proxy
+parameter setting or unrelated model route was changed.
+
+After rollout, verify `high` and `minimal` over the LiteLLM endpoint as well
+as `low`, `medium`, `xhigh`, `max`, and `none`. A generated ConfigMap name
+changes with the template contents and restarts the vLLM pod automatically.
+This is a Recreate deployment: the local model is unavailable during startup
+and GPU model loading. The proxy and other models remain separate.
