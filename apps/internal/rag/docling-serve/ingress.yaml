@@ -11,9 +11,9 @@ metadata:
     # Konversionen dauern auf CPU Minuten
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    # Die Web-UI hat keine Auth — nur LAN-Clients und Cluster-Workloads,
-    # auch wenn ein Aufrufer den Ingress ueber eine ungeplante Netzwerkroute
-    # erreicht.
+    # Die Firewall regelt normalen Client-Zugriff; die Allowlist begrenzt
+    # zusaetzlich die Quellnetze. Die UI ist oeffentlich ladbar; geschuetzte
+    # API-Aufrufe benoetigen den API-Key aus dem SOPS-Secret.
     nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.0.0/16,10.42.0.0/16"
 spec:
   ingressClassName: nginx-internal

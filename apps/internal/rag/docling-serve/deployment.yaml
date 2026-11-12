@@ -7,6 +7,9 @@ metadata:
     app: docling-serve
 spec:
   replicas: 1
+  # Keine parallelen Modellinstanzen bei Updates; Unterbrechung bis zum Warmup.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: docling-serve

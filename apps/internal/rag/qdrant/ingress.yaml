@@ -9,9 +9,9 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: "1g"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    # Die Qdrant-API/Das Dashboard haben keine Auth — nur LAN-Clients und
-    # Cluster-Workloads, auch wenn ein Aufrufer den Ingress ueber eine
-    # ungeplante Netzwerkroute erreicht.
+    # Die Firewall regelt normalen Client-Zugriff; die Allowlist begrenzt
+    # zusaetzlich die Quellnetze. Geschuetzte API-Aufrufe (auch aus dem
+    # Dashboard) benoetigen den API-Key aus dem SOPS-Secret.
     nginx.ingress.kubernetes.io/whitelist-source-range: "172.26.0.0/16,10.42.0.0/16"
 spec:
   ingressClassName: nginx-internal

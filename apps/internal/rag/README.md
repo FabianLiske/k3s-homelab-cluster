@@ -16,7 +16,7 @@ kommt in einem separaten Schritt.
 
 | Dienst | Node | Scheduling | Storage |
 |---|---|---|---|
-| Qdrant | wk-4 | `node.rohrbom.be/heavy-compute: "true"` | Longhorn-PVC `qdrant-data` (RWO, 50Gi) |
+| Qdrant | wk-4 | `node.rohrbom.be/heavy-compute: "true"` | Longhorn-PVC `qdrant-data` (RWO, 10Gi) |
 | Docling | wk-5 | `node.rohrbom.be/workload: llm` + Toleration `dedicated=llm:NoSchedule` (Muster des Embeddings-Deployments) | keiner (Modelle im Image) |
 
 Qdrant bleibt auf wk-4: wk-5 hat **keinen Longhorn-CSI-Treiber**
@@ -55,6 +55,12 @@ Dokumenten sind Limit und Worker-Anzahl zu justieren und zu messen.
 
 Kein GPU-Request, keine GPU-Device-Mounts.
 
+Docling verwendet bei Updates `Recreate`: Der alte Pod wird beendet, bevor
+der neue startet. So laden nicht zwei Modellinstanzen parallel auf wk-5.
+Der Dienst ist bis zum abgeschlossenen Modell-Warmup des neuen Pods
+unterbrochen; laufende Konvertierungen können abbrechen. Updates daher
+außerhalb aktiver Konvertierungen durchführen.
+
 ## API-Authentifizierung
 
 Beide Dienste haben native API-Key-Auth aktiviert (Betreiberentscheidung:
@@ -83,10 +89,11 @@ curl -H "api-key: $KEY" https://qdrant.liske.cc/collections
 # Web-UI: https://qdrant.liske.cc/dashboard → API-Key-Eingabefeld
 #   (Key dort nur in den Browser-Tab/Clipboard kurzzeitig bringen)
 
-# Docling abfragen:
+# Docling: eigene kleine Test-PDF unter ./test.pdf bereitstellen.
+# Geschützten Konvertierungs-Endpoint per Multipart-POST aufrufen:
 KEYD=$(sops -d apps/internal/rag/docling-serve/docling-serve-secret.yaml \
   | yq '.stringData.api_key')
-curl -H "X-Api-Key: $KEYD" https://docling.liske.cc/v1/capabilities
+curl -H "X-Api-Key: $KEYD" -F 'files=@./test.pdf' https://docling.liske.cc/v1/convert/file
 # UI: https://docling.liske.cc/ui → Key-Eingabefeld
 ```
 
