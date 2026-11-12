@@ -21,6 +21,8 @@ spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
       nodeSelector:
+        # wk-4 ist der heavy-compute-Node mit Longhorn; Qdrant bleibt dort
+        # (wk-5 hat keinen Longhorn-CSI-Treiber, nur Local-PVs).
         node.rohrbom.be/heavy-compute: "true"
       securityContext:
         runAsNonRoot: true
@@ -36,6 +38,30 @@ spec:
           env:
             - name: QDRANT__TELEMETRY_DISABLED
               value: "1"
+            # API-Key-Authentifizierung (Header "api-key" oder
+            # "Authorization: Bearer <key>"). /healthz, /readyz, /livez und
+            # der Web-UI-Pfad sind in v1.20.0 explicit von der Auth
+            # ausgenommen (API-Key-Whitelist) — Probes brauchen keinen
+            # Header, daher auch kein Header im Manifest.
+            - name: QDRANT__SERVICE__API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: qdrant-secret
+                  key: api_key
+            # Snapshots unterhalb des Daten-Mounts: Der Standardpfad
+            # /qdrant/snapshots liegt im Image ausserhalb von
+            # /qdrant/storage und ist fuer UID 1000 nicht beschreibbar.
+            - name: QDRANT__STORAGE__SNAPSHOTS_PATH
+              value: /qdrant/storage/snapshots
+            # Temporare Pfade (u.a. hochgeladene Snapshots vor dem Restore)
+            # ebenfalls auf den Daten-Mount legen.
+            - name: QDRANT__STORAGE__TEMP_PATH
+              value: /qdrant/storage/temp
+            # Snapshot-Restore aus Remote-URLs abschalten: nur lokale
+            # Dateien/Uploads. Mit aktivem API-Key waere das eine
+            # SSRF-Flaechen, die im Homelab-Workflow nicht gebraucht wird.
+            - name: QDRANT__SERVICE__ENABLE_SNAPSHOT_URL_RECOVERY
+              value: "false"
           ports:
             - name: http
               containerPort: 6333
@@ -43,6 +69,7 @@ spec:
             - name: grpc
               containerPort: 6334
               protocol: TCP
+          # /healthz ist in v1.20.0 auth-frei (whitelisted)
           startupProbe:
             httpGet:
               path: /healthz

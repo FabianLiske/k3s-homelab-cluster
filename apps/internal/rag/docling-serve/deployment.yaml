@@ -7,9 +7,6 @@ metadata:
     app: docling-serve
 spec:
   replicas: 1
-  # RWO-PVC: kein RollingUpdate mit zwei Replikaten gleichzeitig
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
       app: docling-serve
@@ -21,39 +18,62 @@ spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
       terminationGracePeriodSeconds: 60
+      # LLM-Node wk-5 (Scheduling-Muster des Embeddings-Deployments). Kein
+      # PVC: Das Image bringt die Modelle mit, und wk-5 hat nur Local-PVs.
       nodeSelector:
-        node.rohrbom.be/heavy-compute: "true"
+        node.rohrbom.be/workload: llm
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: llm
+          effect: NoSchedule
       securityContext:
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: docling-serve
-          # CPU-Variante (kein GPU im Cluster); arm64+amd64
+          # CPU-Variante (kein GPU-Request, keine GPU-Device-Mounts);
+          # arm64+amd64. Modelle sind im Image unter
+          # /opt/app-root/src/.cache/docling/models enthalten — kein
+          # Download beim Erststart, daher kein Modell-PVC.
           image: ghcr.io/docling-project/docling-serve-cpu:v1.38.2
           imagePullPolicy: IfNotPresent
           env:
-            # CPU-Inferenz ist fuer das -cpu-Image implizit (keine CUDA-Stack)
+            # API-Key-Authentifizierung (Header "X-Api-Key"). Die
+            # Health-Endpunkte /health, /ready, /readyz, /livez sind
+            # auth-frei — Probes brauchen keinen Header. Die Web-UI unter
+            # /ui nimmt den Key in einem Eingabefeld an (sessionStorage,
+            # wird als X-Api-Key gesendet) — siehe README.
+            - name: DOCLING_SERVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: docling-serve-secret
+                  key: api_key
+            # Ein API-Prozess
             - name: UVICORN_WORKERS
               value: "1"
-            - name: OMP_NUM_THREADS
+            # Konvertierungs-Worker explizit begrenzen: Der Standard sind
+            # 2 lokale Worker ohne Modell-Sharing (doppelte
+            # Modellinstanzen im RAM). Startkonfiguration zum Messen —
+            # nicht als final betrachtet.
+            - name: DOCLING_SERVE_ENG_LOC_NUM_WORKERS
+              value: "1"
+            # Torch-CPU-Threads passend zum Vier-CPU-Limit (docling-Kern-
+            # Umgebungsvariable, Default 4)
+            - name: DOCLING_NUM_THREADS
               value: "4"
             # Web-UI unter /ui (via nginx-internal Ingress)
             - name: DOCLING_SERVE_ENABLE_UI
               value: "1"
-            # Modelle auf PVC persistieren (Standardpfad liegt in der
-            # Container-Ebene und waere bei jedem Restart neu zu laden)
-            - name: DOCLING_SERVE_ARTIFACTS_PATH
-              value: /data/models
-            # Ein Converter-Cache-Eintrag statt zwei (RAM-Sparmassnahme,
-            # Single-Worker)
+            # Ein Converter-Cache-Eintrag (Startkonfiguration)
             - name: DOCLING_SERVE_OPTIONS_CACHE_SIZE
               value: "1"
           ports:
             - name: http
               containerPort: 5001
               protocol: TCP
-          # /readyz gibt 503, bis die Modelle geladen sind; Erststart laedt
-          # ~2-4Gi Modelle: 30min Grace, danach normal
+          # /readyz gibt 503, bis die Modelle geladen sind (im Image
+          # mitgeliefert, Laden dauert auf CPU einige Minuten): 30min Grace
           startupProbe:
             httpGet:
               path: /readyz
@@ -79,8 +99,9 @@ spec:
             requests:
               cpu: 500m
               memory: 2Gi
-            # 8Gi-Limit als Puffer gegen bekannten RAM-Zuwachs waehrend
-            # des Processings; OOM heilt ueber K8s-Restart
+            # Limit als Puffer gegen RAM-Zuwachs waehrend des Processings.
+            # Ein OOM-Restart heilt den Pod, garantiert aber NICHT die
+            # erfolgreiche Verarbeitung des Dokuments.
             limits:
               cpu: "4"
               memory: 8Gi
@@ -90,13 +111,8 @@ spec:
               drop:
                 - ALL
           volumeMounts:
-            - name: models
-              mountPath: /data/models
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: models
-          persistentVolumeClaim:
-            claimName: docling-models
         - name: tmp
           emptyDir: {}
