@@ -16,6 +16,7 @@ import json
 import logging
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .roles import current_role
 from .search import SearchError, run_search, read_sync_state
@@ -25,6 +26,20 @@ log = logging.getLogger(__name__)
 
 
 def create_mcp_server(qdrant, embedder, cfg, writer: TriliumWriter) -> FastMCP:
+    # DNS-Rebinding-Schutz: Der MCP-SDK-Default erlaubt nur localhost-Hosts.
+    # In-cluster kommen LiteLLM und Open WebUI ueber die ClusterIP-DNS-Namen,
+    # Probes aus dem Pod via 127.0.0.1 — genau diese erlauben wir (NetPol
+    # laesst ohnehin nur svc-rag und svc-llm herein).
+    transport = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=[
+            "127.0.0.1:*",
+            "::1:*",
+            "localhost:*",
+            "knowledge-service.svc-rag.svc.cluster.local:*",
+            "knowledge-service.svc-rag:*",
+        ],
+    )
     mcp = FastMCP(
         "knowledge",
         instructions=(
@@ -32,6 +47,7 @@ def create_mcp_server(qdrant, embedder, cfg, writer: TriliumWriter) -> FastMCP:
             "Hybrid-Suche ueber Projekte, Finances, Dokumente. "
             "remember() legt dauerhafte Notizen unter Resources/Agent-Notizen/<agent>/ ab."
         ),
+        transport_security=transport,
     )
 
     def _dump(obj) -> str:
