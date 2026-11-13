@@ -79,9 +79,15 @@ spec:
             httpGet:
               path: /health
               port: http
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
+            # Entpannt gegen Last: Ein Full-Reindex laesst TEI fuer
+            # Minuten CPU-satteln (erzwungene Mini-Batches); /health
+            # antwortet dann nicht mehr in 5s und der Pod wurde in der
+            # Mitte des Syncs killed (13.11., 5 Notes fielen aus).
+            # Cold Start wird von der Startup-Probe abgedeckt; ein
+            # wirklich verhangenes TEI stirbt jetzt nach ~10 Min statt 1,5.
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 10
           resources:
             requests:
               cpu: "4"
