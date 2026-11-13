@@ -33,10 +33,15 @@ def create_mcp_server(qdrant, embedder, cfg, writer: TriliumWriter) -> FastMCP:
     transport = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=[
+            # Probes aus dem Pod
             "127.0.0.1:*",
             "::1:*",
             "localhost:*",
+            # ClusterIP-DNS-Namen; Port 80 wird im Host-Header weggelassen,
+            # daher beide Varianten (mit Port und ohne) erlauben.
+            "knowledge-service.svc-rag.svc.cluster.local",
             "knowledge-service.svc-rag.svc.cluster.local:*",
+            "knowledge-service.svc-rag",
             "knowledge-service.svc-rag:*",
         ],
     )
