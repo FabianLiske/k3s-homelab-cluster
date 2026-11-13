@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: knowledge-service
-          image: ghcr.io/fabianliske/k3s-homelab-cluster/knowledge-pipeline:latest
+          image: ghcr.io/fabianliske/k3s-homelab-cluster/knowledge-pipeline:bc80dfad35699b6425cc8f7170c93588b4cdfcc9
           imagePullPolicy: IfNotPresent
           env:
             - name: PORT
