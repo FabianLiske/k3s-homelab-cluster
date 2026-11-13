@@ -13,7 +13,7 @@ Nutzung (vom Control-Node aus, kubectl + cluster-internetz erreichbar):
 
 Credentials werden zur Laufzeit aus K8s-Secrets gelesen:
     svc-llm/open-webui-secrets   (WEBUI_ADMIN_EMAIL, WEBUI_ADMIN_PASSWORD)
-    svc-rag/knowledge-pipeline-secret (KNOWLEDGE_API_KEYS, Rolle read)
+    svc-rag/knowledge-pipeline-secret (KNOWLEDGE_API_KEYS, Rolle readonly)
     svc-rag/qdrant-secret        (api_key)
 Es werden keine Zugangsdaten in Dateien oder Logs gespeichert.
 """
@@ -29,7 +29,8 @@ import urllib.request
 import uuid
 
 OWUI_BASE = "http://open-webui.svc-llm.svc.cluster.local:8080"
-KB_MCP_URL = "http://knowledge-service.svc-rag.svc.cluster.local:80/mcp"
+KB_MCP_URL = "http://knowledge-service.svc-rag.svc.cluster.local:80"
+KB_MCP_PATH = "/mcp"
 QDRANT_ENDPOINT = "http://qdrant.svc-rag.svc.cluster.local:80"
 COLLECTION = "kb"
 MCP_ID = "knowledge-store"
@@ -52,9 +53,9 @@ def kb_read_token() -> str:
     for part in k8s_secret("svc-rag", "knowledge-pipeline-secret", "KNOWLEDGE_API_KEYS").split(","):
         if ":" in part:
             role, _, token = part.partition(":")
-            if role.strip() == "read":
+            if role.strip() == "readonly":
                 return token.strip()
-    raise SystemExit("Kein read-Token in KNOWLEDGE_API_KEYS gefunden")
+    raise SystemExit("Kein readonly-Token in KNOWLEDGE_API_KEYS gefunden")
 
 
 def api(method: str, path: str, token: str, payload=None, base: str | None = None):
@@ -82,7 +83,7 @@ def api(method: str, path: str, token: str, payload=None, base: str | None = Non
 def signin() -> str:
     email = k8s_secret("svc-llm", "open-webui-secrets", "WEBUI_ADMIN_EMAIL")
     password = k8s_secret("svc-llm", "open-webui-secrets", "WEBUI_ADMIN_PASSWORD")
-    status, res = api("POST", "/v1/auths/signin", "", {"email": email, "password": password})
+    status, res = api("POST", "/api/v1/auths/signin", "", {"email": email, "password": password})
     if not isinstance(res, dict) or not res.get("token"):
         raise SystemExit(f"OWUI-Signin fehlgeschlagen: {status} {res}")
     return res["token"]
@@ -91,12 +92,13 @@ def signin() -> str:
 # ---------- 1) MCP-Tool-Server ----------
 
 def setup_mcp_server(token: str) -> None:
-    status, res = api("GET", "/v1/configs/tool_servers", token)
+    status, res = api("GET", "/api/v1/configs/tool_servers", token)
     servers = res.get("TOOL_SERVER_CONNECTIONS", []) if isinstance(res, dict) else []
 
     existing = next((s for s in servers if (s.get("info") or {}).get("id") == MCP_ID), None)
     conn = {
         "url": KB_MCP_URL,
+        "path": KB_MCP_PATH,
         "type": "mcp",
         "auth_type": "bearer",
         "key": kb_read_token(),
@@ -122,7 +124,7 @@ def setup_mcp_server(token: str) -> None:
     else:
         print("[mcp] Server wird angelegt.")
     servers.append(conn)
-    status, res = api("POST", "/v1/configs/tool_servers", token, {"TOOL_SERVER_CONNECTIONS": servers})
+    status, res = api("POST", "/api/v1/configs/tool_servers", token, {"TOOL_SERVER_CONNECTIONS": servers})
     names = [(s.get("info") or {}).get("name") for s in (res or {}).get("TOOL_SERVER_CONNECTIONS", [])]
     print(f"[mcp] OK, registrierte Server: {names}")
 
@@ -156,7 +158,7 @@ def eks_connection_form() -> dict:
 
 def setup_eks(token: str) -> None:
     # Connection (idempotent via endpoint+provider)
-    status, res = api("GET", "/v1/knowledge/external/connections", token)
+    status, res = api("GET", "/api/v1/knowledge/external/connections", token)
     items = res.get("items", []) if isinstance(res, dict) else []
     conn = next(
         (c for c in items if c.get("provider") == "qdrant" and c.get("endpoint") == QDRANT_ENDPOINT),
@@ -167,7 +169,7 @@ def setup_eks(token: str) -> None:
         connection_id = conn["id"]
     else:
         print("[eks] Connection wird angelegt.")
-        status, res = api("POST", "/v1/knowledge/external/connections", token, eks_connection_form())
+        status, res = api("POST", "/api/v1/knowledge/external/connections", token, eks_connection_form())
         if not isinstance(res, dict):
             raise SystemExit(f"[eks] Connection-Antwort unerwartet: {status} {res!r}")
         connection_id = res.get("id")
@@ -179,7 +181,7 @@ def setup_eks(token: str) -> None:
     print(f"[eks] Test-Query: {TEST_QUERY!r}")
     status, res = api(
         "POST",
-        "/v1/knowledge/external/source/test",
+        "/api/v1/knowledge/external/source/test",
         token,
         {
             "connection": eks_connection_form(),
@@ -194,11 +196,24 @@ def setup_eks(token: str) -> None:
             "[eks] Test lieferte keine Treffer - Index ist vermutlich noch leer. "
             "Erst kb-sync ausfuehren, dann owui-setup.py neu starten."
         )
-    print(f"[eks] Test erfolgreich: {len(docs)} Treffer, top: {str(docs[0])[:120]}")
+    if isinstance(docs[0], str):
+        print(f"[eks] Test erfolgreich: {len(docs)} Treffer; Top: {docs[0][:80]!r}")
+    else:
+        md = (docs[0] or {}).get("metadata")
+        if isinstance(md, str):
+            try:
+                md = json.loads(md)
+            except ValueError:
+                md = None
+        top_note = (md or {}).get("note_id") if isinstance(md, dict) else None
+        print(
+            f"[eks] Test erfolgreich: {len(docs)} Treffer"
+            + (f", top note_id: {top_note}" if top_note else "")
+        )
 
     # Knowledge-Base (idempotent via meta.external.connection_id + collection)
-    status, res = api("GET", "/v1/knowledge", token)
-    kbs = res if isinstance(res, list) else []
+    status, res = api("GET", "/api/v1/knowledge/", token)
+    kbs = res.get("items", []) if isinstance(res, dict) else (res if isinstance(res, list) else [])
     kb = next(
         (
             k
@@ -214,7 +229,7 @@ def setup_eks(token: str) -> None:
     print("[eks] Knowledge-Base wird angelegt.")
     status, res = api(
         "POST",
-        "/v1/knowledge/external/knowledge/create",
+        "/api/v1/knowledge/external/knowledge/create",
         token,
         {
             "name": KB_NAME,
