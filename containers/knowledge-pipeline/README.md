@@ -1,6 +1,7 @@
 # Knowledge Pipeline
 
-Zwei Komponenten in einem Image (`ghcr.io/fabianliske/k3s-homelab-cluster/knowledge-pipeline:latest`):
+Zwei Komponenten in einem Image
+(`ghcr.io/fabianliske/k3s-homelab-cluster/knowledge-pipeline`, Tags `latest` + `sha-<commit>`):
 
 | Komponente | Rolle | Deployment (svc-rag) | Port |
 |---|---|---|---|
@@ -91,8 +92,11 @@ python3 tools/kb-eval/owui-setup.py
 
 ## Bekannte Einschränkungen
 
-- `:latest` + `imagePullPolicy: IfNotPresent` (Repo-Konvention): Nach einem neuen
-  Build `kubectl rollout restart -n svc-rag deploy/knowledge-service deploy/kb-sync`.
+- Deployment nutzt `:latest` + `imagePullPolicy: IfNotPresent` (Repo-Konvention,
+  Build via CI auf Push nach main): Nach einem neuen Build
+  `kubectl rollout restart -n svc-rag deploy/kb-sync deploy/knowledge-service`
+  (Neu-Pull erzwingen). Fuer reproduzierbare Deployments den Tag auf
+  `sha-<commit>` pinnen (dann kein Rollout-Restart noetig).
 - Embedding-Modellwechsel ⇒ `CHUNKER_VERSION`/`embed_model` ändert den Inhalt-Hash,
   d. h. vollständiger Reindex (wie oben bei Neustart) — kein manuelles Aufräumen nötig.
 - OWUI EKS = reine Dense-Retrieval (kein RRF); die Hybrid-Qualität kommt über
