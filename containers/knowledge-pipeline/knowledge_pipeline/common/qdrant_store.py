@@ -197,13 +197,23 @@ class QdrantStore:
                     f"Meta-Collection '{meta_name}' nicht anlegbar: HTTP {r2.status_code}: {r2.text[:300]}"
                 )
 
+    @staticmethod
+    def sync_state_id(meta_name: str) -> str:
+        """Deterministische UUID fuer den Sync-State-Punkt.
+
+        Qdrant akzeptiert fuer Point-IDs nur UUIDs oder Unsigned Ints —
+        die fruehere String-ID 'sync_state' wurde mit HTTP 400 abgelehnt,
+        der Sync-State hat es deshalb nie in kb_meta geschafft.
+        """
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"kb-meta:{meta_name}:sync-state"))
+
     def upsert_sync_state(self, meta_name: str, state: dict) -> None:
         self.ensure_meta_collection(meta_name)
         self.upsert_points(
             meta_name,
             [
                 {
-                    "id": "sync_state",
+                    "id": self.sync_state_id(meta_name),
                     "vector": {"v": [0.0]},
                     "payload": state,
                 }
@@ -212,7 +222,8 @@ class QdrantStore:
 
     def read_sync_state(self, meta_name: str) -> dict | None:
         r = self.session.get(
-            f"{self.url}/collections/{meta_name}/points/sync_state", timeout=30
+            f"{self.url}/collections/{meta_name}/points/{self.sync_state_id(meta_name)}",
+            timeout=30,
         )
         if r.status_code != 200:
             return None

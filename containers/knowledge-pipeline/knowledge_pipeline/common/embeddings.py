@@ -16,9 +16,12 @@ import requests
 log = logging.getLogger(__name__)
 
 # TEI limitiert Batch-Input auf 8192 Token; unsere Chunks bleiben weit
-# darunter. 32/Call ist ein ruhiger Wert fuer den CPU-Service
-# (--max-client-batch-size=32).
-BATCH_SIZE = 32
+# darunter. 8/Call: Der Candle-CPU-Backend von TEI 1.9 erzwingt
+# max_batch_requests=4, ein Mini-Batch dauert auf wk-5 ca. 20-30s — 8 Inputs
+# bleiben damit unter der 120s-Client-Timeout auch bei CPU-Last (bei 32
+# Inputs sind es 8 Mini-Batches = >120s, das hat Notes dauerhaft
+# fehlschlagen lassen).
+BATCH_SIZE = 8
 
 # Gesprochener Modell-Name des TEI-Services (--served-model-name)
 SERVED_MODEL = "local-embedding"
