@@ -1,0 +1,33 @@
+# Allow the RAG pipeline (kb-sync + knowledge-service) to reach Trilium
+# in-cluster via ETAPI. The token-based protection of ETAPI remains in
+# place; this removes the dependency on the public ingress for the
+# internal sync hop.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-trilium-from-rag
+  namespace: svc-trilium
+spec:
+  podSelector:
+    matchLabels:
+      app: trilium
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-rag
+          podSelector:
+            matchLabels:
+              app: kb-sync
+      ports:
+        - { protocol: TCP, port: 8080 }
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-rag
+          podSelector:
+            matchLabels:
+              app: knowledge-service
+      ports:
+        - { protocol: TCP, port: 8080 }

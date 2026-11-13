@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kb-sync
+  namespace: svc-rag
+  labels:
+    app: kb-sync
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kb-sync
+  template:
+    metadata:
+      labels:
+        app: kb-sync
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # wk-4: heavy-compute-Node (lokal neben Qdrant), siehe qdrant/deployment.yaml
+      nodeSelector:
+        node.rohrbom.be/heavy-compute: "true"
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kb-sync
+          image: ghcr.io/fabianliske/k3s-homelab-cluster/knowledge-pipeline:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "knowledge_pipeline.kb_sync"]
+          env:
+            - name: QDRANT_URL
+              value: http://qdrant.svc-rag.svc.cluster.local:80
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: qdrant-secret
+                  key: api_key
+            - name: QDRANT_COLLECTION
+              value: kb
+            - name: TRILIUM_URL
+              value: http://trilium-svc.svc-trilium.svc.cluster.local:80
+            - name: TRILIUM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: knowledge-pipeline-secret
+                  key: TRILIUM_TOKEN
+            - name: DOCLING_URL
+              value: http://docling-serve.svc-rag.svc.cluster.local:80
+            - name: DOCLING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: docling-serve-secret
+                  key: api_key
+            - name: EMBED_URL
+              value: http://embeddings.svc-llm.svc.cluster.local:8080
+            - name: EMBED_MODEL
+              value: Qwen/Qwen3-Embedding-0.6B
+            - name: EMBED_DIM
+              value: "1024"
+            - name: SYNC_INTERVAL
+              value: "300"
+            # Aus Design-Doku C2: Calendar bleibt aus dem Index.
+            # Erweiterbar via Kommata; #noIndex-Label auf Noten greift zudem.
+            - name: KB_EXCLUDE_PATHS
+              value: Calendar
+            - name: STATE_DB
+              value: /data/kbsync.sqlite
+            - name: METRICS_PORT
+              value: "9101"
+            - name: LOG_LEVEL
+              value: INFO
+          ports:
+            - name: metrics
+              containerPort: 9101
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        # Hash-Cache: verlief beim Pod-Neustart, dann einmaliger Full-Reindex
+        - name: data
+          emptyDir: {}

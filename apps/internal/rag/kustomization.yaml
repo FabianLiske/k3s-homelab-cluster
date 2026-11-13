@@ -9,3 +9,6 @@ resources:
   - namespace.yaml
   - qdrant/
   - docling-serve/
+  - knowledge-pipeline-secret.yaml
+  - kb-sync/
+  - knowledge-service/

@@ -1,0 +1,104 @@
+[
+  {
+    "id": "b60-power-limits",
+    "query": "Welche Power Limits habe ich im vLLM-Benchmark auf wk-5 fuer die Arc Pro B60 getestet?",
+    "expected_note_ids": ["qAwINNnUHlWZ"],
+    "note_title": "wk-5 B60 vLLM Power Benchmark"
+  },
+  {
+    "id": "b60-long-scenario",
+    "query": "Wie sah das Long-Scenario im B60-Power-Benchmark aus (Tokens, Batch)?",
+    "expected_note_ids": ["qAwINNnUHlWZ"],
+    "note_title": "wk-5 B60 vLLM Power Benchmark"
+  },
+  {
+    "id": "esp32-module",
+    "query": "Welches ESP32-Modul nutze ich fuer die Sendspin-Endpoints?",
+    "expected_note_ids": ["T68i7MKIpeL8"],
+    "note_title": "ESP32-S3 – Sendspin-Test"
+  },
+  {
+    "id": "ma-os",
+    "query": "Auf welchem Betriebssystem laeuft der Music-Assistant-Server?",
+    "expected_note_ids": ["6ke1QmPMMt3a"],
+    "note_title": "Music Assistant – Server-Installation"
+  },
+  {
+    "id": "ma-hardware",
+    "query": "Auf welcher Hardware laeuft der Music-Assistant-Server?",
+    "expected_note_ids": ["6ke1QmPMMt3a"],
+    "note_title": "Music Assistant – Server-Installation"
+  },
+  {
+    "id": "multiroom-open-question",
+    "query": "Was ist die zentrale offene Frage im Multiroom-Audio-Projekt?",
+    "expected_note_ids": ["D08PWZfpiHdJ"],
+    "note_title": "Offene Entscheidungen"
+  },
+  {
+    "id": "multiroom-status",
+    "query": "In welcher Phase ist das Multiroom-Audio-Projekt aktuell?",
+    "expected_note_ids": ["cnsBM8DmujGz"],
+    "note_title": "Status & ToDo"
+  },
+  {
+    "id": "music-server-software",
+    "query": "Welche Software ist als Musikserver in der Homelab-Musikplanung vorgesehen?",
+    "expected_note_ids": ["Kexr4I2QtHZw", "6ke1QmPMMt3a"],
+    "note_title": "Multiroom Audio / Music Assistant"
+  },
+  {
+    "id": "alza-paypal-betrag",
+    "query": "Wie viel habe ich laut PayPal-Beleg fuer die Alza-Bestellung Arc Pro B60 bezahlt?",
+    "expected_note_ids": ["08CotoEDTDnF", "llAsGJhg1Ip0"],
+    "note_title": "2026-08-27 - Alza - Bestellung (Zahlungsbeleg)"
+  },
+  {
+    "id": "alza-diskrepanz",
+    "query": "Warum weicht der Betrag der Alza-Bestellung von der offiziellen Rechnung ab?",
+    "expected_note_ids": ["08CotoEDTDnF"],
+    "note_title": "2026-08-27 - Alza - Bestellung (Zahlungsbeleg)"
+  },
+  {
+    "id": "floatplane-abo",
+    "query": "Seit wann habe ich ein Floatplane-Abo und was kostet es?",
+    "expected_note_ids": ["TGowp7Me19K7"],
+    "note_title": "2026-08-05 - Floatplane Media - Abo"
+  },
+  {
+    "id": "hulevy-prompting",
+    "query": "Warum reicht Prompting laut Hu und Levy (EMNLP 2023) als Schatzung nicht aus?",
+    "expected_note_ids": ["Ju4XSVA54HjM"],
+    "note_title": "Hu and Levy, 2023"
+  },
+  {
+    "id": "hulevy-arxiv",
+    "query": "Wie lautet die arXiv-Nummer des Hu-Levy-Papers zu Prompting und Wahrscheinlichkeitsschaetzungen?",
+    "expected_note_ids": ["Ju4XSVA54HjM"],
+    "note_title": "Hu and Levy, 2023"
+  },
+  {
+    "id": "k3s-version",
+    "query": "Welche k3s-Version laeuft aktuell im Homelab-Cluster?",
+    "expected_note_ids": ["v3pHOvNlCeMI"],
+    "note_title": "Kubernetes Cluster"
+  },
+  {
+    "id": "imac-basis",
+    "query": "Von welchem iMac und welchem OS stammt mein iMac-Backup?",
+    "expected_note_ids": ["aRiukYax5hDU"],
+    "note_title": "iMac Backup (Users, OS X 10.6.8)"
+  },
+  {
+    "id": "imac-backup-pfad",
+    "query": "Wo liegt das iMac-Backup abgelegt?",
+    "expected_note_ids": ["aRiukYax5hDU"],
+    "note_title": "iMac Backup (Users, OS X 10.6.8)"
+  },
+  {
+    "id": "iphoto-anzahl",
+    "query": "Wie viele Fotos sind in der iPhoto-Bibliothek (Jochen)?",
+    "expected_note_ids": ["HmvmzxDOv62C"],
+    "note_title": "Bilder (iPhoto & Photo Booth)"
+  }
+]

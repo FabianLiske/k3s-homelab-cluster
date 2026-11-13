@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-knowledge-service-from-stack
+  namespace: svc-rag
+spec:
+  podSelector:
+    matchLabels:
+      app: knowledge-service
+  policyTypes: [Ingress]
+  ingress:
+    # kb-sync (Sync-Trigger) und weitere RAG-Komponenten im selben Namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-rag
+      ports:
+        - protocol: TCP
+          port: 80
+    # LiteLLM (MCP-Gateway) und Open WebUI (MCP + External Knowledge Source)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-llm
+      ports:
+        - protocol: TCP
+          port: 80

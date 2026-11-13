@@ -98,6 +98,21 @@ spec:
               value: "true"
             - name: WEB_SEARCH_ENGINE
               value: duckduckgo
+            # RAG: Embedding ueber LiteLLM auf das lokale TEI-Modell
+            # (Qwen3-Embedding-0.6B, 1024d) — identisch zum Knowledge-Pipeline-Index,
+            # damit die External Knowledge Source (Qdrant) und der MCP-Weg
+            # denselben Vektorraum teilen.
+            - name: RAG_EMBEDDING_ENGINE
+              value: openai
+            - name: RAG_OPENAI_API_BASE_URL
+              value: http://litellm.svc-llm.svc.cluster.local:4000/v1
+            - name: RAG_EMBEDDING_MODEL
+              value: local/qwen-3-embedding-0.6b
+            - name: RAG_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: open-webui-secrets
+                  key: OPENAI_API_KEY
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

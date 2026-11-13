@@ -27,3 +27,12 @@ spec:
           port: 6333
         - protocol: TCP
           port: 6334
+    # Open WebUI External Knowledge Source (svc-llm) — Qdrant-Anfragen der
+    # Retrieval-Augmented-Generation laufen direkt gegen den Index.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-llm
+      ports:
+        - protocol: TCP
+          port: 6333

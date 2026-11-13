@@ -1,0 +1,64 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: knowledge-service-egress
+  namespace: svc-rag
+spec:
+  podSelector:
+    matchLabels:
+      app: knowledge-service
+  policyTypes: [Egress]
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Qdrant (gleicher Namespace, Pod-Level-Ports)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+        - protocol: TCP
+          port: 6334
+    # kb-sync (Sync-Trigger /admin/sync)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kb-sync
+      ports:
+        - protocol: TCP
+          port: 9101
+    # Trilium ETAPI (remember/forget, Pod-Level-Port 8080)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-trilium
+          podSelector:
+            matchLabels:
+              app: trilium
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Embeddings/TEI (Pod-Level-Port 8080)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-llm
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: embeddings
+      ports:
+        - protocol: TCP
+          port: 8080
