@@ -114,13 +114,25 @@ class QdrantStore:
             raise QdrantError(f"Points-Delete: HTTP {r.status_code}: {r.text[:300]}")
 
     def scroll_note_ids(self, name: str) -> dict[str, list[str]]:
-        """{note_id: [point_id, ...]} — Basis der Reconciliation."""
+        """{note_id: [point_id, ...]} — Basis der Reconciliation.
+
+        Paginierung ueber 'offset' (Request) / 'next_page_offset' (Response,
+        Punkt-ID der letzten Seite). Hinweis: ein anderes Feld wird von
+        Qdrant still ignoriert und fuehrt zu einem Endlos-Loop auf derselben
+        Seite — das hat schon einmal zum OOM des kb-sync-Pods gefuehrt.
+        """
         by_note: dict[str, list[str]] = {}
-        scroll_id: str | None = None
+        offset: str | int | None = None
+        pages = 0
         while True:
+            pages += 1
+            if pages > 10000:  # Schutz: 1M Punkte reichen hier mit grossem Vorrat
+                raise QdrantError(
+                    f"Scroll ueber 10000 Seiten in '{name}' — Abbruch aus Sicherheitsgruenden"
+                )
             body: dict = {"limit": 100, "with_payload": ["note_id"]}
-            if scroll_id:
-                body["scroll_id"] = scroll_id
+            if offset is not None:
+                body["offset"] = offset
             r = self.session.post(
                 f"{self.url}/collections/{name}/points/scroll", json=body, timeout=120
             )
@@ -134,8 +146,8 @@ class QdrantStore:
                 nid = (p.get("payload") or {}).get("note_id")
                 if nid:
                     by_note.setdefault(nid, []).append(p["id"])
-            scroll_id = d.get("next_page_offset") or d.get("scroll_id")
-            if not points or not scroll_id:
+            offset = d.get("next_page_offset")
+            if not points or offset is None:
                 break
         return by_note
 
