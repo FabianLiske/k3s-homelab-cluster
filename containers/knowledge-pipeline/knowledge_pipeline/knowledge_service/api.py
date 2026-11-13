@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -124,7 +125,20 @@ def build_app(cfg: ServiceConfig) -> "AuthMiddleware":
     )
     counters = Counters()
 
-    app = FastAPI(title="knowledge-service", version=__version__)
+    # MCP (streamable HTTP): Die SDK-App holt ihre Route /mcp aus
+    # settings.streamable_http_path; wir hängen sie am Root an, damit der
+    # Endpunkt exakt /mcp ist (kein doppeltes Mount) und die Session-Manager-
+    # Lifespan über die FastAPI-Lifespan gestartet wird (Mounts würden sie
+    # sonst nie laufen lassen -> "Task group is not initialized").
+    mcp = create_mcp_server(qdrant, embedder, cfg, writer)
+    mcp_app = mcp.streamable_http_app()
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        async with mcp.session_manager.run():
+            yield
+
+    app = FastAPI(title="knowledge-service", version=__version__, lifespan=lifespan)
 
     @app.get("/healthz")
     async def healthz():
@@ -175,9 +189,9 @@ def build_app(cfg: ServiceConfig) -> "AuthMiddleware":
         text = counters.render_metrics(_sync_age(state))
         return Response(content=text, media_type="text/plain; version=0.0.4")
 
-    # MCP unter /mcp (streamable HTTP); Auth laeuft ueber die Middleware.
-    mcp = create_mcp_server(qdrant, embedder, cfg, writer)
-    app.mount("/mcp", mcp.streamable_http_app())
+    # MCP-App zuletzt an Root mounten: /healthz, /search, /metrics haben
+    # Vorrang, alle /mcp-Anfragen landen in der SDK-App.
+    app.mount("/", mcp_app)
 
     return AuthMiddleware(app, cfg.api_keys)
 

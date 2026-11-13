@@ -147,13 +147,17 @@ class QdrantStore:
         limit: int = 10,
         with_payload: bool = True,
     ) -> list[dict]:
-        """Hybrid-Suche: BM25-Präfetch + dichte Vektoren, Fusion RRF."""
+        """Hybrid-Suche: BM25-Präfetch + dichte Vektoren, Fusion RRF.
+
+        Qdrant >= 1.20: Text-Query ist {"text": ...}, RRF ist {"rrf": {}};
+        die Antwort liegt unter result.points.
+        """
         body = {
             "prefetch": [
-                {"query": query_text, "using": "content"},
-                {"query": dense_vec, "using": "dense"},
+                {"query": {"text": query_text}, "using": "content", "limit": limit},
+                {"query": dense_vec, "using": "dense", "limit": limit},
             ],
-            "query": {"fusion": "rrf"},
+            "query": {"rrf": {}},
             "limit": limit,
             "with_payload": with_payload,
         }
@@ -162,7 +166,10 @@ class QdrantStore:
         )
         if r.status_code != 200:
             raise QdrantError(f"Query: HTTP {r.status_code}: {r.text[:300]}")
-        return r.json().get("result", [])
+        result = r.json().get("result")
+        if isinstance(result, dict):
+            return result.get("points", [])
+        return result or []
 
     # ---------- Sync-State (Collection kb_meta) ----------
 
