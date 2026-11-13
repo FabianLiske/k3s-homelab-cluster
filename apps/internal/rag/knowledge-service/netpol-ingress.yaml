@@ -10,13 +10,14 @@ spec:
   policyTypes: [Ingress]
   ingress:
     # kb-sync (Sync-Trigger) und weitere RAG-Komponenten im selben Namespace
+    # (Port = Container-Target-Port 8000, NetPol filtert nach Ziel-Port am Pod)
     - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: svc-rag
       ports:
         - protocol: TCP
-          port: 80
+          port: 8000
     # LiteLLM (MCP-Gateway) und Open WebUI (MCP + External Knowledge Source)
     - from:
         - namespaceSelector:
@@ -24,4 +25,4 @@ spec:
               kubernetes.io/metadata.name: svc-llm
       ports:
         - protocol: TCP
-          port: 80
+          port: 8000
