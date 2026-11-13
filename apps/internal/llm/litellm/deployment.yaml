@@ -92,6 +92,11 @@ spec:
                 secretKeyRef:
                   name: unifi-mcp-secret
                   key: MCP_AUTH_TOKEN
+            - name: KNOWLEDGE_RW_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: knowledge-mcp-secret
+                  key: KNOWLEDGE_RW_TOKEN
           ports:
             - name: http
               containerPort: 4000

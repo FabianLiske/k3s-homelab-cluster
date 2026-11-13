@@ -93,3 +93,16 @@ data:
         url: http://pricecheck-mcp.svc-llm.svc.cluster.local:8000/mcp
         transport: "http"
         description: "Current product prices at configured online shops"
+      # Knowledge-Pipeline-MCP (RAG-Index ueber Trilium, svc-rag). Bearer-Key
+      # (readwrite) kommt aus knowledge-mcp-secret (SOPS-encrypted); die
+      # readonly-Variante wird von Open WebUI direkt (ohne Gateway) genutzt.
+      # Per-Key-ACLs: Virtual Keys koennen auf Teilmenue der Tools begrenzt
+      # werden (siehe litellm/README und knowledge-service-Doku).
+      knowledge:
+        server_id: "23a2b82c32204d1ca6f8d2b314c7ad5b"
+        available_on_public_internet: false
+        url: http://knowledge-service.svc-rag.svc.cluster.local:80/mcp
+        transport: "http"
+        description: "Kuratierte Wissensbasis (Trilium): Hybrid-Suche, remember/forget, Index-Status"
+        auth_type: "bearer_token"
+        auth_value: os.environ/KNOWLEDGE_RW_TOKEN

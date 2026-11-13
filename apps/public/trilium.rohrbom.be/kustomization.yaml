@@ -13,4 +13,5 @@ resources:
   - ingress-public.yaml
   - netpol-ingress-public.yaml
   - netpol-ingress-llm.yaml
+  - netpol-ingress-rag.yaml
   - netpol-egress-deny.yaml

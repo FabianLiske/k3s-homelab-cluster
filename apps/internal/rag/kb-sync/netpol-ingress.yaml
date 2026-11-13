@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kb-sync-from-stack
+  namespace: svc-rag
+spec:
+  podSelector:
+    matchLabels:
+      app: kb-sync
+  policyTypes: [Ingress]
+  ingress:
+    # knowledge-service (Single-Note-Sync-Trigger /admin/sync) im selben Namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: svc-rag
+      ports:
+        - protocol: TCP
+          port: 9101
