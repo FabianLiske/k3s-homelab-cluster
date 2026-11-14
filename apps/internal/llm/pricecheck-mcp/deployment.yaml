@@ -45,7 +45,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: pricecheck-mcp
-          image: ghcr.io/fabianliske/price-check-mcp:sha-b053421
+          image: ghcr.io/fabianliske/price-check-mcp:sha-81b75af
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
