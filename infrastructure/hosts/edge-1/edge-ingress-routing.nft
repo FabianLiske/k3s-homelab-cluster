@@ -1,0 +1,28 @@
+# Host configuration, installed by tools/install-edge-ingress-routing.sh.
+# Reserve the high byte of ct/meta marks; preserve Kubernetes/Flannel marks
+# (0x4000, 0x8000, 0x10000, 0x20000) in the lower 24 bits.
+# Never flush the global ruleset: kube-proxy owns the other nftables tables.
+add table ip edge_ingress_routing
+flush table ip edge_ingress_routing
+
+table ip edge_ingress_routing {
+    chain prerouting {
+        type filter hook prerouting priority mangle; policy accept;
+
+        # Remember ingress before kube-proxy DNAT. Do not mark the ORIGINAL
+        # packets themselves: their destination must still route to the pod.
+        iifname "vlan10" ip daddr 172.26.10.151 tcp dport { 80, 443 } ct direction original counter ct mark set (ct mark & 0x00ffffff) | 0x0a000000
+        iifname "vlan20" ip daddr 172.26.20.151 tcp dport { 80, 443 } ct direction original counter ct mark set (ct mark & 0x00ffffff) | 0x14000000
+        iifname "vlan30" ip daddr 172.26.30.151 tcp dport { 80, 443 } ct direction original counter ct mark set (ct mark & 0x00ffffff) | 0x1e000000
+
+        # Replies still have a pod source IP at route lookup time. Restore
+        # the connection's high byte here, before reverse NAT in POSTROUTING.
+        ct direction reply ct mark & 0xff000000 { 0x0a000000, 0x14000000, 0x1e000000 } counter meta mark set (meta mark & 0x00ffffff) | (ct mark & 0xff000000)
+    }
+
+    chain output {
+        # Also reroute any locally generated replies for these connections.
+        type route hook output priority mangle; policy accept;
+        ct direction reply ct mark & 0xff000000 { 0x0a000000, 0x14000000, 0x1e000000 } counter meta mark set (meta mark & 0x00ffffff) | (ct mark & 0xff000000)
+    }
+}

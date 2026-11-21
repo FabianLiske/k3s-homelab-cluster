@@ -1,0 +1,17 @@
+[Unit]
+Description=Preserve the return VLAN for edge ingress connections
+DefaultDependencies=no
+Wants=network-pre.target
+Before=network-pre.target shutdown.target
+After=local-fs.target systemd-sysctl.service
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/nftables.d/edge-ingress-routing.nft
+ExecReload=/usr/sbin/nft -f /etc/nftables.d/edge-ingress-routing.nft
+ExecStop=/usr/sbin/nft destroy table ip edge_ingress_routing
+
+[Install]
+WantedBy=multi-user.target
