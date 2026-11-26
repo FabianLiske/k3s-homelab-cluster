@@ -106,3 +106,15 @@ data:
         description: "Kuratierte Wissensbasis (Trilium): Hybrid-Suche, remember/forget, Index-Status"
         auth_type: "bearer_token"
         auth_value: os.environ/KNOWLEDGE_RW_TOKEN
+      # OCI Registry MCP server (eigenes Deployment in diesem Namespace).
+      # Read-only-Abfragen gegen OEFFENTLICHE OCI-Registries (Image-Info,
+      # Tags, Manifests, Configs, Referrers) – z. B. zum Prüfen von
+      # Tags/Digests bei Image-Bumps. Kein Endpoint-Auth (wie pricecheck);
+      # Registry-Auth bewusst unset, private Registries sind nicht
+      # erreichbar.
+      ocireg:
+        server_id: "2bf424e8-7606-4758-a43c-2def041040ac"
+        available_on_public_internet: false
+        url: http://ocireg-mcp.svc-llm.svc.cluster.local:8080/mcp
+        transport: "http"
+        description: "Public OCI registry queries (image info, tags, manifests, configs, referrers)"

@@ -1,0 +1,17 @@
+# ClusterIP only: LiteLLM (gleicher Namespace) ist der einzige MCP-Client.
+# Kein Ingress by design (Zugriff über den LiteLLM-MCP-Proxy).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ocireg-mcp
+  labels:
+    app.kubernetes.io/name: ocireg-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ocireg-mcp
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
