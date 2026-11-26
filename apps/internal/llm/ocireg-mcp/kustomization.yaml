@@ -1,0 +1,9 @@
+# Public upstream image: kein Registry-Secret nötig. Kein Runtime-
+# ConfigMap/Secret – Defaults reichen (Port 8080, streamable-http).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+  - netpol-ingress-llm.yaml
+  - netpol-egress.yaml

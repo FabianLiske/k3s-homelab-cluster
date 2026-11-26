@@ -1,0 +1,88 @@
+# OCI Registry MCP server (StacklokLabs/ocireg-mcp): read-only queries
+# against OCI registries (image info, tag lists, manifests, configs,
+# referrers) – u.a. zum Prüfen von Tags/Digests bei Image-Bumps.
+#
+# Stateless Streamable HTTP MCP endpoint unter /mcp, kein Endpoint-Auth.
+# Das öffentliche Upstream-Image braucht kein imagePullSecret und lauscht
+# default auf 0.0.0.0:8080 (MCP_PORT unset). Access Control über den
+# ClusterIP-only-Service und die Network Policies (nur LiteLLM-Pods),
+# wie bei den anderen in-cluster MCP-Servern.
+#
+# Registry-Auth ist bewusst NICHT konfiguriert: nur öffentliche
+# Registries sind abfragbar. (Upstream wendet ein statisches Bearer-Token
+# auf ALLE Registries an, ein GHCR-Token würde docker.io & Co. brechen –
+# bei Bedarf später via eigenem ghcr-only Deployment lösen.)
+#
+# Image multi-arch (amd64/arm64) via upstream GitHub Actions, gepinnt auf
+# Release-Tag; Basis chainguard/static (distroless), deklarierter USER
+# 65532.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ocireg-mcp
+  labels:
+    app.kubernetes.io/name: ocireg-mcp
+    app.kubernetes.io/component: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ocireg-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ocireg-mcp
+        app.kubernetes.io/component: mcp-server
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        # Numerische UID/GID: das Image deklariert User "65532"
+        # (chainguard nonroot); mit runAsNonRoot kann der kubelet
+        # Nicht-Numeric-Usernames nicht verifizieren.
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ocireg-mcp
+          image: ghcr.io/stackloklabs/ocireg-mcp/server:0.4.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Das Upstream-Binary hat keinen Health-Endpoint (nur die MCP-
+          # Routen), daher einfache TCP-Probes auf den Listener.
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
