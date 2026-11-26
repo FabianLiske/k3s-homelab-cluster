@@ -51,7 +51,7 @@ spec:
                 - ALL
       containers:
         - name: open-webui
-          image: ghcr.io/open-webui/open-webui:v0.11.1
+          image: ghcr.io/open-webui/open-webui:v0.13.5
           imagePullPolicy: IfNotPresent
           env:
             - name: WEBUI_URL

@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: embeddings
-          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9@sha256:c26a226262ad4ff3330fb30b76653c1bb65da2fcf413b92284545a010e0a8a48
+          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.10.0
           imagePullPolicy: IfNotPresent
           args:
             - --model-id=Qwen/Qwen3-Embedding-0.6B
