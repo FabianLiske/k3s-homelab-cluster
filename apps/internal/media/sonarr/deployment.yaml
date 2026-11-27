@@ -21,7 +21,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: sonarr
-          image: ghcr.io/hotio/sonarr:latest
+          image: ghcr.io/hotio/sonarr:release-4.0.20.3014
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

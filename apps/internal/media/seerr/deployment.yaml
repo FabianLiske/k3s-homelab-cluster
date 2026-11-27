@@ -21,7 +21,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: seerr
-          image: fallenbagel/jellyseerr:latest
+          image: fallenbagel/jellyseerr:2.7.3
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

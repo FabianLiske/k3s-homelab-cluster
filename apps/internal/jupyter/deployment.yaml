@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: jupyter
-          image: quay.io/jupyter/scipy-notebook:2026-07-28
+          image: quay.io/jupyter/scipy-notebook:2026-11-23
           imagePullPolicy: IfNotPresent
           args:
             - start-notebook.py

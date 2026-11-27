@@ -20,7 +20,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: linkding
-          image: sissbruecker/linkding:latest-plus
+          image: sissbruecker/linkding:1.47.0-plus
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
