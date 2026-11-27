@@ -21,7 +21,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: radarr
-          image: ghcr.io/hotio/radarr:release-6.4.4.10685
+          image: ghcr.io/hotio/radarr:release-7.0.3.10918
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -49,6 +49,17 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 12
+          # Radarr 7 runs a MediaInfo DB migration on first start that can
+          # outlive the liveness budget (~180s) on Pi-class hardware, which
+          # would restart the pod mid-migration in a loop. The startup probe
+          # defers liveness/readiness until the first start succeeds; steady
+          # state behaviour is unchanged.
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 90
           livenessProbe:
             tcpSocket:
               port: http

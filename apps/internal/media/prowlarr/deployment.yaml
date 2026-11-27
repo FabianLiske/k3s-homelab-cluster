@@ -21,7 +21,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: prowlarr
-          image: ghcr.io/hotio/prowlarr:release-2.6.5.5623
+          image: ghcr.io/hotio/prowlarr:release-3.1.0.5799
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
